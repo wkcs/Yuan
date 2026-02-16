@@ -75,28 +75,6 @@ cmake --build build -j
 - `--stdlib`：指定标准库根路径
 - `--module-cache`：模块缓存目录（默认 `.yuan/cache`）
 
-## HTTP 与 OpenAI 兼容流式能力
-
-运行时在 `runtime/yuan_os.cpp` 提供扩展 HTTP 接口，支持：
-
-- GET/POST 自定义 headers
-- timeout（毫秒）
-- stream 模式
-
-在 stream 模式下，运行时会解析 SSE `data:` 行并尝试提取：
-
-- `delta.content`
-- `message.content`
-- `text`
-
-相关示例：`tests/yuan/stdlib/test_std_net_openai_chat.yu`
-
-该示例演示了：
-
-- 构造 OpenAI 兼容 `chat/completions` 请求
-- 设置 `Authorization`/`Content-Type`/`Accept` 头
-- 使用 `stream=true` 持续打印模型输出
-
 ## 测试
 
 ```bash
