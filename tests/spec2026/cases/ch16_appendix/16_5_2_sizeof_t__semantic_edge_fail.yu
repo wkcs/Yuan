@@ -1,0 +1,13 @@
+/// @spec_ref: 16.5.2
+/// @point_id: 16_5_2_sizeof_t
+/// @case_id: 16_5_2_sizeof_t__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 16_5_2_sizeof_t
+func main() -> i32 {
+    var s = @sizeof(1)
+    return s as i32
+}

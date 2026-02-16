@@ -1,0 +1,62 @@
+// 测试 @format 内置函数
+
+func test_basic_format() {
+    // 基本的格式化测试
+    var result1: str = @format("Hello, {}!", "World")
+    @print(result1)
+    @print("\n")
+
+    // 多个参数
+    var result2: str = @format("x = {}, y = {}", 10, 20)
+    @print(result2)
+    @print("\n")
+
+    // 位置参数
+    var result3: str = @format("{0} {1} {0}", "a", "b")
+    @print(result3)
+    @print("\n")
+}
+
+func test_format_types() {
+    // 测试不同类型的格式化
+
+    // 整数
+    var int_result: str = @format("Integer: {}", 42)
+    @print(int_result)
+    @print("\n")
+
+    // 浮点数
+    var float_result: str = @format("Float: {}", 3.14)
+    @print(float_result)
+    @print("\n")
+
+    // 字符串
+    var str_result: str = @format("String: {}", "test")
+    @print(str_result)
+    @print("\n")
+
+    // 布尔值
+    var bool_result: str = @format("Bool: {}", true)
+    @print(bool_result)
+    @print("\n")
+}
+
+func test_format_complex() {
+    // 复杂的格式化测试
+    var name: str = "Yuan"
+    var version: i32 = 1
+    var result: str = @format("Welcome to {} v{}.0!", name, version)
+    @print(result)
+    @print("\n")
+}
+
+func main() -> i32 {
+    @print("=== Testing @format builtin ===\n")
+
+    test_basic_format()
+    test_format_types()
+    test_format_complex()
+
+    @print("=== All tests completed ===\n")
+    return 0
+}

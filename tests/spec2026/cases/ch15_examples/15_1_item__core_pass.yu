@@ -1,0 +1,17 @@
+/// @spec_ref: 15.1
+/// @point_id: 15_1_item
+/// @case_id: 15_1_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: runtime
+/// @diag_codes: 
+/// @diag_keywords: 
+// 基础示例
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+func main() -> i32 {
+    @assert(true, "15_1_item assertion anchor")
+    return add(2, 3)
+}

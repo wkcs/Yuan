@@ -1,0 +1,200 @@
+// Yuan 运算符测试
+// 测试所有 Yuan 语言运算符的词法分析
+
+// 算术运算符
+var add_result = a + b
+var sub_result = a - b
+var mul_result = a * b
+var div_result = a / b
+var mod_result = a % b
+
+// 比较运算符
+var eq_result = a == b
+var ne_result = a != b
+var lt_result = a < b
+var le_result = a <= b
+var gt_result = a > b
+var ge_result = a >= b
+
+// 逻辑运算符
+var and_result = a && b
+var or_result = a || b
+var not_result = !a
+
+// 位运算符
+var bit_and = a & b
+var bit_or = a | b
+var bit_xor = a ^ b
+var bit_not = ~a
+var left_shift = a << b
+var right_shift = a >> b
+
+// 赋值运算符
+var x = 10
+x += 5
+x -= 3
+x *= 2
+x /= 4
+x %= 3
+x &= 0xFF
+x |= 0x0F
+x ^= 0xF0
+x <<= 2
+x >>= 1
+
+// 一元运算符
+var positive = +value
+var negative = -value
+var logical_not = !flag
+var bitwise_not = ~bits
+
+// 引用和解引用运算符
+var reference = &value
+var mut_reference = &mut value
+var dereferenced = *pointer
+
+// 范围运算符
+var range1 = 0..10        // 不包含结束
+var range2 = 0..=10       // 包含结束
+var range3 = start..end
+var range4 = begin..=finish
+
+// 箭头运算符
+func arrow_test() -> i32 {
+    return 42
+}
+
+var closure = |x| => x * 2
+
+// 问号运算符（Optional）
+var optional_value = some_value?
+var optional_type: ?i32 = None
+
+// 成员访问运算符
+var field_access = object.field
+var method_call = object.method()
+var nested_access = obj.field.subfield
+
+// 索引运算符
+var array_element = array[0]
+var matrix_element = matrix[i][j]
+var map_value = map["key"]
+
+// 函数调用运算符
+var result = function()
+var result2 = function(arg1, arg2)
+var result3 = object.method(param)
+
+// 类型转换运算符
+var converted = value as i32
+var float_to_int = 3.14 as i32
+var int_to_float = 42 as f64
+
+// 错误处理运算符
+var error_result = risky_operation()!
+var handled = operation() orelse default_value
+
+// 复合表达式中的运算符优先级测试
+var complex1 = a + b * c
+var complex2 = (a + b) * c
+var complex3 = a * b + c * d
+var complex4 = a && b || c && d
+var complex5 = !a && b || c
+var complex6 = a < b && b < c
+var complex7 = a + b == c * d
+
+// 位运算组合
+var bit_complex1 = a & b | c
+var bit_complex2 = (a & b) | (c & d)
+var bit_complex3 = ~a & b
+var bit_complex4 = a << 2 | b >> 1
+
+// 赋值运算符链
+var chain1 = a = b = c = 10
+var chain2 = (a += 5) + (b *= 2)
+
+// 比较运算符链
+var comparison_chain = a < b <= c < d
+var equality_chain = a == b != c == d
+
+// 逻辑运算符短路
+var short_circuit1 = false && expensive_operation()
+var short_circuit2 = true || expensive_operation()
+
+// 三元运算符样式（使用 if 表达式）
+var ternary_like = if condition { value1 } else { value2 }
+
+// 运算符与字面量的组合
+var literal_ops1 = 1 + 2 * 3
+var literal_ops2 = 3.14 * 2.0
+var literal_ops3 = "hello" + "world"
+var literal_ops4 = true && false
+var literal_ops5 = 'A' == 'B'
+
+// 运算符与标识符的组合
+var identifier_ops1 = variable + 10
+var identifier_ops2 = function() * 2
+var identifier_ops3 = object.field == value
+
+// 括号分组
+var grouped1 = (a + b) * (c - d)
+var grouped2 = ((a * b) + c) / (d - e)
+var grouped3 = !(a && b) || (c && d)
+
+// 数组和切片运算符
+var slice1 = array[1..5]
+var slice2 = array[..5]
+var slice3 = array[1..]
+var slice4 = array[..]
+
+// 结构体字面量中的运算符
+var struct_literal = Point {
+    x: a + b,
+    y: c * d,
+}
+
+// 函数参数中的运算符
+func operator_in_params(a: i32, b: i32) -> i32 {
+    return a + b * 2
+}
+
+var call_with_ops = operator_in_params(x + 1, y * 2)
+
+// 复杂的嵌套运算符表达式
+var nested_complex = ((a + b) * (c - d)) / ((e & f) | (g ^ h))
+
+// 运算符与控制流的结合
+if a + b > c * d {
+    // 条件中的运算符
+}
+
+while counter < max_value && !done {
+    counter += step
+}
+
+for i in 0..array.length {
+    array[i] *= 2
+}
+
+// 匹配表达式中的运算符
+match value {
+    x if x > 0 => positive_result,
+    x if x < 0 => negative_result,
+    _ => zero_result,
+}
+
+// 闭包中的运算符
+var closure_ops = |x, y| => x * y + 1
+var closure_complex = |a, b, c| => (a + b) * c - (a - b) / c
+
+// 错误处理运算符的复杂使用
+var error_complex1 = operation1()! + operation2()!
+var error_complex2 = (risky_call() orelse 0) * 2
+
+// 类型转换运算符的复杂使用
+var cast_complex1 = (a + b) as f64 / c as f64
+var cast_complex2 = (value as i32) + (other as i32)
+
+// 所有运算符的综合测试
+var comprehensive = ((a + b * c) as f64 / (d - e)) > (f & g | h ^ i) as f64 && 
+                   !(j << k >> l) || (m..n).contains(o) && p?.field == q

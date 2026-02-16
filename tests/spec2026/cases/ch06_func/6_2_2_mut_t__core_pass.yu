@@ -1,0 +1,24 @@
+/// @spec_ref: 6.2.2
+/// @point_id: 6_2_2_mut_t
+/// @case_id: 6_2_2_mut_t__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 可变引用参数（统一使用 `&mut T`）
+func bump(x: &mut i32) {
+    *x += 3
+}
+
+func scale(x: &mut i32) {
+    *x *= 2
+}
+
+func main() -> i32 {
+    var v: i32 = 2
+    bump(&mut v)
+    scale(&mut v)
+    @assert(v == 10, "6.2.2 mutable reference parameter")
+    return v
+}

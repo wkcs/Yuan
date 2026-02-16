@@ -1,0 +1,18 @@
+/// @spec_ref: 16.4.2
+/// @point_id: 16_4_2_func
+/// @case_id: 16_4_2_func__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 错误语法_`func()!`_调用函数，如果出错则传播错误给调用者
+func checked(flag: bool) -> !i32 {
+    if !flag { return SysError.PermissionDenied { path: "/tmp/no" } }
+    return 3
+}
+func main() -> i32 {
+    var v = checked(true)!
+    @assert(v == 3, "16.4.2 call with !")
+    return v
+}

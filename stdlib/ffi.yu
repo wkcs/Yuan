@@ -1,0 +1,94 @@
+/// \file ffi.yu
+/// \brief C FFI：动态库加载、符号解析与原始调用。
+
+const mem = @import("mem")
+
+pub type Library = usize
+pub type Symbol = usize
+
+/// 打开动态库。失败时返回 0，可通过 last_error() 获取信息。
+pub func open(path: str) -> Library {
+    return @ffi_open(path)
+}
+
+/// 打开当前进程符号表（用于查找当前可执行程序/已加载库中的符号）。
+pub func open_self() -> Library {
+    return @ffi_open_self()
+}
+
+/// 关闭动态库句柄。
+pub func close(lib: Library) -> bool {
+    return @ffi_close(lib)
+}
+
+/// 查找符号地址。失败时返回 0。
+pub func symbol(lib: Library, name: str) -> Symbol {
+    return @ffi_sym(lib, name)
+}
+
+/// 获取最近一次 FFI 调用的错误信息。
+pub func last_error() -> str {
+    return @ffi_last_error()
+}
+
+/// 调用原始 C 函数（返回值与参数按 usize 透传）。
+pub func call0(fn: Symbol) -> usize {
+    return @ffi_call0(fn)
+}
+
+pub func call1(fn: Symbol, a0: usize) -> usize {
+    return @ffi_call1(fn, a0)
+}
+
+pub func call2(fn: Symbol, a0: usize, a1: usize) -> usize {
+    return @ffi_call2(fn, a0, a1)
+}
+
+pub func call3(fn: Symbol, a0: usize, a1: usize, a2: usize) -> usize {
+    return @ffi_call3(fn, a0, a1, a2)
+}
+
+pub func call4(fn: Symbol, a0: usize, a1: usize, a2: usize, a3: usize) -> usize {
+    return @ffi_call4(fn, a0, a1, a2, a3)
+}
+
+pub func call5(fn: Symbol, a0: usize, a1: usize, a2: usize, a3: usize, a4: usize) -> usize {
+    return @ffi_call5(fn, a0, a1, a2, a3, a4)
+}
+
+pub func call6(fn: Symbol, a0: usize, a1: usize, a2: usize, a3: usize, a4: usize, a5: usize) -> usize {
+    return @ffi_call6(fn, a0, a1, a2, a3, a4, a5)
+}
+
+/// 读取 C 字符串长度（以 '\0' 结尾）。
+pub func cstr_len(ptr_: *u8) -> usize {
+    return @ffi_cstr_len(ptr_ as usize)
+}
+
+/// 将 C 字符串转换为 Yuan str（不拷贝）。
+pub func cstr_to_str(ptr_: *u8) -> str {
+    if ptr_ == (0u64 as *u8) {
+        return ""
+    }
+    var n: usize = cstr_len(ptr_)
+    return mem.str_from_parts(ptr_, n)
+}
+
+/// 为 C API 分配一个 '\0' 结尾字符串（调用方需 free_cstring）。
+pub func alloc_cstring(s: str) -> *mut u8 {
+    var n: usize = s.len() as usize
+    var out: *mut u8 = mem.alloc(n + 1u64)
+    if out == (0u64 as *mut u8) {
+        return out
+    }
+    mem.copy_bytes(out, s.ptr as *u8, n)
+    var view: &mut [u8] = mem.mut_slice_from_parts(out, n + 1u64)
+    view[n] = 0u8
+    return out
+}
+
+pub func free_cstring(ptr_: *mut u8) {
+    if ptr_ != (0u64 as *mut u8) {
+        mem.free(ptr_)
+    }
+}

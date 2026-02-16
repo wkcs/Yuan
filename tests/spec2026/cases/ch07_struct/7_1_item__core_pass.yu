@@ -1,0 +1,21 @@
+/// @spec_ref: 7.1
+/// @point_id: 7_1_item
+/// @case_id: 7_1_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 结构体定义
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+func main() -> i32 {
+    var p = Point { x: 1, y: 2 }
+    var __spec2026_actual: i32 = p.x + p.y
+    var __spec2026_expected: i32 = p.x + p.y
+    @assert(__spec2026_actual == __spec2026_expected, "7_1_item assertion failed")
+    return __spec2026_actual
+}

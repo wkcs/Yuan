@@ -1,0 +1,14 @@
+/// @spec_ref: 12.1
+/// @point_id: 12_1_async_await
+/// @case_id: 12_1_async_await__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3047
+/// @diag_keywords: await,async functions
+// negative semantic case: 12_1_async_await
+async func one() -> !i32 { return 1 }
+func main() -> i32 {
+    var x: i32 = await one()
+    return x
+}

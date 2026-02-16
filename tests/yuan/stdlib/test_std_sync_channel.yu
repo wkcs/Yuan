@@ -1,0 +1,27 @@
+/// \file test_std_sync_channel.yu
+/// \brief std.sync.channel 回归测试
+
+const std = @import("std")
+const channel = std.sync.channel
+const println = std.io.println
+
+func main() -> i32 {
+    var pair = channel.create<i32>()
+    var tx = pair.0
+    var rx = pair.1
+
+    tx.send(42)
+    tx.send(7)
+
+    var got_opt = rx.recv()
+    var got: i32 = got_opt orelse -1
+    println("[channel] recv = {}, expect 42", got)
+
+    var got2_opt = rx.recv()
+    var got2: i32 = got2_opt orelse -1
+    println("[channel] recv #2 = {}, expect 7", got2)
+
+    var empty_recv = rx.try_recv()
+    println("[channel] try_recv empty = {}", (empty_recv orelse -1) == -1)
+    return 0
+}

@@ -1,0 +1,257 @@
+// 复杂模式测试用例
+
+func test_complex_patterns() {
+    var data = ComplexData {
+        id: 1,
+        values: [1, 2, 3, 4, 5],
+        metadata: Some(Metadata {
+            name: "test",
+            tags: ["tag1", "tag2"],
+        }),
+        status: Status.Active { since: 1000 },
+    }
+    
+    // 深度嵌套模式
+    match data {
+        ComplexData {
+            id: 1,
+            metadata: Some(Metadata { name: "test", .. }),
+            status: Status.Active { since },
+            ..
+        } => since,
+        _ => 0,
+    }
+    
+    // 数组模式
+    var arr = [1, 2, 3, 4, 5]
+    match arr {
+        [] => "empty",
+        [x] => "single: " + x.to_string(),
+        [x, y] => "pair: " + x.to_string() + ", " + y.to_string(),
+        [first, .., last] => "first: " + first.to_string() + ", last: " + last.to_string(),
+        [1, 2, rest @ ..] => "starts with 1, 2, rest: " + rest.len().to_string(),
+        _ => "other",
+    }
+    
+    // 切片模式
+    var slice: &[i32] = &[1, 2, 3, 4, 5]
+    match slice {
+        [] => "empty slice",
+        [x] => "single element",
+        [x, y, ..] => "at least two elements",
+        [.., x] => "ends with " + x.to_string(),
+        [x, .., y] => "starts with " + x.to_string() + ", ends with " + y.to_string(),
+    }
+    
+    // 字符串模式
+    var text = "hello world"
+    match text {
+        "" => "empty",
+        "hello" => "greeting",
+        s if s.starts_with("hello") => "starts with hello",
+        s if s.contains("world") => "contains world",
+        _ => "other",
+    }
+    
+    // 复杂枚举模式
+    var message = Message.Complex {
+        id: 42,
+        data: MessageData.Text("hello"),
+        metadata: [("key1", "value1"), ("key2", "value2")],
+    }
+    
+    match message {
+        Message.Simple => "simple",
+        Message.WithData(data) => "with data: " + data.to_string(),
+        Message.Complex {
+            id,
+            data: MessageData.Text(text),
+            metadata,
+        } => "complex text: " + text,
+        Message.Complex {
+            id,
+            data: MessageData.Binary(bytes),
+            ..
+        } => "complex binary: " + bytes.len().to_string(),
+        Message.Complex { id: 42, .. } => "special id 42",
+        _ => "other",
+    }
+    
+    // 递归模式
+    var list = List.Cons(1, Box.new(List.Cons(2, Box.new(List.Nil))))
+    match list {
+        List::Nil => 0,
+        List::Cons(x, box List::Nil) => x,
+        List::Cons(x, box List::Cons(y, _)) => x + y,
+        List::Cons(x, rest) => x + sum_list(rest),
+    }
+    
+    // 树模式
+    var tree = Tree::Node {
+        value: 10,
+        left: Box::new(Tree::Leaf(5)),
+        right: Box::new(Tree::Node {
+            value: 15,
+            left: Box::new(Tree::Leaf(12)),
+            right: Box::new(Tree::Leaf(18)),
+        }),
+    }
+    
+    match tree {
+        Tree::Leaf(value) => value,
+        Tree::Node { value, left: box Tree::Leaf(l), right: box Tree::Leaf(r) } => {
+            value + l + r
+        },
+        Tree::Node { value, left, right } => {
+            value + tree_sum(left) + tree_sum(right)
+        },
+    }
+    
+    // 多层解构
+    var nested = Nested {
+        level1: Level1 {
+            level2: Level2 {
+                level3: Level3 {
+                    value: 42,
+                },
+                other: "test",
+            },
+            flag: true,
+        },
+        items: [1, 2, 3],
+    }
+    
+    match nested {
+        Nested {
+            level1: Level1 {
+                level2: Level2 {
+                    level3: Level3 { value: 42 },
+                    other: "test",
+                },
+                flag: true,
+            },
+            items: [1, 2, 3],
+        } => "exact match",
+        Nested {
+            level1: Level1 {
+                level2: Level2 { level3: Level3 { value }, .. },
+                ..
+            },
+            ..
+        } => "partial match: " + value.to_string(),
+        _ => "no match",
+    }
+    
+    // 函数参数模式
+    var pairs = [(1, 2), (3, 4), (5, 6)]
+    for (x, y) in pairs {
+        // 使用 x 和 y
+    }
+    
+    // 复杂函数参数模式
+    var points = [
+        Point { x: 1.0, y: 2.0 },
+        Point { x: 3.0, y: 4.0 },
+    ]
+    for Point { x, y } in points {
+        // 使用 x 和 y
+    }
+    
+    // 变量声明模式
+    var (a, b, c) = (1, 2, 3)
+    var Point { x, y } = Point { x: 1.0, y: 2.0 }
+    
+    // 复杂变量声明模式
+    var ComplexData {
+        id,
+        metadata: Some(Metadata { name, .. }),
+        ..
+    } = data
+}
+
+struct ComplexData {
+    id: u64,
+    values: [i32; 5],
+    metadata: Option<Metadata>,
+    status: Status,
+}
+
+struct Metadata {
+    name: str,
+    tags: [str; 2],
+}
+
+enum Status {
+    Inactive,
+    Active { since: u64 },
+    Suspended { reason: str },
+}
+
+enum Message {
+    Simple,
+    WithData(i32),
+    Complex {
+        id: u64,
+        data: MessageData,
+        metadata: [(str, str), 2],
+    },
+}
+
+enum MessageData {
+    Text(str),
+    Binary([u8, 10]),
+}
+
+enum List<T> {
+    Nil,
+    Cons(T, Box<List<T>>),
+}
+
+enum Tree<T> {
+    Leaf(T),
+    Node {
+        value: T,
+        left: Box<Tree<T>>,
+        right: Box<Tree<T>>,
+    },
+}
+
+struct Nested {
+    level1: Level1,
+    items: [i32, 3],
+}
+
+struct Level1 {
+    level2: Level2,
+    flag: bool,
+}
+
+struct Level2 {
+    level3: Level3,
+    other: str,
+}
+
+struct Level3 {
+    value: i32,
+}
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+func sum_list(list: &List<i32>) -> i32 {
+    match list {
+        List::Nil => 0,
+        List::Cons(x, rest) => x + sum_list(rest),
+    }
+}
+
+func tree_sum(tree: &Tree<i32>) -> i32 {
+    match tree {
+        Tree::Leaf(value) => *value,
+        Tree::Node { value, left, right } => {
+            value + tree_sum(left) + tree_sum(right)
+        },
+    }
+}

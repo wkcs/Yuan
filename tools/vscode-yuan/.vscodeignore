@@ -1,0 +1,10 @@
+.git/**
+.github/**
+.vscode/**
+node_modules/**
+*.vsix
+**/*.map
+**/*.ts
+**/*.tsx
+**/tsconfig*.json
+**/.DS_Store

@@ -1,0 +1,22 @@
+/// @spec_ref: 8.1
+/// @point_id: 8_1_item
+/// @case_id: 8_1_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 枚举定义
+enum Color {
+    Red,
+    Blue,
+}
+
+func main() -> i32 {
+    var c = Color.Red
+    _ = c
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "8_1_item assertion failed")
+    return __spec2026_actual
+}

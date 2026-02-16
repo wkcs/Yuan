@@ -1,0 +1,15 @@
+/// @spec_ref: 7.2
+/// @point_id: 7_2_item
+/// @case_id: 7_2_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3021
+/// @diag_keywords: field
+// negative semantic case: 7_2_item
+struct P { x: i32, y: i32 }
+func main() -> i32 {
+    var p = P { x: 1 }
+    _ = p
+    return 0
+}

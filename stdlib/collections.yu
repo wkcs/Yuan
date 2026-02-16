@@ -1,0 +1,276 @@
+/// \file collections.yu
+/// \brief 集合类型模块（Vec / HashMap / HashSet）
+
+const mem = @import("mem")
+
+pub struct Vec<T> {
+    data: *mut T,
+    len: usize,
+    cap: usize,
+}
+
+impl Vec<T> {
+    pub func new() -> Vec<T> {
+        return Vec { data: 0u64 as *mut T, len: 0u64, cap: 0u64 }
+    }
+
+    pub func with_capacity(capacity: usize) -> Vec<T> {
+        if capacity == 0u64 {
+            return Vec { data: 0u64 as *mut T, len: 0u64, cap: 0u64 }
+        }
+        var buffer: *mut T = mem.alloc_t<T>(capacity)
+        return Vec { data: buffer, len: 0u64, cap: capacity }
+    }
+
+    pub func from_slice(slice: &[T]) -> Vec<T> {
+        var length: usize = slice.len() as usize
+        var result: Vec<T> = Vec.with_capacity(length)
+        if length > 0u64 {
+            mem.copy<T>(result.data, slice.ptr, length)
+            result.len = length
+        }
+        return result
+    }
+
+    pub func len(&self) -> usize {
+        return self.len
+    }
+
+    pub func capacity(&self) -> usize {
+        return self.cap
+    }
+
+    pub func is_empty(&self) -> bool {
+        return self.len == 0u64
+    }
+
+    pub func reserve(&mut self, additional: usize) {
+        var needed: usize = self.len + additional
+        if needed <= self.cap {
+            return
+        }
+
+        var new_cap: usize = self.cap
+        if new_cap == 0u64 {
+            new_cap = 4u64
+        }
+        while new_cap < needed {
+            new_cap *= 2u64
+        }
+        self.data = mem.realloc_t<T>(self.data, new_cap)
+        self.cap = new_cap
+    }
+
+    pub func push(&mut self, value: T) {
+        if self.len == self.cap {
+            self.reserve(1u64)
+        }
+
+        var slice: &mut [T] = mem.mut_slice_from_parts(self.data as *mut T, self.cap)
+        slice[self.len] = value
+        self.len += 1u64
+    }
+
+    pub func pop(&mut self) -> T {
+        if self.len == 0u64 {
+            @panic("Vec.pop on empty vec")
+        }
+        self.len -= 1u64
+        var slice: &[T] = mem.slice_from_parts(self.data as *T, self.len + 1u64)
+        return slice[self.len]
+    }
+
+    pub func get(&self, index: usize) -> T {
+        if index >= self.len {
+            @panic("Vec.get index out of bounds")
+        }
+        var slice: &[T] = mem.slice_from_parts(self.data as *T, self.len)
+        return slice[index]
+    }
+
+    pub func set(&mut self, index: usize, value: T) {
+        if index >= self.len {
+            @panic("Vec.set index out of bounds")
+        }
+        var slice: &mut [T] = mem.mut_slice_from_parts(self.data as *mut T, self.len)
+        slice[index] = value
+    }
+
+    pub func last(&self) -> T {
+        if self.len == 0u64 {
+            @panic("Vec.last on empty vec")
+        }
+        return self.get(self.len - 1u64)
+    }
+
+    pub func remove(&mut self, index: usize) {
+        if index >= self.len {
+            @panic("Vec.remove index out of bounds")
+        }
+
+        if index + 1u64 < self.len {
+            var dest: *mut T = mem.ptr_add(self.data as *T, index) as *mut T
+            var src: *T = mem.ptr_add(self.data as *T, index + 1u64)
+            var count: usize = self.len - index - 1u64
+            mem.move<T>(dest, src, count)
+        }
+
+        self.len -= 1u64
+    }
+
+    pub func clear(&mut self) {
+        self.len = 0u64
+    }
+
+    pub func as_slice(&self) -> &[T] {
+        return mem.slice_from_parts(self.data as *T, self.len)
+    }
+
+    pub func iter(&self) -> &[T] {
+        return self.as_slice()
+    }
+
+    pub func free(&mut self) {
+        if self.data != 0u64 as *mut T {
+            mem.free(self.data as *mut u8)
+        }
+        self.data = 0u64 as *mut T
+        self.len = 0u64
+        self.cap = 0u64
+    }
+}
+
+pub struct HashMap<K, V> {
+    keys: Vec<K>,
+    values: Vec<V>,
+}
+
+impl HashMap<K, V> {
+    func find_index(&self, key: K) -> i64 {
+        var i: usize = 0u64
+        while i < self.keys.len() {
+            if self.keys.get(i) == key {
+                return i as i64
+            }
+            i += 1u64
+        }
+        return -1i64
+    }
+
+    pub func new() -> HashMap<K, V> {
+        var keys: Vec<K> = Vec.new()
+        var values: Vec<V> = Vec.new()
+        return HashMap { keys: keys, values: values }
+    }
+
+    pub func len(&self) -> usize {
+        return self.values.len()
+    }
+
+    pub func is_empty(&self) -> bool {
+        return self.values.is_empty()
+    }
+
+    pub func insert(&mut self, key: K, value: V) {
+        var idx: i64 = self.find_index(key)
+        if idx >= 0i64 {
+            self.values.set(idx as usize, value)
+            return
+        }
+
+        self.keys.push(key)
+        self.values.push(value)
+    }
+
+    pub func get(&self, key: K) -> ?V {
+        var idx: i64 = self.find_index(key)
+        if idx < 0i64 {
+            return None
+        }
+        return self.values.get(idx as usize)
+    }
+
+    pub func contains_key(&self, key: K) -> bool {
+        return self.find_index(key) >= 0i64
+    }
+
+    pub func remove(&mut self, key: K) -> bool {
+        var idx: i64 = self.find_index(key)
+        if idx < 0i64 {
+            return false
+        }
+
+        var ui: usize = idx as usize
+        self.keys.remove(ui)
+        self.values.remove(ui)
+        return true
+    }
+
+    pub func clear(&mut self) {
+        self.keys.clear()
+        self.values.clear()
+    }
+
+    pub func free(&mut self) {
+        self.keys.free()
+        self.values.free()
+    }
+}
+
+pub struct HashSet<T> {
+    values: Vec<T>,
+}
+
+impl HashSet<T> {
+    func find_index(&self, value: T) -> i64 {
+        var i: usize = 0u64
+        while i < self.values.len() {
+            if self.values.get(i) == value {
+                return i as i64
+            }
+            i += 1u64
+        }
+        return -1i64
+    }
+
+    pub func new() -> HashSet<T> {
+        var values: Vec<T> = Vec.new()
+        return HashSet { values: values }
+    }
+
+    pub func len(&self) -> usize {
+        return self.values.len()
+    }
+
+    pub func is_empty(&self) -> bool {
+        return self.values.is_empty()
+    }
+
+    pub func insert(&mut self, value: T) {
+        if self.find_index(value) >= 0i64 {
+            return
+        }
+        self.values.push(value)
+    }
+
+    pub func contains(&self, value: T) -> bool {
+        return self.find_index(value) >= 0i64
+    }
+
+    pub func remove(&mut self, value: T) -> bool {
+        var idx: i64 = self.find_index(value)
+        if idx < 0i64 {
+            return false
+        }
+        self.values.remove(idx as usize)
+        return true
+    }
+
+    pub func clear(&mut self) {
+        self.values.clear()
+    }
+
+    pub func free(&mut self) {
+        self.values.free()
+    }
+}

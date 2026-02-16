@@ -1,0 +1,21 @@
+const std = @import("std")
+const println = std.io.println
+const format = std.fmt.format
+
+struct Person {
+    name: str,
+    age: i32,
+}
+
+func test_std() {
+    var person = Person{
+        name: "yu",
+        age: 18,
+    }
+
+    println("name: {}, age: {}", person.name, person.age)
+}
+
+func main() {
+    test_std()
+}

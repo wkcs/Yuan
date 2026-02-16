@@ -1,0 +1,19 @@
+/// @spec_ref: 5.8
+/// @point_id: 5_8_defer
+/// @case_id: 5_8_defer__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// defer 语句
+const io = @import("std").io
+
+func main() -> i32 {
+    var done: i32 = 1
+    defer io.println("cleanup:5.8")
+    io.println("work:5.8")
+    done += 2
+    @assert(done == 3, "5.8 defer statement")
+    return done
+}

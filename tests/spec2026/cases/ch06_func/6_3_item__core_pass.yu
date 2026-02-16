@@ -1,0 +1,26 @@
+/// @spec_ref: 6.3
+/// @point_id: 6_3_item
+/// @case_id: 6_3_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 返回值必须处理
+func checked_div(a: i32, b: i32) -> !i32 {
+    if b == 0 {
+        return SysError.DivisionByZero
+    }
+    return a / b
+}
+
+func main() -> i32 {
+    var ok = checked_div(12, 3)!
+    var fallback: i32 = checked_div(7, 0)! -> err {
+        _ = err.message()
+        return -1
+    }
+    @assert(ok == 4, "6.3 handled success value")
+    @assert(fallback == -1, "6.3 handled error value")
+    return ok + fallback
+}

@@ -1,0 +1,17 @@
+/// @spec_ref: 5.2
+/// @point_id: 5_2_item
+/// @case_id: 5_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 常量声明
+const LIMIT: i32 = 7
+const STEP: i32 = 3
+
+func main() -> i32 {
+    var v: i32 = LIMIT + STEP
+    @assert(v == 10, "5.2 const declaration")
+    return v
+}

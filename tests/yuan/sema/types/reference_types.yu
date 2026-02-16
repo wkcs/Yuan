@@ -1,0 +1,25 @@
+// 引用和指针类型测试
+// 测试引用类型的声明和使用
+
+// 基本变量
+var x = 42
+var y = 100
+
+// 不可变引用
+var ref_x: &i32 = &x
+
+// 函数参数中的引用
+func read_ref(n: &i32) -> i32 {
+    return *n
+}
+
+var val = read_ref(&x)
+
+// 可变引用函数参数
+func increment(n: &mut i32) {
+    *n = *n + 1
+}
+
+// 数组和引用
+var arr = [1, 2, 3, 4, 5]
+var first = arr[0]

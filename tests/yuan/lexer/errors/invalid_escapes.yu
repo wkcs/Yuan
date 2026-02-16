@@ -1,0 +1,60 @@
+// Yuan 词法分析错误测试 - 无效转义序列
+// 测试各种无效转义序列的错误处理
+
+// 无效的转义字符
+var str1 = "\q"        // q 不是有效的转义字符
+var str2 = "\w"        // w 不是有效的转义字符
+var str3 = "\z"        // z 不是有效的转义字符
+var str4 = "\@"        // @ 不需要转义
+var str5 = "\#"        // // 不需要转义
+
+// 不完整的十六进制转义
+var str6 = "\x"        // 缺少十六进制数字
+var str7 = "\x1"       // 只有一个十六进制数字
+var str8 = "\xG"       // 无效的十六进制数字
+var str9 = "\xGH"      // 两个无效的十六进制数字
+
+// 不完整的 Unicode 转义
+var str10 = "\u"       // 缺少大括号
+var str11 = "\u{"      // 缺少十六进制数字和结束括号
+var str12 = "\u{41"    // 缺少结束括号
+var str13 = "\u{G}"    // 无效的十六进制数字
+var str14 = "\u{}"     // 空的 Unicode 转义
+
+// Unicode 转义中的无效字符
+var str15 = "\u{GGGG}" // 全部是无效的十六进制数字
+var str16 = "\u{41GG}" // 部分无效的十六进制数字
+var str17 = "\u{XYZ}"  // 完全无效的字符
+
+// 超出范围的 Unicode 转义
+var str18 = "\u{110000}" // 超出 Unicode 范围
+var str19 = "\u{FFFFFF}" // 超出 Unicode 范围
+
+// 字符字面量中的无效转义
+var char1 = '\q'       // 无效的转义字符
+var char2 = '\x'       // 不完整的十六进制转义
+var char3 = '\xG'      // 无效的十六进制数字
+var char4 = '\u'       // 不完整的 Unicode 转义
+var char5 = '\u{'      // 不完整的 Unicode 转义
+var char6 = '\u{G}'    // 无效的 Unicode 转义
+
+// 行尾的反斜杠（可能导致问题）
+var str20 = "hello\
+var str21 = "world"
+
+// 多个反斜杠的问题
+var str22 = "\\\\\\q"  // 最后一个转义无效
+
+// 在原始字符串中的"转义"（应该被字面处理）
+var raw1 = r"\n\t\r"   // 这些在原始字符串中不是转义
+var raw2 = r"\u{41}"   // 这在原始字符串中不是 Unicode 转义
+
+// 多行字符串中的无效转义
+var multiline = """
+Line with invalid escape: \q
+Another line with \x incomplete escape
+"""
+
+// 嵌套引号问题
+var nested1 = "He said \"Hello \q world\""  // 转义引号中的无效转义
+var nested2 = 'Can\'t handle \q this'       // 字符字面量中的无效转义

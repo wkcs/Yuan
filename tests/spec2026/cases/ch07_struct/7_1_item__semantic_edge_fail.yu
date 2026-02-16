@@ -1,0 +1,14 @@
+/// @spec_ref: 7.1
+/// @point_id: 7_1_item
+/// @case_id: 7_1_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3020
+/// @diag_keywords: redeclared
+// negative semantic case: 7_1_item
+struct P {
+    x: i32,
+    x: i32,
+}
+func main() -> i32 { return 0 }

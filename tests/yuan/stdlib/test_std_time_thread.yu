@@ -1,0 +1,27 @@
+/// \file test_std_time_thread.yu
+/// \brief std.time 与 std.thread 回归测试
+
+const std = @import("std")
+const time = std.time
+const thread = std.thread
+const println = std.io.println
+
+func main() -> i32 {
+    var d1 = time.Duration.from_secs(2)
+    var d2 = time.Duration.from_millis(1500)
+    println("[time] d1 secs = {}", d1.as_secs())
+    println("[time] d2 millis = {}", d2.as_millis())
+
+    var start = time.Instant.now()
+    thread.sleep(time.Duration.from_millis(1))
+    var elapsed = start.elapsed()
+    println("[time] elapsed nanos = {}", elapsed.as_nanos())
+
+    var th = thread.spawn(func() -> i32 {
+        return 7
+    })
+    println("[thread] join = {}, expect 7", th.join())
+    println("[thread] finished = {}", th.is_finished())
+    th.free()
+    return 0
+}

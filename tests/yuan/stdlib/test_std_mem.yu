@@ -1,0 +1,58 @@
+/// \file test_std_mem.yu
+/// \brief 标准库 mem 模块回归测试
+
+const std = @import("std")
+const println = std.io.println
+
+func test_mem_bytes() {
+    var src: *mut u8 = std.mem.alloc(8u64)
+    var dst: *mut u8 = std.mem.alloc(8u64)
+
+    println("[mem] alloc src != null: {}", src != (0u64 as *mut u8))
+    println("[mem] alloc dst != null: {}", dst != (0u64 as *mut u8))
+
+    std.mem.set_bytes(src, 0u8, 8u64)
+    var src_view: &mut [u8] = std.mem.mut_slice_from_parts(src, 8u64)
+    src_view[0u64] = 10u8
+    src_view[1u64] = 20u8
+    src_view[2u64] = 30u8
+
+    std.mem.copy_bytes(dst, src as *u8, 8u64)
+    var dst_view: &[u8] = std.mem.slice_from_parts(dst as *u8, 8u64)
+    println("[mem] copy byte0 = {}, expect 10", dst_view[0u64])
+    println("[mem] copy byte1 = {}, expect 20", dst_view[1u64])
+    println("[mem] copy byte2 = {}, expect 30", dst_view[2u64])
+
+    var grown: *mut u8 = std.mem.realloc(src, 16u64)
+    println("[mem] realloc != null: {}", grown != (0u64 as *mut u8))
+    var grown_view: &mut [u8] = std.mem.mut_slice_from_parts(grown, 16u64)
+    grown_view[8u64] = 99u8
+    println("[mem] grown byte8 = {}, expect 99", grown_view[8u64])
+
+    std.mem.free(grown)
+    std.mem.free(dst)
+}
+
+func test_mem_typed_ops() {
+    var nums: *mut i32 = std.mem.alloc(4u64 * @sizeof(i32)) as *mut i32
+    println("[mem] typed alloc != null: {}", nums != (0u64 as *mut i32))
+
+    var nums_view: &mut [i32] = std.mem.mut_slice_from_parts(nums, 4u64)
+    nums_view[0u64] = 11
+    nums_view[1u64] = 22
+    nums_view[2u64] = 33
+    nums_view[3u64] = 44
+
+    var p2: *i32 = std.mem.ptr_add(nums as *i32, 2u64)
+    var tail: &[i32] = std.mem.slice_from_parts(p2, 2u64)
+    println("[mem] tail[0] = {}, expect 33", tail[0u64])
+    println("[mem] tail[1] = {}, expect 44", tail[1u64])
+
+    std.mem.free(nums as *mut u8)
+}
+
+func main() -> i32 {
+    test_mem_bytes()
+    test_mem_typed_ops()
+    return 0
+}

@@ -1,0 +1,171 @@
+// 基本模式测试用例
+
+func test_basic_patterns() {
+    var x = 42
+    var tuple = (1, 2, 3)
+    var option: Option<i32> = Some(42)
+    var point = Point { x: 1.0, y: 2.0 }
+    
+    // 通配符模式
+    match x {
+        _ => "anything",
+    }
+    
+    // 标识符模式
+    match x {
+        value => value.to_string(),
+    }
+    
+    // 字面量模式
+    match x {
+        0 => "zero",
+        1 => "one",
+        42 => "answer",
+        _ => "other",
+    }
+    
+    // 字符串字面量模式
+    var text = "hello"
+    match text {
+        "hello" => "greeting",
+        "goodbye" => "farewell",
+        _ => "unknown",
+    }
+    
+    // 布尔字面量模式
+    var flag = true
+    match flag {
+        true => "yes",
+        false => "no",
+    }
+    
+    // 字符字面量模式
+    var ch = 'a'
+    match ch {
+        'a' => "letter a",
+        'b' => "letter b",
+        _ => "other letter",
+    }
+    
+    // 范围模式
+    match x {
+        0..=10 => "small",
+        11..=100 => "medium",
+        101..=1000 => "large",
+        _ => "huge",
+    }
+    
+    // 开放范围模式
+    match x {
+        ..=0 => "non-positive",
+        1..10 => "single digit",
+        10.. => "double digit or more",
+    }
+    
+    // 元组模式
+    match tuple {
+        (a, b, c) => a + b + c,
+    }
+    
+    // 部分元组模式
+    match tuple {
+        (1, _, _) => "starts with 1",
+        (_, 2, _) => "middle is 2",
+        (_, _, 3) => "ends with 3",
+        _ => "other",
+    }
+    
+    // 嵌套元组模式
+    var nested = ((1, 2), (3, 4))
+    match nested {
+        ((a, b), (c, d)) => a + b + c + d,
+    }
+    
+    // 结构体模式
+    match point {
+        Point { x, y } => x + y,
+    }
+    
+    // 部分结构体模式
+    match point {
+        Point { x: 0.0, .. } => "on y-axis",
+        Point { y: 0.0, .. } => "on x-axis",
+        Point { x, y } => x + y,
+    }
+    
+    // 重命名结构体字段
+    match point {
+        Point { x: px, y: py } => px * py,
+    }
+    
+    // 枚举模式
+    match option {
+        Some(value) => value,
+        None => 0,
+    }
+    
+    // 嵌套枚举模式
+    var nested_option: Option<Option<i32>> = Some(Some(42))
+    match nested_option {
+        Some(Some(value)) => value,
+        Some(None) => -1,
+        None => -2,
+    }
+    
+    // 守卫模式
+    match x {
+        n if n < 0 => "negative",
+        n if n == 0 => "zero",
+        n if n > 100 => "large",
+        n => "positive",
+    }
+    
+    // 复杂守卫
+    match point {
+        Point { x, y } if x > 0.0 && y > 0.0 => "first quadrant",
+        Point { x, y } if x < 0.0 && y > 0.0 => "second quadrant",
+        Point { x, y } if x < 0.0 && y < 0.0 => "third quadrant",
+        Point { x, y } if x > 0.0 && y < 0.0 => "fourth quadrant",
+        _ => "on axis",
+    }
+    
+    // 或模式
+    match x {
+        1 | 2 | 3 => "small",
+        4 | 5 | 6 => "medium",
+        _ => "other",
+    }
+    
+    // 绑定模式
+    match option {
+        value @ Some(_) => process_some(value),
+        None => 0,
+    }
+    
+    // 复杂绑定
+    match point {
+        p @ Point { x, y } if x > 0.0 && y > 0.0 => process_point(p),
+        _ => Point { x: 0.0, y: 0.0 },
+    }
+}
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+func process_some(opt: Option<i32>) -> i32 {
+    match opt {
+        Some(value) => value,
+        None => 0,
+    }
+}
+
+func process_point(p: Point) -> Point {
+    return p
+}

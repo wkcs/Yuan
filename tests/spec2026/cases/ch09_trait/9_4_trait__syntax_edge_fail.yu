@@ -1,0 +1,13 @@
+/// @spec_ref: 9.4
+/// @point_id: 9_4_trait
+/// @case_id: 9_4_trait__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 9_4_trait
+func main() -> i32 {
+    var trait_edge =
+    return 0
+}

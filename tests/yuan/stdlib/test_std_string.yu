@@ -1,0 +1,45 @@
+/// \file test_std_string.yu
+/// \brief 标准库 String 模块回归测试
+
+const std = @import("std")
+const println = std.io.println
+type String = std.string.String
+
+func test_string_alias_with_explicit_type() {
+    var s: String = String.new()
+    s.push_str("x")
+    s.push_str("y")
+    println("[string] alias explicit len = {}, expect 2", s.len)
+    println("[string] alias explicit as_str = {}, expect xy", s.as_str())
+    s.free()
+}
+
+func test_string_build_and_clear() {
+    var s = String.new()
+    s.push_str("Hello")
+    s.push_str(", ")
+    s.push_str("Yuan")
+
+    println("[string] len = {}, expect 11", s.len)
+    println("[string] capacity >= len: {}", s.capacity() >= s.len)
+    println("[string] as_str.len = {}, expect 11", s.as_str().len())
+    println("[string] as_str = {}", s.as_str())
+
+    s.clear()
+    println("[string] len after clear = {}, expect 0", s.len)
+    s.free()
+}
+
+func test_string_from() {
+    var s = std.string.String.from("abc")
+    println("[string] from('abc').len = {}, expect 3", s.len)
+    println("[string] from('abc').as_str().len = {}, expect 3", s.as_str().len())
+    s.free()
+}
+
+func main() -> i32 {
+    test_string_alias_with_explicit_type()
+    test_string_build_and_clear()
+    test_string_from()
+    return 0
+}

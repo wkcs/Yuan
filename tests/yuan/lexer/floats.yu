@@ -1,0 +1,139 @@
+// Yuan 浮点数字面量测试
+// 测试各种浮点数字面量格式
+
+// 基本浮点数
+var float1 = 0.0
+var float2 = 1.0
+var float3 = 3.14
+var float4 = 2.718
+var float5 = 123.456
+var float6 = 999.999
+
+// 没有整数部分的浮点数
+var float_no_int1 = .5
+var float_no_int2 = .25
+var float_no_int3 = .125
+var float_no_int4 = .999
+
+// 没有小数部分的浮点数（带小数点）
+var float_no_frac1 = 1.
+var float_no_frac2 = 42.
+var float_no_frac3 = 100.
+var float_no_frac4 = 999.
+
+// 科学计数法（小写 e）
+var sci1 = 1e0
+var sci2 = 1e1
+var sci3 = 1e10
+var sci4 = 1e-1
+var sci5 = 1e-10
+var sci6 = 3.14e2
+var sci7 = 2.718e-3
+var sci8 = 1.23e+5
+var sci9 = 9.99e-99
+
+// 科学计数法（大写 E）
+var sci_upper1 = 1E0
+var sci_upper2 = 1E1
+var sci_upper3 = 1E10
+var sci_upper4 = 1E-1
+var sci_upper5 = 1E-10
+var sci_upper6 = 3.14E2
+var sci_upper7 = 2.718E-3
+var sci_upper8 = 1.23E+5
+
+// 复杂的科学计数法
+var complex_sci1 = 123.456e10
+var complex_sci2 = 0.001e-5
+var complex_sci3 = 999.999E+100
+var complex_sci4 = .5e10
+var complex_sci5 = 42.E-5
+
+// 带下划线分隔符的浮点数
+var sep_float1 = 1_000.0
+var sep_float2 = 3_141.592_653
+var sep_float3 = 1_234_567.890_123
+var sep_float4 = 1_000_000.000_001
+
+// 科学计数法 + 下划线分隔符
+var sep_sci1 = 1_234.567e10
+var sep_sci2 = 9_999.999_999e-5
+var sep_sci3 = 1_000.0E+100
+
+// 带类型后缀的浮点数
+// f32 后缀
+var f32_1 = 3.14f32
+var f32_2 = 2.718f32
+var f32_3 = 1.0f32
+var f32_4 = 0.5f32
+var f32_5 = 123.456f32
+var f32_6 = 1e10f32
+var f32_7 = 3.14E-5f32
+
+// f64 后缀
+var f64_1 = 3.14f64
+var f64_2 = 2.718f64
+var f64_3 = 1.0f64
+var f64_4 = 0.5f64
+var f64_5 = 123.456f64
+var f64_6 = 1e10f64
+var f64_7 = 3.14E-5f64
+
+// 组合：下划线分隔符 + 类型后缀
+var combo_float1 = 1_000.5f32
+var combo_float2 = 3_141.592_653f64
+var combo_float3 = 1_234.567e10f32
+var combo_float4 = 9_999.999E-5f64
+
+// 特殊浮点数值
+var zero_float1 = 0.0
+var zero_float2 = 0.0f32
+var zero_float3 = 0.0f64
+var zero_float4 = .0
+var zero_float5 = 0.
+
+// 很小的数
+var tiny1 = 0.000001
+var tiny2 = 1e-10
+var tiny3 = 0.000_000_001
+var tiny4 = 1.23e-100
+
+// 很大的数
+var huge1 = 1000000.0
+var huge2 = 1e10
+var huge3 = 1_000_000.0
+var huge4 = 9.99e+100
+
+// 精度测试
+var precision1 = 0.1
+var precision2 = 0.01
+var precision3 = 0.001
+var precision4 = 0.0001
+var precision5 = 0.00001
+var precision6 = 0.000001
+var precision7 = 0.0000001
+
+// 数学常数
+var pi = 3.141592653589793
+var e = 2.718281828459045
+var golden_ratio = 1.618033988749895
+var sqrt2 = 1.4142135623730951
+
+// 边界情况：最小正数和最大数（近似）
+var min_f32 = 1.175494e-38f32
+var max_f32 = 3.402823e+38f32
+var min_f64 = 2.225074e-308f64
+var max_f64 = 1.797693e+308f64
+
+// 复杂的指数表达式
+var complex_exp1 = 1.23456789e+123
+var complex_exp2 = 9.87654321e-123
+var complex_exp3 = 1.111111111e+10
+var complex_exp4 = 2.222222222e-10
+
+// 边界情况：只有小数点
+// var invalid1 = .  // 这应该是无效的，但我们在错误测试中处理
+
+// 长小数部分
+var long_decimal = 0.123456789012345678901234567890
+var long_decimal_sci = 1.234567890123456789e-10

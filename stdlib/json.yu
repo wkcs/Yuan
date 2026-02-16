@@ -1,0 +1,163 @@
+/// \file json.yu
+/// \brief 轻量 JSON 字符串工具（转义与按 key 提取字符串值）
+
+const mem = @import("mem")
+const string = @import("string")
+type String = string.String
+
+func byte_at(s: str, idx: usize) -> u8 {
+    var p: *u8 = (s.ptr as usize + idx) as *u8
+    var one: &[u8] = @slice(p, 1u64)
+    return one[0u64]
+}
+
+func str_slice_1(s: str, idx: usize) -> str {
+    var p: *u8 = (s.ptr as usize + idx) as *u8
+    return mem.str_from_parts(p, 1u64)
+}
+
+func starts_with_at(haystack: str, needle: str, pos: usize) -> bool {
+    var h_len: usize = haystack.len() as usize
+    var n_len: usize = needle.len() as usize
+    if n_len == 0u64 {
+        return true
+    }
+    if pos + n_len > h_len {
+        return false
+    }
+
+    var i: usize = 0u64
+    while i < n_len {
+        if byte_at(haystack, pos + i) != byte_at(needle, i) {
+            return false
+        }
+        i += 1u64
+    }
+    return true
+}
+
+func find_substr(haystack: str, needle: str, from: usize) -> i64 {
+    var h_len: usize = haystack.len() as usize
+    var n_len: usize = needle.len() as usize
+    if n_len == 0u64 {
+        return from as i64
+    }
+    if from >= h_len || n_len > h_len {
+        return -1i64
+    }
+
+    var last: usize = h_len - n_len
+    var i: usize = from
+    while i <= last {
+        if starts_with_at(haystack, needle, i) {
+            return i as i64
+        }
+        i += 1u64
+    }
+    return -1i64
+}
+
+pub func escape(raw: str) -> str {
+    var out = String.new()
+    var n: usize = raw.len() as usize
+    var i: usize = 0u64
+    while i < n {
+        var c: u8 = byte_at(raw, i)
+        if c == 34u8 {
+            out.push_str("\\\"")
+        } elif c == 92u8 {
+            out.push_str("\\\\")
+        } elif c == 10u8 {
+            out.push_str("\\n")
+        } elif c == 13u8 {
+            out.push_str("\\r")
+        } elif c == 9u8 {
+            out.push_str("\\t")
+        } else {
+            out.push_str(str_slice_1(raw, i))
+        }
+        i += 1u64
+    }
+    return out.as_str()
+}
+
+pub func quote(raw: str) -> str {
+    return @format("\"{}\"", escape(raw))
+}
+
+/// 仅支持提取第一个 `"key":"string"` 形式值（忽略对象层级）。
+pub func get_string_by_key(text: str, key: str) -> str {
+    var key_pat: str = @format("\"{}\"", escape(key))
+    var key_pos: i64 = find_substr(text, key_pat, 0u64)
+    if key_pos < 0i64 {
+        return ""
+    }
+
+    var n: usize = text.len() as usize
+    var i: usize = key_pos as usize
+    i += key_pat.len() as usize
+    while i < n {
+        var c0: u8 = byte_at(text, i)
+        if c0 == 32u8 || c0 == 9u8 || c0 == 10u8 || c0 == 13u8 {
+            i += 1u64
+            continue
+        }
+        break
+    }
+    if i >= n || byte_at(text, i) != 58u8 {
+        return ""
+    }
+
+    i += 1u64
+    while i < n {
+        var c1: u8 = byte_at(text, i)
+        if c1 == 32u8 || c1 == 9u8 || c1 == 10u8 || c1 == 13u8 {
+            i += 1u64
+            continue
+        }
+        break
+    }
+    if i >= n || byte_at(text, i) != 34u8 {
+        return ""
+    }
+
+    i += 1u64
+    var out = String.new()
+    while i < n {
+        var c: u8 = byte_at(text, i)
+        if c == 34u8 {
+            break
+        }
+        if c == 92u8 {
+            i += 1u64
+            if i >= n {
+                break
+            }
+            var esc: u8 = byte_at(text, i)
+            if esc == 34u8 {
+                out.push_str("\"")
+            } elif esc == 92u8 {
+                out.push_str("\\")
+            } elif esc == 110u8 {
+                out.push_str("\n")
+            } elif esc == 114u8 {
+                out.push_str("\r")
+            } elif esc == 116u8 {
+                out.push_str("\t")
+            } elif esc == 117u8 {
+                out.push_str("?")
+                var skip: usize = 0u64
+                while skip < 4u64 && i + 1u64 < n {
+                    i += 1u64
+                    skip += 1u64
+                }
+            } else {
+                out.push_str(str_slice_1(text, i))
+            }
+        } else {
+            out.push_str(str_slice_1(text, i))
+        }
+        i += 1u64
+    }
+    return out.as_str()
+}

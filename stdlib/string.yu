@@ -1,0 +1,82 @@
+/// \file string.yu
+/// \brief 可变字符串类型 String
+
+const mem = @import("mem")
+
+pub struct String {
+    data: *mut u8,
+    len: usize,
+    cap: usize,
+}
+
+impl String {
+    pub func new() -> String {
+        return String { data: 0u64 as *mut u8, len: 0u64, cap: 0u64 }
+    }
+
+    pub func from(s: str) -> String {
+        var len: usize = s.len() as usize
+        if len == 0u64 {
+            return String { data: 0u64 as *mut u8, len: 0u64, cap: 0u64 }
+        }
+
+        var buffer: *mut u8 = mem.alloc(len)
+        mem.copy_bytes(buffer, s.ptr as *u8, len)
+        return String { data: buffer, len: len, cap: len }
+    }
+
+    pub func len(&self) -> usize {
+        return self.len
+    }
+
+    pub func capacity(&self) -> usize {
+        return self.cap
+    }
+
+    pub func as_str(&self) -> str {
+        return mem.str_from_parts(self.data as *u8, self.len)
+    }
+
+    pub func push_str(&mut self, s: str) {
+        var add: usize = s.len() as usize
+        if add == 0u64 {
+            return
+        }
+
+        var new_len: usize = self.len + add
+        if new_len > self.cap {
+            var new_cap: usize = self.cap
+            if new_cap == 0u64 {
+                new_cap = 8u64
+            }
+            while new_cap < new_len {
+                new_cap *= 2u64
+            }
+            self.data = mem.realloc(self.data, new_cap)
+            self.cap = new_cap
+        }
+
+        var dst: *mut u8 = mem.ptr_add(self.data as *u8, self.len) as *mut u8
+        mem.copy_bytes(dst, s.ptr as *u8, add)
+        self.len = new_len
+    }
+
+    pub func clear(&mut self) {
+        self.len = 0u64
+    }
+
+    pub func free(&mut self) {
+        if self.data != 0u64 as *mut u8 {
+            mem.free(self.data)
+        }
+        self.data = 0u64 as *mut u8
+        self.len = 0u64
+        self.cap = 0u64
+    }
+}
+
+impl Display for String {
+    func to_string(&self) -> str {
+        return self.as_str()
+    }
+}

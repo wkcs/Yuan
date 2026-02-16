@@ -1,0 +1,14 @@
+/// @spec_ref: 16.5.9
+/// @point_id: 16_5_9_column
+/// @case_id: 16_5_9_column__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 内置函数_`@column()`_当前列号
+func main() -> i32 {
+    var col = @column()
+    @assert(col > 0, "16.5.9 @column")
+    return col as i32
+}

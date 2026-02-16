@@ -1,0 +1,129 @@
+// 集合表达式测试用例
+
+func test_collections() {
+    // 数组表达式
+    var empty_array: [i32; 0] = []
+    var numbers = [1, 2, 3, 4, 5]
+    var repeated = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  // 10个0
+    var mixed_types = [1, 2, 3, 4, 5]
+    
+    // 嵌套数组
+    var matrix = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+    ]
+    
+    // 元组表达式
+    var empty_tuple = ()
+    var single = (42,)  // 单元素元组需要逗号
+    var pair = (1, 2)
+    var triple = (1, 2.0, "three")
+    var complex_tuple = (
+        "name",
+        42,
+        true,
+        [1, 2, 3],
+        ("nested", "tuple")
+    )
+    
+    // 结构体表达式
+    var point = Point { x: 1.0, y: 2.0 }
+    var origin = Point { x: 0.0, y: 0.0 }
+    
+    // 结构体更新语法
+    var moved_point = Point { x: 5.0, ..point }
+    
+    // 嵌套结构体
+    var person = Person {
+        name: "Alice",
+        age: 30,
+        address: Address {
+            street: "123 Main St",
+            city: "Anytown",
+            zip: "12345"
+        }
+    }
+    
+    // 枚举构造
+    var some_value = Some(42)
+    var none_value: Option<i32> = None
+    var ok_result = Ok("success")
+    var err_result: Result<str, str> = Err("error")
+    
+    // 复杂枚举构造
+    var message1 = Message.Quit
+    var message2 = Message.Move { x: 10, y: 20 }
+    var message3 = Message.Write("Hello")
+    var message4 = Message.ChangeColor(255, 0, 0)
+    
+    // 范围表达式
+    var range1 = 1..10      // 不包含结束
+    var range2 = 1..=10     // 包含结束
+    var range3 = ..10       // 从开始到10
+    var range4 = 1..        // 从1到结束
+    var range5 = ..         // 完整范围
+    
+    // 闭包表达式
+    var simple_closure = func(x) { x * 2 }
+    var typed_closure = func(x: i32) -> i32 { x * x }
+    var multi_param = func(a: i32, b: i32) { a + b }
+    var capturing_closure = func(x) { x + captured_var }
+    
+    // 复杂闭包
+    var complex_closure = func(items: &[i32]) -> i32 {
+        var sum = 0
+        for item in items {
+            sum += item
+        }
+        sum
+    }
+    
+    // 高阶函数
+    var mapped = numbers.map(func(x) { x * 2 })
+    var filtered = numbers.filter(func(&x) { x > 2 })
+    var reduced = numbers.reduce(0, func(acc, x) { acc + x })
+    
+    // 链式操作
+    var result = numbers
+        .iter()
+        .filter(func(&x) { x % 2 == 0 })
+        .map(func(x) { x * x })
+        .collect()
+    
+    var captured_var = 10
+}
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+struct Person {
+    name: str,
+    age: u32,
+    address: Address,
+}
+
+struct Address {
+    street: str,
+    city: str,
+    zip: str,
+}
+
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(str),
+    ChangeColor(u8, u8, u8),
+}

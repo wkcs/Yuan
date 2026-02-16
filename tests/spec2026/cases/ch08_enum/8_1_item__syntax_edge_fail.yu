@@ -1,0 +1,18 @@
+/// @spec_ref: 8.1
+/// @point_id: 8_1_item
+/// @case_id: 8_1_item__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 8_1_item
+enum E { A, B }
+func main() -> i32 {
+    var e = E.A
+    var out = match e {
+        E.A =>,
+        E.B => 2,
+    }
+    return out
+}

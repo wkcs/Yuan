@@ -1,0 +1,13 @@
+/// @spec_ref: 6.2.3
+/// @point_id: 6_2_3_item
+/// @case_id: 6_2_3_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E2003,E2002
+/// @diag_keywords: expected,parameter
+// negative semantic case: 6_2_3_item
+func add(a: i32, b: i32 = 1, c: i32) -> i32 {
+    return a + b + c
+}
+func main() -> i32 { return add(1, 2, 3) }

@@ -1,0 +1,17 @@
+/// @spec_ref: 15.4
+/// @point_id: 15_4_item
+/// @case_id: 15_4_item__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E3003,E3027
+/// @diag_keywords: type mismatch,error
+// negative semantic case: 15_4_item
+func divide(a: i32, b: i32) -> !i32 {
+    if b == 0 { return SysError.DivisionByZero }
+    return a / b
+}
+func main() -> i32 {
+    var out: i32 = divide(1, 0)
+    return out
+}

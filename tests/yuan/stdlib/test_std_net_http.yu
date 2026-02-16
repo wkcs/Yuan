@@ -1,0 +1,36 @@
+/// \file test_std_net_http.yu
+/// \brief std.net.http 回归测试
+
+const std = @import("std")
+const http = std.net.http
+const println = std.io.println
+
+async func test_async_api_compile_only() -> !i32 {
+    var resp: http.Response = (await http.get_async("https://example.com"))!
+    return resp.status
+}
+
+func main() -> !i32 {
+    var r1: http.Response = http.get_or_err("https://example.com")!
+    println("[http] GET status = {}", r1.status)
+    println("[http] GET ok = {}", r1.ok())
+
+    var r2: http.Response = http.post_or_err("https://example.com", "payload")!
+    println("[http] POST status = {}", r2.status)
+    println("[http] POST body.len = {}", r2.body.len())
+
+    var opts: http.RequestOptions = http.RequestOptions.default().set_headers(
+        "Content-Type: application/json\nUser-Agent: yuan-stdlib-test"
+    )
+    var client: http.Client = http.client_with_options(opts)
+    var r3: http.Response = http.client_send_post(client, "https://example.com", "{\"hello\":\"world\"}")!
+    println("[http] POST+opts status = {}", r3.status)
+    println("[http] POST+opts body.len = {}", r3.body.len())
+
+    var req: http.Request = http.request("GET", "https://example.com")
+    println("[http] client + request prepared, timeout = {}", opts.timeout_ms)
+    println("[http] request method = {}", req.method)
+    _ = client
+
+    return 0
+}

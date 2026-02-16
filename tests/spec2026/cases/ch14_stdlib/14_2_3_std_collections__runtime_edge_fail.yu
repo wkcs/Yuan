@@ -1,0 +1,16 @@
+/// @spec_ref: 14.2.3
+/// @point_id: 14_2_3_std_collections
+/// @case_id: 14_2_3_std_collections__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 14_2_3_std_collections
+const Vec = @import("std").collections.Vec
+func main() -> i32 {
+    var v: Vec<i32> = Vec.new()
+    v.push("x")
+    v.free()
+    return 0
+}

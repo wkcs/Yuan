@@ -1,0 +1,14 @@
+/// @spec_ref: 10.3
+/// @point_id: 10_3_item
+/// @case_id: 10_3_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3021
+/// @diag_keywords: field,not found
+// negative semantic case: 10_3_item
+const std = @import("std")
+func main() -> i32 {
+    _ = std.io.__missing_api
+    return 0
+}

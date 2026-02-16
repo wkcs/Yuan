@@ -1,0 +1,14 @@
+/// @spec_ref: 3.3.5
+/// @point_id: 3_3_5_item
+/// @case_id: 3_3_5_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: tuple
+// negative semantic case: 3_3_5_item
+func main() -> i32 {
+    var t: (i32, bool) = (1, true, 3)
+    _ = t
+    return 0
+}

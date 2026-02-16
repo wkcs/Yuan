@@ -1,0 +1,32 @@
+// 未声明标识符错误测试
+// 测试使用未声明变量的错误检测
+// 预期：编译时报错
+
+// 这个文件包含正确的代码作为参考
+// 错误的代码被注释掉
+
+// 正确：先声明后使用
+var declared = 42
+var use_declared = declared + 1
+
+// 错误：使用未声明的变量
+// var x = undefined_var  // error: undeclared identifier
+
+// 错误：使用未声明的函数
+// var result = unknown_function()  // error: undeclared identifier
+
+// 错误：使用未声明的类型
+// var v: UndefinedType = 0  // error: undeclared identifier
+
+// 错误：访问不存在的结构体字段
+struct Point {
+    x: i32,
+    y: i32
+}
+
+var p = Point { x: 0, y: 0 }
+// var z = p.z  // error: field not found
+
+// 错误：变量在声明前使用
+// var before = before_decl  // error: undeclared identifier
+// var before_decl = 1

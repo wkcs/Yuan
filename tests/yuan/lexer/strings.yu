@@ -1,0 +1,161 @@
+// Yuan 字符串字面量测试
+// 测试各种字符串字面量格式
+
+// 基本字符串
+var str1 = ""
+var str2 = "hello"
+var str3 = "world"
+var str4 = "Hello, World!"
+var str5 = "Yuan Programming Language"
+
+// 包含空格和标点的字符串
+var str_space = "hello world"
+var str_punct = "Hello, World! How are you?"
+var str_symbols = "!@#$%^&*()_+-=[]{}|':\",./<>?"
+
+// 转义序列
+var esc1 = "hello\nworld"        // 换行符
+var esc2 = "hello\tworld"        // 制表符
+var esc3 = "hello\rworld"        // 回车符
+var esc4 = "hello\\world"        // 反斜杠
+var esc5 = "hello\"world"        // 双引号
+var esc6 = "hello\'world"        // 单引号
+var esc7 = "hello\0world"        // 空字符
+
+// 十六进制转义序列
+var hex_esc1 = "\x41"            // 'A'
+var hex_esc2 = "\x42\x43"        // 'BC'
+var hex_esc3 = "\x20"            // 空格
+var hex_esc4 = "\x0A"            // 换行符
+var hex_esc5 = "\xFF"            // 最大单字节值
+
+// Unicode 转义序列
+var unicode1 = "\u{41}"          // 'A'
+var unicode2 = "\u{4E2D}"        // '中'
+var unicode3 = "\u{1F600}"       // 😀 表情符号
+var unicode4 = "\u{03B1}"        // α 希腊字母
+var unicode5 = "\u{0041}\u{0042}" // 'AB'
+
+// 复杂的转义组合
+var complex_esc1 = "Line 1\nLine 2\tTabbed"
+var complex_esc2 = "Quote: \"Hello\" and 'World'"
+var complex_esc3 = "Path: C:\\Users\\Name\\file.txt"
+var complex_esc4 = "Unicode: \u{4E2D}\u{6587} (Chinese)"
+
+// 原始字符串（r"..."）
+var raw1 = r"hello world"
+var raw2 = r"no\nescapes\there"
+var raw3 = r"C:\Users\Name\file.txt"
+var raw4 = r"Quotes: "hello" and 'world'"
+var raw5 = r"Backslashes: \n \t \r \\"
+
+// 带分隔符的原始字符串（r#"..."#）
+var raw_delim1 = r#"hello world"#
+var raw_delim2 = r#"Contains "quotes" inside"#
+var raw_delim3 = r##"Contains "quotes" and #hash#"##
+var raw_delim4 = r###"Multiple #levels// of ##nesting##"###
+
+// 多行字符串（"""..."""）
+var multiline1 = """
+hello
+world
+"""
+
+var multiline2 = """
+Line 1
+Line 2
+Line 3
+"""
+
+var multiline3 = """
+This is a
+multi-line string
+with various content:
+- Numbers: 123
+- Symbols: !@#$%
+- Unicode: 中文
+"""
+
+var multiline4 = """
+Indented content:
+    Level 1
+        Level 2
+            Level 3
+"""
+
+// 多行字符串中的转义
+var multiline_esc = """
+Line with \n escape
+Line with \t tab
+Line with \" quote
+"""
+
+// 空的多行字符串
+var empty_multiline = """"""
+
+// 只有换行的多行字符串
+var newline_only = """
+"""
+
+// 字符字面量
+var char1 = 'A'
+var char2 = 'z'
+var char3 = '0'
+var char4 = ' '
+var char5 = '!'
+
+// 字符转义序列
+var char_esc1 = '\n'
+var char_esc2 = '\t'
+var char_esc3 = '\r'
+var char_esc4 = '\\'
+var char_esc5 = '\''
+var char_esc6 = '\"'
+var char_esc7 = '\0'
+
+// 字符十六进制转义
+var char_hex1 = '\x41'           // 'A'
+var char_hex2 = '\x20'           // 空格
+var char_hex3 = '\xFF'           // 最大值
+
+// 字符 Unicode 转义
+var char_unicode1 = '\u{41}'     // 'A'
+var char_unicode2 = '\u{4E2D}'   // '中'
+var char_unicode3 = '\u{1F600}'  // 😀
+
+// 包含各种语言的字符串
+var chinese = "你好世界"
+var japanese = "こんにちは世界"
+var korean = "안녕하세요 세계"
+var russian = "Привет мир"
+var arabic = "مرحبا بالعالم"
+var emoji = "Hello 👋 World 🌍!"
+
+// 长字符串
+var long_string = "This is a very long string that contains many words and should test the lexer's ability to handle long string literals without any issues or problems during the tokenization process."
+
+// 包含数字的字符串
+var str_with_numbers = "Version 1.2.3"
+var str_with_hex = "Color: #FF5733"
+var str_with_binary = "Binary: 10101010"
+
+// 包含特殊字符的字符串
+var special_chars = "Special: ©®™€£¥§¶†‡•…‰‹›""''–—"
+
+// JSON 样式的字符串
+var json_like = "{\"name\": \"John\", \"age\": 30}"
+
+// URL 样式的字符串
+var url_like = "https://example.com/path?param=value&other=123"
+
+// 正则表达式样式的字符串
+var regex_like = r"^\d{3}-\d{2}-\d{4}$"
+
+// 包含制表符和空格的字符串
+var whitespace_test = "	spaces	and	tabs	"
+
+// 边界情况：只包含转义序列的字符串
+var only_escapes = "\n\t\r\\\"\'"
+
+// 边界情况：很长的 Unicode 字符串
+var long_unicode = "中文测试字符串包含各种Unicode字符：αβγδεζηθικλμνξοπρστυφχψω"

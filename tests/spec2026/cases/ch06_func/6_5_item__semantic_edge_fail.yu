@@ -1,0 +1,12 @@
+/// @spec_ref: 6.5
+/// @point_id: 6_5_item
+/// @case_id: 6_5_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3020
+/// @diag_keywords: redeclared
+// negative semantic case: 6_5_item
+pub func api() -> i32 { return 1 }
+func api() -> i32 { return 2 }
+func main() -> i32 { return api() }

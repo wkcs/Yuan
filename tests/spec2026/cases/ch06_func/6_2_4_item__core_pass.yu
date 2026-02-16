@@ -1,0 +1,20 @@
+/// @spec_ref: 6.2.4
+/// @point_id: 6_2_4_item
+/// @case_id: 6_2_4_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 引用参数
+func read_pair(x: &i32, y: &i32) -> i32 {
+    return *x + *y
+}
+
+func main() -> i32 {
+    var a: i32 = 7
+    var b: i32 = 5
+    var total = read_pair(&a, &b)
+    @assert(total == 12, "6.2.4 reference parameters")
+    return total
+}

@@ -1,0 +1,18 @@
+/// @spec_ref: 16.3.8
+/// @point_id: 16_3_8_8
+/// @case_id: 16_3_8_8__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级8_`^`_按位异或
+func main() -> i32 {
+    var a = 0b1110
+    var b = 0b1011
+    var toggled = a ^ b
+    var back = toggled ^ b
+    @assert(toggled == 0b0101, "16.3.8 bit xor")
+    @assert(back == a, "16.3.8 xor inverse")
+    return toggled
+}

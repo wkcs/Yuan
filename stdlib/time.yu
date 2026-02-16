@@ -1,0 +1,60 @@
+/// \file time.yu
+/// \brief 时间工具模块
+
+pub struct Duration {
+    nanos: i64,
+}
+
+impl Duration {
+    pub func from_secs(secs: i64) -> Duration {
+        return Duration { nanos: secs * 1000000000i64 }
+    }
+
+    pub func from_millis(ms: i64) -> Duration {
+        return Duration { nanos: ms * 1000000i64 }
+    }
+
+    pub func from_micros(us: i64) -> Duration {
+        return Duration { nanos: us * 1000i64 }
+    }
+
+    pub func from_nanos(ns: i64) -> Duration {
+        return Duration { nanos: ns }
+    }
+
+    pub func as_secs(&self) -> i64 {
+        return self.nanos / 1000000000i64
+    }
+
+    pub func as_millis(&self) -> i64 {
+        return self.nanos / 1000000i64
+    }
+
+    pub func as_nanos(&self) -> i64 {
+        return self.nanos
+    }
+
+    pub func as_secs_f64(&self) -> f64 {
+        return self.nanos as f64 / 1000000000.0
+    }
+}
+
+pub struct Instant {
+    unix_nanos: i64,
+}
+
+/// 当前 Unix 时间戳（秒）
+pub func now_unix() -> i64 {
+    return @os_time_unix_nanos() / 1000000000i64
+}
+
+impl Instant {
+    pub func now() -> Instant {
+        return Instant { unix_nanos: @os_time_unix_nanos() }
+    }
+
+    pub func elapsed(&self) -> Duration {
+        var cur: Instant = Instant.now()
+        return Duration.from_nanos(cur.unix_nanos - self.unix_nanos)
+    }
+}

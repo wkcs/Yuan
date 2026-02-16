@@ -1,0 +1,126 @@
+// 控制流表达式测试用例
+
+func test_control_flow() {
+    var x = 10
+    var y = 20
+    var condition = true
+
+    // If 表达式
+    var result1 = if x > y { x } else { y }
+
+    var result2 = if condition {
+        "true branch"
+    } else {
+        "false branch"
+    }
+
+    // 多分支 if
+    var result3 = if x > 100 {
+        "large"
+    } elif x > 50 {
+        "medium"
+    } elif x > 10 {
+        "small"
+    } else {
+        "tiny"
+    }
+
+    // 嵌套 if
+    var nested = if x > 0 {
+        if y > 0 {
+            "both positive"
+        } else {
+            "x positive, y negative"
+        }
+    } else {
+        "x negative"
+    }
+
+    // Match 表达式
+    var option: ?i32 = Some(42)
+    var matched = match option {
+        Some(value) => value * 2,
+        None => 0,
+    }
+
+    // 复杂 match
+    var color = Color.Red
+    var description = match color {
+        Color.Red => "red color",
+        Color.Green => "green color",
+        Color.Blue => "blue color",
+    }
+
+    // 带守卫的 match
+    var number = 15
+    var category = match number {
+        n if n < 0 => "negative",
+        n if n == 0 => "zero",
+        n if n < 10 => "single digit",
+        n if n < 100 => "double digit",
+        _ => "large number",
+    }
+
+    // 解构 match
+    var point = Point { x: 1.0, y: 2.0 }
+    var quadrant = match point {
+        Point { x, y } if x > 0.0 && y > 0.0 => "first",
+        Point { x, y } if x < 0.0 && y > 0.0 => "second",
+        Point { x, y } if x < 0.0 && y < 0.0 => "third",
+        Point { x, y } if x > 0.0 && y < 0.0 => "fourth",
+        _ => "on axis",
+    }
+
+    // 元组解构 match
+    var tuple = (1, 2, 3)
+    var sum = match tuple {
+        (a, b, c) => a + b + c,
+    }
+
+    // 枚举解构 match
+    var message = Message.Move { x: 10, y: 20 }
+    var response = match message {
+        Message.Quit => "quitting",
+        Message.Move { x, y } => "moving to (" + x.to_string() + ", " + y.to_string() + ")",
+        Message.Write(text) => "writing: " + text,
+        Message.ChangeColor(r, g, b) => "changing color",
+    }
+
+    // 范围 match
+    var score = 85
+    var grade = match score {
+        90..=100 => "A",
+        80..=89 => "B",
+        70..=79 => "C",
+        60..=69 => "D",
+        _ => "F",
+    }
+
+    // 嵌套 match
+    var nested_match = match option {
+        Some(value) => match value {
+            0 => "zero",
+            1..=10 => "small",
+            _ => "large",
+        },
+        None => "none",
+    }
+}
+
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(str),
+    ChangeColor(u8, u8, u8),
+}

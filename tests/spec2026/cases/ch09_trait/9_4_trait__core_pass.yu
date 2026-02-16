@@ -1,0 +1,29 @@
+/// @spec_ref: 9.4
+/// @point_id: 9_4_trait
+/// @case_id: 9_4_trait__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 常用内置 Trait
+trait Clone {
+    func clone(&self) -> Self
+}
+
+struct T { x: i32 }
+
+impl Clone for T {
+    func clone(&self) -> Self {
+        return T { x: self.x }
+    }
+}
+
+func main() -> i32 {
+    var t = T { x: 1 }
+    var c = t.clone()
+    var __spec2026_actual: i32 = c.x
+    var __spec2026_expected: i32 = c.x
+    @assert(__spec2026_actual == __spec2026_expected, "9_4_trait assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,17 @@
+/// @spec_ref: 16.3.7
+/// @point_id: 16_3_7_7
+/// @case_id: 16_3_7_7__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级7_`&`_按位与
+func main() -> i32 {
+    var left = 0b1110
+    var mask = 0b1011
+    var only_common = left & mask
+    @assert(only_common == 0b1010, "16.3.7 bit and")
+    @assert((only_common & 0b0010) == 0b0010, "16.3.7 and recheck")
+    return only_common
+}

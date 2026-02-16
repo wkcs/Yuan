@@ -1,0 +1,60 @@
+// while 循环测试
+
+func test_while_simple(n: i32) -> i32 {
+    var sum: i32 = 0
+    var i: i32 = 0
+
+    while i < n {
+        sum = sum + i
+        i = i + 1
+    }
+
+    return sum
+}
+
+func test_while_with_break(n: i32) -> i32 {
+    var i: i32 = 0
+
+    while i < n {
+        if i == 5 {
+            break
+        }
+        i = i + 1
+    }
+
+    return i
+}
+
+func test_while_with_continue(n: i32) -> i32 {
+    var sum: i32 = 0
+    var i: i32 = 0
+
+    while i < n {
+        i = i + 1
+        if i % 2 == 0 {
+            continue
+        }
+        sum = sum + i
+    }
+
+    return sum
+}
+
+func test_nested_while(n: i32) -> i32 {
+    var sum: i32 = 0
+    var i: i32 = 0
+
+    while i < n {
+        var j: i32 = 0
+        while j < i {
+            sum = sum + 1
+            j = j + 1
+        }
+        i = i + 1
+    }
+
+    return sum
+}
+
+func main() {
+}

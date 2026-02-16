@@ -1,0 +1,11 @@
+// 错误传递
+func divide(a: i32, b: i32) -> !i32 {
+    if b == 0 {
+        return SysError.DivisionByZero
+    }
+    return a / b
+}
+
+func main() {
+    _ = divide(2, 0)!
+}

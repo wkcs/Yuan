@@ -1,0 +1,14 @@
+/// @spec_ref: 14.1
+/// @point_id: 14_1_prelude
+/// @case_id: 14_1_prelude__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: runtime
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 14_1_prelude
+const io = @import("std").io
+func main() -> i32 {
+    io.print("a", )
+    return 0
+}

@@ -1,0 +1,22 @@
+/// @spec_ref: 4.1
+/// @point_id: 4_1_item
+/// @case_id: 4_1_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 字面量表达式
+func main() -> i32 {
+    var a = 1
+    var b = 2.0
+    var c = 'x'
+    var d = "txt"
+    _ = b
+    _ = c
+    _ = d
+    var __spec2026_actual: i32 = a
+    var __spec2026_expected: i32 = a
+    @assert(__spec2026_actual == __spec2026_expected, "4_1_item assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,29 @@
+/// @spec_ref: 9.1
+/// @point_id: 9_1_trait
+/// @case_id: 9_1_trait__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// Trait 定义
+trait Show {
+    func show(&self) -> str
+}
+
+struct U {}
+
+impl Show for U {
+    func show(&self) -> str {
+        return "u"
+    }
+}
+
+func main() -> i32 {
+    var u = U {}
+    _ = u.show()
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "9_1_trait assertion failed")
+    return __spec2026_actual
+}

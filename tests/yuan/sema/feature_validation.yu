@@ -1,0 +1,187 @@
+// 综合特性验证测试（范型 / 枚举 / 模式匹配 / 解构 / 错误传递）
+
+const println = @import("std").io.println
+const format = @import("std").fmt.format
+
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+impl Display for Option<T> {
+    func to_string(&self) -> str {
+        match self {
+            Some(value) => format("Some({})", value),
+            Self.None => "None",
+        }
+    }
+}
+
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+impl Display for Point {
+    func to_string(&self) -> str {
+        return format("Point{{x: {}, y: {}}}", self.x, self.y)
+    }
+}
+
+struct Pair<T, U> {
+    first: T,
+    second: U,
+}
+
+impl Display for Pair<T, U> {
+    func to_string(&self) -> str {
+        println("pair display")
+        return format("Pair{{first: {}, second: {}}}", self.first, self.second)
+    }
+}
+
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(str),
+}
+
+impl Display for Message {
+    func to_string(&self) -> str {
+        match self {
+            Quit => "Quit",
+            Message.Move {x, y} => format("Move {{x: {}, y: {}}}", x, y),
+            Message.Write(s) => s,
+        }
+    }
+}
+
+// 泛型函数
+func make_pair<T, U>(a: T, b: U) -> Pair<T, U> {
+    return Pair { first: a, second: b }
+}
+
+// 泛型枚举 + match
+func unwrap_or<T>(opt: Option<T>, default: T) -> T {
+    match opt {
+        Option.Some(value) => value,
+        Option.None => default,
+    }
+}
+
+// 枚举 + 模式匹配（含结构体变体）
+func describe(msg: Message) -> str {
+    match msg {
+        Message.Quit => "quit",
+        Message.Move { x, y } => format("move {{x: {}, y: {}}}", x, y),
+        Message.Write(text) => text,
+    }
+}
+
+// 解构：元组
+func sum_tuple(t: (i32, i32, i32)) -> i32 {
+    var (a, b, c) = t
+    return a + b + c
+}
+
+// 解构：结构体与 for 模式
+func sum_points(points: [Point; 2]) -> i32 {
+    var total: i32 = 0
+    for Point { x, y } in points {
+        total += x + y
+    }
+    return total
+}
+
+// 错误传递
+func divide(a: i32, b: i32) -> !i32 {
+    if b == 0 {
+        return SysError.DivisionByZero
+    }
+    return a / b
+}
+
+func parse_int(s: str) -> !i32 {
+    if s.len() == 0 {
+        return SysError.ParseError { message: "empty" }
+    }
+    return 42
+}
+
+func compute(s: str, b: i32) -> !i32 {
+    var n: i32 = parse_int(s)!
+    var d: i32 = divide(n, b)!
+    return d
+}
+
+func safe_compute(s: str, b: i32) -> i32 {
+    var result: i32 = compute(s, b)! -> err {
+        return 0
+    }
+    return result
+}
+
+// 综合用例：范型 + 枚举 + 解构 + match
+func use_features() -> i32 {
+    var pair = make_pair(1, "one")
+    var point = Point { x: pair.first, y: 2 }
+    var Point { x, y } = point
+    println("pair: {}", pair)
+    println("point: {}", point)
+    println("x: {}, y: {}", x, y)
+
+    var opt: Option<i32> = Some(x + y)
+    var value = unwrap_or(opt, 0)
+    println("opt: {}", opt)
+    println("value: {}", value)
+
+    var val = divide(10, 0)! -> err {
+        match err {
+            SysError.DivisionByZero => {
+                println("err: {}", err.message())
+                0
+            },
+            _ => {
+                println("unknown err: {}", err.message())
+                -1
+            },
+        }
+    }
+    println("val: {}", val)
+
+    var test = if val > 0 { true } else { false }
+    println("test: {}", test)
+
+    var msg = Message.Move { x: value, y: 3 }
+    var desc = describe(msg)
+    println("msg: {}", msg)
+    println("desc: {}", desc)
+
+    var tuple = (1, 2, 3)
+    var sum = sum_tuple(tuple)
+    println("sum: {}", sum)
+
+    for i in tuple {
+        println("i = {}", i)
+    }
+
+    var points = [Point { x: 1, y: 2 }, Point { x: 3, y: 4 }]
+    var total = sum_points(points)
+    println("total: {}", total)
+
+    var ok = safe_compute("42", 2)
+    println("ok = {}", ok)
+    _ = desc
+    _ = sum_tuple(tuple)
+
+    return sum + total + ok
+}
+
+func main() {
+    println(use_features())
+}

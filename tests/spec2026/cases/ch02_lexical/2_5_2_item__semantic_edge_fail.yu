@@ -1,0 +1,13 @@
+/// @spec_ref: 2.5.2
+/// @point_id: 2_5_2_item
+/// @case_id: 2_5_2_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: lexer
+/// @diag_codes: E1005
+/// @diag_keywords: invalid number literal
+// negative semantic case: 2_5_2_item
+func main() -> i32 {
+    var x = 1e
+    return x as i32
+}

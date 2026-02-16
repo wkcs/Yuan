@@ -1,0 +1,17 @@
+/// @spec_ref: 9.3
+/// @point_id: 9_3_trait
+/// @case_id: 9_3_trait__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3034
+/// @diag_keywords: trait bound
+// negative semantic case: 9_3_trait
+trait Render { func render(&self) -> str }
+func show<T: Render>(v: &T) -> str { return v.render() }
+struct NoRender {}
+func main() -> i32 {
+    var x = NoRender {}
+    _ = show(&x)
+    return 0
+}

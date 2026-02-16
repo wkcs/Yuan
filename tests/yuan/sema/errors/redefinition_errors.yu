@@ -1,0 +1,29 @@
+// 重复定义错误测试
+// 测试重复声明的错误检测
+// 预期：编译时报错
+
+// 正确：不同名称
+var a = 1
+var b = 2
+
+// 错误：同一作用域内重复定义变量
+// var dup = 1
+// var dup = 2  // error: redefinition
+
+// 错误：函数重复定义
+func unique_func() {}
+// func unique_func() {}  // error: redefinition
+
+// 错误：结构体重复定义
+struct UniqueStruct {}
+// struct UniqueStruct {}  // error: redefinition
+
+// 注意：不同作用域可以同名（变量遮蔽）
+var shadowed = 1
+
+func test_shadow() {
+    var shadowed = 2  // 正确：内层作用域遮蔽外层
+}
+
+// 函数参数不能同名
+// func bad_params(x: i32, x: i32) {}  // error: redefinition

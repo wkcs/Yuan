@@ -1,0 +1,42 @@
+// 测试不同整数类型的 Range 迭代器
+
+func test_i32_range() -> bool {
+    var sum: i32 = 0
+    for i in 1..4 {
+        sum = sum + i
+    }
+    return sum == 6  // 1 + 2 + 3
+}
+
+func test_i64_range() -> bool {
+    var sum: i64 = 0
+    for i in 10i64..13i64 {
+        sum = sum + i
+    }
+    return sum == 33  // 10 + 11 + 12
+}
+
+func test_u32_range() -> bool {
+    var sum: u32 = 0
+    for i in 0u32..3u32 {
+        sum = sum + i
+    }
+    return sum == 3  // 0 + 1 + 2
+}
+
+func test_inclusive_range() -> bool {
+    var product: i32 = 1
+    for i in 1..=5 {
+        product = product * i
+    }
+    return product == 120  // 5! = 120
+}
+
+func main() -> i32 {
+    @assert(test_i32_range(), "i32 range test failed")
+    @assert(test_i64_range(), "i64 range test failed")
+    @assert(test_u32_range(), "u32 range test failed")
+    @assert(test_inclusive_range(), "inclusive range test failed")
+
+    return 0
+}

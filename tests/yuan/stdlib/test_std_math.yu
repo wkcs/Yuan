@@ -1,0 +1,21 @@
+/// \file test_std_math.yu
+/// \brief std.math 模块回归测试
+
+const std = @import("std")
+const math = std.math
+const println = std.io.println
+
+func main() -> i32 {
+    println("[math] pi() ~= {}", math.pi())
+    println("[math] sqrt(16) ~= {}", math.sqrt(16.0))
+    println("[math] pow(2,10) ~= {}", math.pow(2.0, 10.0))
+    println("[math] sin(pi/2) ~= {}", math.sin(math.pi() / 2.0))
+    println("[math] cos(0) ~= {}", math.cos(0.0))
+
+    var mx: i32 = math.max(10, 20)
+    var mn: i32 = math.min(10, 20)
+    var ab: i32 = math.abs(-42)
+    println("[math] max/min/abs = {}/{}/{}", mx, mn, ab)
+
+    return 0
+}

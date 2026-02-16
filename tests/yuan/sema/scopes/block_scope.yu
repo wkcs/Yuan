@@ -1,0 +1,35 @@
+// 块作用域测试
+// 测试块作用域中的变量可见性
+
+var global = 100
+
+func test_block_scope() {
+    var outer = 1
+
+    {
+        var inner = 2
+        // 可以访问外层变量
+        var sum = outer + inner + global
+    }
+
+    // inner 在这里不可见（编译时应报错）
+    // var x = inner  // 错误：未声明的标识符
+
+    // outer 仍然可见
+    var y = outer
+}
+
+// 嵌套块
+func test_nested_blocks() {
+    var a = 1
+    {
+        var b = 2
+        {
+            var c = 3
+            // 可以访问所有外层变量
+            var sum = a + b + c
+        }
+        // c 不可见
+    }
+    // b 和 c 都不可见
+}

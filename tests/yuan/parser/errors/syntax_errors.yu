@@ -1,0 +1,152 @@
+// 语法错误测试用例 - 这些应该产生解析错误
+
+// 意外的分号（Yuan 不使用分号）
+func test_unexpected_semicolon() {
+    var x = 42;  // 错误：Yuan 不使用分号
+    return x;    // 错误：Yuan 不使用分号
+}
+
+// 不匹配的括号
+func test_unmatched_brackets() {
+    var arr = [1, 2, 3  // 错误：缺少右括号
+    var tuple = (1, 2, 3  // 错误：缺少右括号
+    var block = {
+        var x = 42
+    // 错误：缺少右大括号
+}
+
+// 不匹配的引号
+func test_unmatched_quotes() {
+    var str1 = "unclosed string  // 错误：未闭合的字符串
+    var str2 = 'unclosed char    // 错误：未闭合的字符
+    var str3 = "mixed quotes'    // 错误：引号不匹配
+}
+
+// 无效的标识符
+func test_invalid_identifiers() {
+    var 123invalid = 42      // 错误：标识符不能以数字开头
+    var invalid-name = 42    // 错误：标识符中不能有连字符
+    var invalid@name = 42    // 错误：标识符中不能有@（除了内置函数）
+    var func = 42            // 错误：不能使用关键字作为标识符
+}
+
+// 无效的数字字面量
+func test_invalid_numbers() {
+    var invalid1 = 0x        // 错误：十六进制数字后面必须有数字
+    var invalid2 = 0b        // 错误：二进制数字后面必须有数字
+    var invalid3 = 0o        // 错误：八进制数字后面必须有数字
+    var invalid4 = 1.        // 错误：浮点数小数点后必须有数字
+    var invalid5 = .5        // 错误：浮点数必须有整数部分
+    var invalid6 = 1e        // 错误：科学计数法指数部分不完整
+}
+
+// 无效的运算符
+func test_invalid_operators() {
+    var x = 1 +++ 2          // 错误：无效的运算符
+    var y = 1 === 2          // 错误：无效的运算符
+    var z = 1 <=> 2          // 错误：无效的运算符
+    var w = 1 ** 2           // 错误：无效的运算符（如果不支持幂运算）
+}
+
+// 无效的类型语法
+func test_invalid_types() {
+    var x: [i32;] = []       // 错误：数组大小不能为空
+    var y: [; 5] = []        // 错误：数组类型不能为空
+    var z: (,) = ()          // 错误：元组类型语法错误
+    var w: func() ->         // 错误：函数返回类型不完整
+}
+
+// 无效的函数定义
+func test_invalid_function_definitions() {
+    func () {                // 错误：函数必须有名称
+        return 42
+    }
+    
+    func invalid_params(,) { // 错误：参数列表语法错误
+        return 42
+    }
+    
+    func invalid_return() -> // 错误：返回类型不完整
+    
+    func unclosed_body() {   // 错误：函数体未闭合
+        var x = 42
+}
+
+// 无效的结构体定义
+struct InvalidStruct {
+    field1: i32,
+    field1: f64,             // 错误：重复的字段名
+    : i32,                   // 错误：字段名不能为空
+    field3                   // 错误：字段必须有类型
+}
+
+struct {                     // 错误：结构体必须有名称
+    field: i32,
+}
+
+// 无效的枚举定义
+enum InvalidEnum {
+    Variant1,
+    Variant1,                // 错误：重复的变体名
+    ,                        // 错误：变体名不能为空
+}
+
+enum {                       // 错误：枚举必须有名称
+    Variant,
+}
+
+// 无效的 match 表达式
+func test_invalid_match() {
+    var x = 42
+    
+    match x {                // 错误：match 必须有分支
+    }
+    
+    match x {
+        42 =>                // 错误：分支体不能为空
+        _ => 0,
+    }
+    
+    match {                  // 错误：match 必须有表达式
+        _ => 0,
+    }
+}
+
+// 无效的 if 表达式
+func test_invalid_if() {
+    if {                     // 错误：if 必须有条件
+        return 42
+    }
+    
+    if true                  // 错误：if 必须有主体
+    
+    if true {
+        return 42
+    } else                   // 错误：else 必须有主体
+}
+
+// 无效的循环
+func test_invalid_loops() {
+    while {                  // 错误：while 必须有条件
+        break
+    }
+    
+    for in 1..10 {          // 错误：for 必须有变量
+        continue
+    }
+    
+    for x 1..10 {           // 错误：for 缺少 in 关键字
+        continue
+    }
+}
+
+// 无效的模式
+func test_invalid_patterns() {
+    var x = (1, 2, 3)
+    
+    match x {
+        (1, 2,) => "incomplete",  // 错误：元组模式不完整
+        [1, 2, 3] => "wrong type", // 错误：类型不匹配
+        Point { x, } => "incomplete", // 错误：结构体模式不完整
+    }
+}

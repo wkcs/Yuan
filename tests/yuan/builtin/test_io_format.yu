@@ -1,0 +1,28 @@
+// 测试 io.yu 的格式化打印函数
+
+const io = @import("io")
+
+func test_println_fmt() {
+    // 测试 println_fmt 函数
+    io.println_fmt("Hello, {}!", "World")
+    io.println_fmt("x = {}, y = {}", 10, 20)
+    io.println_fmt("{0} {1} {0}", "a", "b")
+}
+
+func test_print_fmt() {
+    // 测试 print_fmt 函数
+    io.print_fmt("Line 1: {}", 1)
+    io.print("\n")
+    io.print_fmt("Line 2: {}", 2)
+    io.print("\n")
+}
+
+func main() -> i32 {
+    io.println("=== Testing io.yu format functions ===")
+
+    test_println_fmt()
+    test_print_fmt()
+
+    io.println("=== All tests completed ===")
+    return 0
+}

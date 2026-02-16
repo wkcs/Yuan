@@ -1,0 +1,14 @@
+/// @spec_ref: 8.1
+/// @point_id: 8_1_item
+/// @case_id: 8_1_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3020
+/// @diag_keywords: redeclared
+// negative semantic case: 8_1_item
+enum Color {
+    Red,
+    Red,
+}
+func main() -> i32 { return 0 }

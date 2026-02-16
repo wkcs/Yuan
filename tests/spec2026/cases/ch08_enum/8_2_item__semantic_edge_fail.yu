@@ -1,0 +1,17 @@
+/// @spec_ref: 8.2
+/// @point_id: 8_2_item
+/// @case_id: 8_2_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3042,E3001
+/// @diag_keywords: qualified,undeclared
+// negative semantic case: 8_2_item
+enum Result { Ok(i32), Err(str) }
+func main() -> i32 {
+    var r = Result.Ok(1)
+    return match r {
+        Result.Ok(v) => v,
+        Err(_) => 0,
+    }
+}

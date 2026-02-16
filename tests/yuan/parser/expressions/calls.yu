@@ -1,0 +1,122 @@
+// 函数调用和访问表达式测试用例
+
+func test_calls() {
+    // 基本函数调用
+    var result1 = add(10, 20)
+    var result2 = no_args()
+    
+    // 方法调用
+    var point = Point.new(1.0, 2.0)
+    var distance = point.distance()
+    point.move_by(1.0, 1.0)
+    
+    // 链式调用
+    var chained = point.move_by(1.0, 1.0).distance()
+    
+    // 泛型函数调用
+    var generic1 = identity<int>(42)
+    var generic2 = identity(42)  // 类型推断
+    
+    // 内置函数调用
+    var size = @sizeof(int)
+    var type_info = @typeof(point)
+    var file = @file()
+    var line = @line()
+    
+    // 数组索引
+    var arr = [1, 2, 3, 4, 5]
+    var first = arr[0]
+    var last = arr[arr.len() - 1]
+    
+    // 切片
+    var slice1 = arr[1..4]
+    var slice2 = arr[..3]
+    var slice3 = arr[2..]
+    var slice4 = arr[..]
+    
+    // 成员访问
+    var x = point.x
+    var y = point.y
+    
+    // 元组访问
+    var tuple = (1, 2.0, "hello")
+    var first_elem = tuple.0
+    var second_elem = tuple.1
+    var third_elem = tuple.2
+    
+    // 嵌套访问
+    var nested = outer.inner.value
+    var complex_access = arr[get_index()].field.method()
+    
+    // 可选链（如果支持）
+    var optional_result = optional_value?.method()?.field
+    
+    // 函数指针调用
+    var func_ptr: func(int, int) -> int = add
+    var ptr_result = func_ptr(5, 10)
+    
+    // 闭包调用
+    var closure = |x: int| -> int { x * 2 }
+    var closure_result = closure(21)
+    
+    // 复杂调用表达式
+    var complex = get_object().get_method()(get_args()[0], calculate(1, 2))
+}
+
+func add(a: int, b: int) -> int {
+    return a + b
+}
+
+func no_args() -> int {
+    return 42
+}
+
+func identity<T>(value: T) -> T {
+    return value
+}
+
+func get_index() -> usize {
+    return 0
+}
+
+func get_object() -> Object {
+    return Object {}
+}
+
+func get_args() -> [int; 3] {
+    return [1, 2, 3]
+}
+
+func calculate(a: int, b: int) -> int {
+    return a + b
+}
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+impl Point {
+    func new(x: f64, y: f64) -> Point {
+        return Point { x: x, y: y }
+    }
+    
+    func distance(&self) -> f64 {
+        return (self.x * self.x + self.y * self.y).sqrt()
+    }
+    
+    func move_by(&mut self, dx: f64, dy: f64) -> &mut Self {
+        self.x += dx
+        self.y += dy
+        return self
+    }
+}
+
+struct Object {
+}
+
+impl Object {
+    func get_method(&self) -> func(int, int) -> int {
+        return add
+    }
+}

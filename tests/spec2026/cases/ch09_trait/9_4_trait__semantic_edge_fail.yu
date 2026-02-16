@@ -1,0 +1,17 @@
+/// @spec_ref: 9.4
+/// @point_id: 9_4_trait
+/// @case_id: 9_4_trait__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 9_4_trait
+trait Clone { func clone(&self) -> Self }
+struct X {}
+impl Clone for X {
+    func clone(&self) -> i32 {
+        return 1
+    }
+}
+func main() -> i32 { return 0 }

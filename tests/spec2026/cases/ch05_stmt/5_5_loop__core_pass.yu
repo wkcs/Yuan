@@ -1,0 +1,23 @@
+/// @spec_ref: 5.5
+/// @point_id: 5_5_loop
+/// @case_id: 5_5_loop__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// loop 循环
+func main() -> i32 {
+    var i: i32 = 0
+    var acc: i32 = 0
+    loop {
+        i += 1
+        acc += i
+        if i == 3 {
+            break
+        }
+    }
+    @assert(i == 3, "5.5 loop break target")
+    @assert(acc == 6, "5.5 loop accumulation")
+    return acc
+}

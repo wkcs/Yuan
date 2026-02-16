@@ -1,0 +1,19 @@
+/// @spec_ref: 2.5.5
+/// @point_id: 2_5_5_item
+/// @case_id: 2_5_5_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: lexer
+/// @diag_codes: 
+/// @diag_keywords: 
+// 布尔字面量
+func main() -> i32 {
+    var t: bool = true
+    if t {
+        return 1
+    }
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "2_5_5_item assertion failed")
+    return __spec2026_actual
+}

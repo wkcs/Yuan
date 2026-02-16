@@ -1,0 +1,68 @@
+// 基本语句测试用例
+
+func test_basic_statements() {
+    // 表达式语句
+    add(1, 2)
+    point.move_by(1.0, 1.0)
+    
+    // 赋值语句
+    var x = 10
+    x = 20
+    x += 5
+    x -= 3
+    x *= 2
+    x /= 4
+    
+    // 变量声明语句
+    var y = 30
+    var z: i32 = 40
+    var w = 50
+    
+    // 常量声明语句
+    const PI = 3.14159
+    const MAX_SIZE: usize = 1000
+    
+    // 块语句
+    {
+        var local_var = 100
+        local_var + 200
+    }
+    
+    // 嵌套块
+    {
+        var outer = 1
+        {
+            var inner = 2
+            outer + inner
+        }
+    }
+    
+    // 返回语句
+    return
+    return 42
+    return add(x, y)
+    return {
+        var result = complex_calculation()
+        result * 2
+    }
+}
+
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+func complex_calculation() -> i32 {
+    return 42
+}
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+impl Point {
+    func move_by(&mut self, dx: f64, dy: f64) {
+        self.x += dx
+        self.y += dy
+    }
+}

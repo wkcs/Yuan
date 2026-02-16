@@ -1,0 +1,13 @@
+/// @spec_ref: 2.3
+/// @point_id: 2_3_item
+/// @case_id: 2_3_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: lexer
+/// @diag_codes: E2008
+/// @diag_keywords: unexpected token
+// negative semantic case: 2_3_item
+func main() -> i32 {
+    var if = 1
+    return if
+}

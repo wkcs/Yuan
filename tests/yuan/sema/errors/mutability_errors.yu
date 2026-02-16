@@ -1,0 +1,28 @@
+// 可变性错误测试
+// 测试违反可变性规则的错误检测
+// 预期：编译时报错
+
+// 正确的代码作为参考
+var mutable_var = 42
+
+// 错误：给不可变变量赋值
+var immutable_var = 42
+// immutable_var = 100  // error: cannot assign to immutable variable
+
+// 错误：给常量赋值
+const CONSTANT = 42
+// CONSTANT = 100  // error: cannot assign to constant
+
+// 错误：通过不可变引用修改
+var value = 10
+var ref_val: &i32 = &value
+// *ref_val = 20  // error: cannot modify through immutable reference
+
+// 错误：修改不可变结构体的字段
+struct Point {
+    x: i32,
+    y: i32
+}
+
+var p = Point { x: 0, y: 0 }
+// p.x = 10  // error: cannot assign to field of immutable struct

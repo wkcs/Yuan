@@ -1,0 +1,13 @@
+// usize 后缀与整数宽化赋值回归测试
+
+func main() -> i32 {
+    var a: usize = 1
+    var b = 12
+    var c: usize = 3usize
+
+    a = b
+
+    @assert(a == 12usize, "usize promotion failed")
+    @assert(c == 3usize, "usize suffix failed")
+    return 0
+}

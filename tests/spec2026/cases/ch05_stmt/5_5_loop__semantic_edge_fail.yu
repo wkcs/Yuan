@@ -1,0 +1,15 @@
+/// @spec_ref: 5.5
+/// @point_id: 5_5_loop
+/// @case_id: 5_5_loop__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E2005,E2008
+/// @diag_keywords: unexpected token,break
+// negative semantic case: 5_5_loop
+func main() -> i32 {
+    loop {
+        break 1
+    }
+    return 0
+}

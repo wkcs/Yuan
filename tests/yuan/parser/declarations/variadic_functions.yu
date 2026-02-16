@@ -1,0 +1,19 @@
+// 可变参数函数测试用例（简化版）
+
+const io = @import("std").io
+const fmt = @import("std").fmt
+
+// 基本函数（简化，不使用可变参数）
+func print_message(prefix: str, message: str) {
+    // 简化实现
+}
+
+// 整数求和函数
+func sum_two_integers(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+// 浮点数求和函数
+func sum_two_floats(a: f64, b: f64) -> f64 {
+    return a + b
+}

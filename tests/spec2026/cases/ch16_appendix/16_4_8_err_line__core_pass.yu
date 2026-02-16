@@ -1,0 +1,21 @@
+/// @spec_ref: 16.4.8
+/// @point_id: 16_4_8_err_line
+/// @case_id: 16_4_8_err_line__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 错误语法_`err.line`_获取出错的行号
+func fail() -> !i32 {
+    return SysError.ParseError { message: "line info" }
+}
+func main() -> i32 {
+    var out: i32 = fail()! -> err {
+        var line = err.line
+        _ = line
+        @assert(true, "16.4.8 err.line")
+        return 4
+    }
+    return out
+}

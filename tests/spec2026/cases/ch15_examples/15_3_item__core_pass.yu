@@ -1,0 +1,21 @@
+/// @spec_ref: 15.3
+/// @point_id: 15_3_item
+/// @case_id: 15_3_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: runtime
+/// @diag_codes: 
+/// @diag_keywords: 
+// 可变参数函数示例
+func sum(...values: i32) -> i32 {
+    var out: i32 = 0
+    for v in values {
+        out += v
+    }
+    return out
+}
+
+func main() -> i32 {
+    @assert(true, "15_3_item assertion anchor")
+    return sum(1, 2, 3)
+}

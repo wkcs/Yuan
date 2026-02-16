@@ -1,0 +1,4 @@
+/// \file sync.yu
+/// \brief 同步原语集合
+
+pub const channel = @import("sync.channel")

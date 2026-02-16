@@ -1,0 +1,14 @@
+/// @spec_ref: 10.1
+/// @point_id: 10_1_item
+/// @case_id: 10_1_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3029
+/// @diag_keywords: module,not found
+// negative semantic case: 10_1_item
+const m = @import("./__spec2026_missing__.yu")
+func main() -> i32 {
+    _ = m
+    return 0
+}

@@ -1,0 +1,14 @@
+/// @spec_ref: 16.5.8
+/// @point_id: 16_5_8_line
+/// @case_id: 16_5_8_line__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 内置函数_`@line()`_当前行号
+func main() -> i32 {
+    var line = @line()
+    @assert(line > 0, "16.5.8 @line")
+    return line as i32
+}

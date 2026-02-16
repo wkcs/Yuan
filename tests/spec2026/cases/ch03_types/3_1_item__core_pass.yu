@@ -1,0 +1,22 @@
+/// @spec_ref: 3.1
+/// @point_id: 3_1_item
+/// @case_id: 3_1_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 静态类型
+func main() -> i32 {
+    var a: i32 = 10
+    var b: f64 = 2.5
+    var c: bool = true
+    var d: char = 'x'
+    var e: str = "yuan"
+    @assert(a == 10, "3.1 i32 check")
+    @assert(b > 2.0, "3.1 f64 check")
+    @assert(c, "3.1 bool check")
+    _ = d
+    _ = e
+    return 0
+}

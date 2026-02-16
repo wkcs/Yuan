@@ -1,0 +1,20 @@
+/// @spec_ref: 11.3
+/// @point_id: 11_3_errorinfo
+/// @case_id: 11_3_errorinfo__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 11_3_errorinfo
+func fail() -> !i32 {
+    return SysError.FileNotFound { path: "a" }
+}
+func main() -> i32 {
+    var out: i32 = fail()! -> err {
+        var x: str = err.line
+        _ = x
+        return 0
+    }
+    return out
+}

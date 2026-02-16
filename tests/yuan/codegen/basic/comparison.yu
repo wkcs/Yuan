@@ -1,0 +1,36 @@
+// 比较运算测试
+
+func test_eq(a: i32, b: i32) -> bool {
+    return a == b
+}
+
+func test_ne(a: i32, b: i32) -> bool {
+    return a != b
+}
+
+func test_lt(a: i32, b: i32) -> bool {
+    return a < b
+}
+
+func test_le(a: i32, b: i32) -> bool {
+    return a <= b
+}
+
+func test_gt(a: i32, b: i32) -> bool {
+    return a > b
+}
+
+func test_ge(a: i32, b: i32) -> bool {
+    return a >= b
+}
+
+func test_float_eq(a: f64, b: f64) -> bool {
+    return a == b
+}
+
+func test_float_lt(a: f64, b: f64) -> bool {
+    return a < b
+}
+
+func main() {
+}

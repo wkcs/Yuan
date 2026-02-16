@@ -1,0 +1,15 @@
+/// @spec_ref: 3.4.3
+/// @point_id: 3_4_3_zig
+/// @case_id: 3_4_3_zig__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3039,E3003
+/// @diag_keywords: mutable,type mismatch
+// negative semantic case: 3_4_3_zig
+func write(v: &mut i32) { *v = 9 }
+func main() -> i32 {
+    var x: i32 = 1
+    write(&x)
+    return x
+}

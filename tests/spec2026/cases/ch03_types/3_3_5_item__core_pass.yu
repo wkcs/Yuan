@@ -1,0 +1,27 @@
+/// @spec_ref: 3.3.5
+/// @point_id: 3_3_5_item
+/// @case_id: 3_3_5_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 元组类型
+const Vec = @import("std").collections.Vec
+
+func main() -> i32 {
+    var arr: [i32; 4] = [1, 2, 3, 4]
+    var sl: &[i32] = &arr[1..3]
+    var tup: (i32, bool) = (7, true)
+    var opt: ?i32 = None
+    var fallback: i32 = opt orelse 9
+    var v: Vec<i32> = Vec.new()
+    v.push(5)
+    v.push(6)
+    @assert(sl[0] == 2, "3.3 slice")
+    @assert(tup.0 == 7, "3.3 tuple")
+    @assert(fallback == 9, "3.3 optional")
+    @assert(v.len() == 2u64, "3.3 vec")
+    v.free()
+    return 0
+}

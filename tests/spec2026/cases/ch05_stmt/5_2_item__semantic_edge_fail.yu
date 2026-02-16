@@ -1,0 +1,13 @@
+/// @spec_ref: 5.2
+/// @point_id: 5_2_item
+/// @case_id: 5_2_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005
+/// @diag_keywords: expected,unexpected token
+// negative semantic case: 5_2_item
+const LIMIT: i32
+func main() -> i32 {
+    return LIMIT
+}

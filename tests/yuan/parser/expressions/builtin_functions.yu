@@ -1,0 +1,230 @@
+// 内置函数测试用例
+
+const std = @import("std")
+const io = @import("std").io
+const fmt = @import("std").fmt
+const math = @import("./math.yu")
+
+func test_builtin_functions() {
+    // @import - 模块导入
+    const local_module = @import("./utils.yu")
+    const std_collections = @import("std").collections
+    
+    // @sizeof - 获取类型大小
+    var int_size: usize = @sizeof(i32)
+    var ptr_size: usize = @sizeof(*i32)
+    var struct_size: usize = @sizeof(Point)
+    var array_size: usize = @sizeof([i32; 10])
+    
+    // 使用表达式参数
+    var x: i32 = 42
+    var x_size: usize = @sizeof(x)
+    var arr = [1, 2, 3, 4, 5]
+    var arr_size: usize = @sizeof(arr)
+    
+    // @typeof - 获取类型名称
+    var int_type: str = @typeof(x)
+    var array_type: str = @typeof(arr)
+    var string_type: str = @typeof("hello")
+    var bool_type: str = @typeof(true)
+    
+    // 复杂类型的 @typeof
+    var point = Point { x: 1.0, y: 2.0 }
+    var point_type: str = @typeof(point)
+    var optional_type: str = @typeof(Some(42))
+    var result_type: str = @typeof(Ok("success"))
+    
+    // @panic - 程序终止（在条件中使用）
+    if critical_error_condition() {
+        @panic("Critical error occurred!")
+    }
+    
+    // 带格式化消息的 panic
+    var error_code: i32 = get_error_code()
+    if error_code != 0 {
+        @panic(fmt.format("Error code: {}", error_code))
+    }
+    
+    // @assert - 断言
+    @assert(x > 0)
+    @assert(arr.len() == 5)
+    @assert(point.x >= 0.0 && point.y >= 0.0)
+    
+    // 带自定义消息的断言
+    @assert(x != 0, "x cannot be zero")
+    @assert(arr.len() > 0, "array must not be empty")
+    @assert(is_valid_point(point), "point must be valid")
+    
+    // @file - 当前文件名
+    const current_file: str = @file()
+    io.println(fmt.format("Current file: {}", current_file))
+    
+    // @line - 当前行号
+    const current_line: u32 = @line()
+    io.println(fmt.format("Current line: {}", current_line))
+    
+    // @column - 当前列号
+    const current_column: u32 = @column()
+    io.println(fmt.format("Current column: {}", current_column))
+    
+    // @func - 当前函数名
+    const current_func: str = @func()
+    io.println(fmt.format("Current function: {}", current_func))
+    
+    // 在不同上下文中使用内置函数
+    debug_info()
+    
+    // 内置函数与错误处理结合
+    var safe_result: i32 = risky_operation()! -> err {
+        io.println(fmt.format("Error at {}:{} in {}", @file(), @line(), @func()))
+        io.println(fmt.format("Error: {}", err.message()))
+        return 0
+    }
+    
+    // 内置函数与泛型结合
+    var generic_size: usize = get_size_of<Point>()
+    var generic_type: str = get_type_name(point)
+    
+    // 内置函数与可变参数结合
+    log_with_location("Error occurred", "in function", "test_builtin_functions")
+    
+    // 内置函数与闭包结合
+    var size_checker = func<T>(value: T) -> bool {
+        return @sizeof(T) > 0
+    }
+    
+    var is_valid: bool = size_checker(42)
+    
+    // 编译时计算
+    const COMPILE_TIME_SIZE: usize = @sizeof(i64)
+    const COMPILE_TIME_TYPE: str = @typeof(3.14)
+    
+    // 条件编译（如果支持）
+    if @sizeof(usize) == 8 {
+        io.println("64-bit system")
+    } else {
+        io.println("32-bit system")
+    }
+}
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+func critical_error_condition() -> bool {
+    return false
+}
+
+func get_error_code() -> i32 {
+    return 0
+}
+
+func is_valid_point(p: Point) -> bool {
+    return p.x.is_finite() && p.y.is_finite()
+}
+
+func debug_info() {
+    io.println(fmt.format("Debug info from {}:{} in {}", @file(), @line(), @func()))
+}
+
+func risky_operation() -> !i32 {
+    return 42
+}
+
+func get_size_of<T>() -> usize {
+    return @sizeof(T)
+}
+
+func get_type_name<T>(value: T) -> str {
+    return @typeof(value)
+}
+
+func log_with_location(prefix: str, ...messages) {
+    io.print(fmt.format("[{}:{}] {}: ", @file(), @line(), prefix))
+    for msg in messages {
+        io.print(msg)
+        io.print(" ")
+    }
+    io.println("")
+}
+
+// 在不同作用域中使用内置函数
+func nested_function() {
+    func inner_function() {
+        io.println(fmt.format("Inner function at {}:{}", @file(), @line()))
+        
+        // 嵌套闭包中的内置函数
+        var closure = func() {
+            io.println(fmt.format("Closure at {}:{}", @file(), @line()))
+        }
+        
+        closure()
+    }
+    
+    inner_function()
+}
+
+// 结构体方法中的内置函数
+impl Point {
+    func debug(&self) {
+        io.println(fmt.format("Point({}, {}) at {}:{} in {}", 
+            self.x, self.y, @file(), @line(), @func()))
+    }
+    
+    func validate(&self) -> bool {
+        @assert(self.x.is_finite(), "x must be finite")
+        @assert(self.y.is_finite(), "y must be finite")
+        return true
+    }
+    
+    func size_info() -> usize {
+        return @sizeof(Point)
+    }
+}
+
+// Trait 中的内置函数
+trait Debuggable {
+    func debug_info(&self) {
+        io.println(fmt.format("Debug from {}:{} in {}", @file(), @line(), @func()))
+        io.println(fmt.format("Type: {}, Size: {}", @typeof(self), @sizeof(Self)))
+    }
+}
+
+impl Debuggable for Point {
+    func debug_info(&self) {
+        io.println(fmt.format("Point debug from {}:{}", @file(), @line()))
+    }
+}
+
+// 宏式使用内置函数（如果支持）
+func debug_assert(condition: bool, message: str) {
+    if !condition {
+        @panic(fmt.format("Assertion failed at {}:{}: {}", @file(), @line(), message))
+    }
+}
+
+// 条件断言
+func conditional_assert(condition: bool) {
+    // 在调试模式下进行断言
+    @assert(condition, fmt.format("Assertion at {}:{}", @file(), @line()))
+}
+
+// 性能测试中的内置函数
+func benchmark_sizeof() {
+    const start_line: u32 = @line()
+    
+    // 测试不同类型的大小
+    var sizes = [
+        @sizeof(i8),
+        @sizeof(i16), 
+        @sizeof(i32),
+        @sizeof(i64),
+        @sizeof(f32),
+        @sizeof(f64),
+        @sizeof(Point),
+    ]
+    
+    const end_line: u32 = @line()
+    io.println(fmt.format("Benchmark from line {} to {}", start_line, end_line))
+}

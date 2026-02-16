@@ -1,0 +1,179 @@
+/// \file math.yu
+/// \brief 数学函数模块
+
+const PI: f64 = 3.141592653589793
+const E: f64 = 2.718281828459045
+
+pub func pi() -> f64 { return PI }
+pub func e() -> f64 { return E }
+
+pub func abs(x: i32) -> i32 {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
+
+pub func max(a: i32, b: i32) -> i32 {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+pub func min(a: i32, b: i32) -> i32 {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+pub func clamp(x: i32, lo: i32, hi: i32) -> i32 {
+    if x < lo {
+        return lo
+    }
+    if x > hi {
+        return hi
+    }
+    return x
+}
+
+pub func abs_f64(x: f64) -> f64 {
+    if x < 0.0 {
+        return -x
+    }
+    return x
+}
+
+pub func floor(x: f64) -> f64 {
+    var i: i64 = x as i64
+    var fi: f64 = i as f64
+    if fi > x {
+        return (i - 1i64) as f64
+    }
+    return fi
+}
+
+pub func ceil(x: f64) -> f64 {
+    var i: i64 = x as i64
+    var fi: f64 = i as f64
+    if fi < x {
+        return (i + 1i64) as f64
+    }
+    return fi
+}
+
+pub func round(x: f64) -> f64 {
+    if x >= 0.0 {
+        return floor(x + 0.5)
+    }
+    return ceil(x - 0.5)
+}
+
+pub func sqrt(x: f64) -> f64 {
+    if x <= 0.0 {
+        return 0.0
+    }
+
+    var guess: f64 = x
+    var i: i32 = 0
+    while i < 20 {
+        guess = 0.5 * (guess + x / guess)
+        i += 1
+    }
+    return guess
+}
+
+pub func pow(base: f64, exp: f64) -> f64 {
+    var n: i64 = exp as i64
+    if (n as f64) != exp {
+        return 0.0
+    }
+
+    if n == 0i64 {
+        return 1.0
+    }
+
+    var b: f64 = base
+    var e: i64 = n
+    var invert: bool = false
+    if e < 0i64 {
+        invert = true
+        e = -e
+    }
+
+    var result: f64 = 1.0
+    while e > 0i64 {
+        if (e % 2i64) == 1i64 {
+            result *= b
+        }
+        b *= b
+        e /= 2i64
+    }
+
+    if invert {
+        return 1.0 / result
+    }
+    return result
+}
+
+/// 自然对数（近似）
+pub func log(x: f64) -> f64 {
+    if x <= 0.0 {
+        return 0.0
+    }
+
+    var y: f64 = (x - 1.0) / (x + 1.0)
+    var y2: f64 = y * y
+    var term: f64 = y
+    var sum: f64 = 0.0
+    var k: i32 = 1
+
+    while k <= 19 {
+        sum += term / (k as f64)
+        term *= y2
+        k += 2
+    }
+
+    return 2.0 * sum
+}
+
+/// 正弦（泰勒近似）
+pub func sin(x: f64) -> f64 {
+    var xx: f64 = x
+    var term: f64 = xx
+    var sum: f64 = xx
+    var n: i32 = 1
+    while n < 7 {
+        var a: f64 = (2 * n) as f64
+        var b: f64 = (2 * n + 1) as f64
+        term = -term * xx * xx / (a * b)
+        sum += term
+        n += 1
+    }
+    return sum
+}
+
+/// 余弦（泰勒近似）
+pub func cos(x: f64) -> f64 {
+    var xx: f64 = x
+    var term: f64 = 1.0
+    var sum: f64 = 1.0
+    var n: i32 = 1
+    while n < 7 {
+        var a: f64 = (2 * n - 1) as f64
+        var b: f64 = (2 * n) as f64
+        term = -term * xx * xx / (a * b)
+        sum += term
+        n += 1
+    }
+    return sum
+}
+
+pub func tan(x: f64) -> f64 {
+    var c: f64 = cos(x)
+    if c == 0.0 {
+        return 0.0
+    }
+    return sin(x) / c
+}

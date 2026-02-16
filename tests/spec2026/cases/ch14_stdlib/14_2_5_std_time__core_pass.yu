@@ -1,0 +1,18 @@
+/// @spec_ref: 14.2.5
+/// @point_id: 14_2_5_std_time
+/// @case_id: 14_2_5_std_time__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: runtime
+/// @diag_codes: 
+/// @diag_keywords: 
+// std.time
+const time = @import("std").time
+
+func main() -> i32 {
+    _ = time
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "14_2_5_std_time assertion failed")
+    return __spec2026_actual
+}

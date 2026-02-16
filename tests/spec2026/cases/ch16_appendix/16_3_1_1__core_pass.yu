@@ -1,0 +1,18 @@
+/// @spec_ref: 16.3.1
+/// @point_id: 16_3_1_1
+/// @case_id: 16_3_1_1__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级1_`()` `[]` `.` `!`(后缀)_函数调用、索引、成员访问、错误传播
+func twice(x: i32) -> !i32 { return x * 2 }
+struct Box { v: i32 }
+func main() -> i32 {
+    var arr: [i32; 3] = [3, 4, 5]
+    var b = Box { v: arr[1] }
+    var out = (twice(b.v)!) + arr[0]
+    @assert(out == 11, "16.3.1 postfix precedence")
+    return out
+}

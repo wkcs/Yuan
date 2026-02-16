@@ -1,0 +1,22 @@
+/// @spec_ref: 6.5
+/// @point_id: 6_5_item
+/// @case_id: 6_5_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 可见性
+pub func api_value() -> i32 {
+    return 11
+}
+
+func local_value() -> i32 {
+    return 4
+}
+
+func main() -> i32 {
+    var out = api_value() + local_value()
+    @assert(out == 15, "6.5 visibility")
+    return out
+}

@@ -1,0 +1,21 @@
+/// @spec_ref: 13.2
+/// @point_id: 13_2_item
+/// @case_id: 13_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 内置函数详解
+func main() -> i32 {
+    @assert(true, "ok")
+    var a = @file()
+    var b = @line()
+    var c = @column()
+    var d = @func()
+    _ = a
+    _ = b
+    _ = c
+    _ = d
+    return 0
+}

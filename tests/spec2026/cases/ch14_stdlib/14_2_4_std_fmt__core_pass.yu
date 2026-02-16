@@ -1,0 +1,19 @@
+/// @spec_ref: 14.2.4
+/// @point_id: 14_2_4_std_fmt
+/// @case_id: 14_2_4_std_fmt__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: runtime
+/// @diag_codes: 
+/// @diag_keywords: 
+// std.fmt
+const fmt = @import("std").fmt
+
+func main() -> i32 {
+    var s = fmt.format("x={}", 1)
+    _ = s
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "14_2_4_std_fmt assertion failed")
+    return __spec2026_actual
+}

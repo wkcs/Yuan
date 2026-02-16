@@ -1,0 +1,80 @@
+// 枚举声明测试用例
+
+// 基本枚举
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+// 带数据的枚举
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+// 复杂数据枚举
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(str),
+    ChangeColor(u8, u8, u8),
+}
+
+// 基本枚举（Yuan不支持显式判别值）
+enum Status {
+    Success,
+    Warning,
+    Error,
+    Critical,
+}
+
+// 泛型枚举
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+// 递归枚举
+enum List<T> {
+    Cons(T, *List<T>),
+    Nil,
+}
+
+// 可见性修饰符
+pub enum PublicEnum {
+    Variant1,
+    Variant2,
+}
+
+// 复杂变体
+enum ComplexEnum {
+    Unit,
+    Tuple(i32, str, bool),
+    Struct { 
+        id: u64, 
+        name: str, 
+        active: bool 
+    },
+    Function(func(i32) -> str),
+    Array([i32; 5]),
+    Optional(?str),
+}
+
+// 嵌套枚举
+enum Outer {
+    Inner(Inner),
+    Value(i32),
+}
+
+enum Inner {
+    A,
+    B,
+    C,
+}
+
+// 泛型枚举（暂时不支持where约束）
+enum Ordered<T> {
+    Value(T),
+    Empty,
+}

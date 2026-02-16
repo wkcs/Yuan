@@ -1,0 +1,17 @@
+/// @spec_ref: 16.3.15
+/// @point_id: 16_3_15_15
+/// @case_id: 16_3_15_15__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级15_`..` `..=`_范围
+func main() -> i32 {
+    var open = 1..4
+    var close = 1..=4
+    _ = open
+    _ = close
+    @assert(true, "16.3.15 range literals")
+    return 0
+}

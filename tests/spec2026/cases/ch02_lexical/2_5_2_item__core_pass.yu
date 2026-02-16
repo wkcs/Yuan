@@ -1,0 +1,21 @@
+/// @spec_ref: 2.5.2
+/// @point_id: 2_5_2_item
+/// @case_id: 2_5_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: lexer
+/// @diag_codes: 
+/// @diag_keywords: 
+// 浮点数字面量
+func main() -> i32 {
+    var x: f64 = 3.14
+    var y: f64 = 1.0e2
+    _ = y
+    if x > 0.0 {
+        return 79
+    }
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "2_5_2_item assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,353 @@
+// Yuan 词法分析结果
+// 源文件: tests/yuan/lexer/strings.yu
+// 生成时间: 1768221614765167
+
+Token[0]: var "var" @tests/yuan/lexer/strings.yu:5:1
+Token[1]: Identifier "str1" @tests/yuan/lexer/strings.yu:5:5
+Token[2]: = "=" @tests/yuan/lexer/strings.yu:5:10
+Token[3]: StringLiteral """" @tests/yuan/lexer/strings.yu:5:12
+Token[4]: var "var" @tests/yuan/lexer/strings.yu:6:1
+Token[5]: Identifier "str2" @tests/yuan/lexer/strings.yu:6:5
+Token[6]: = "=" @tests/yuan/lexer/strings.yu:6:10
+Token[7]: StringLiteral ""hello"" @tests/yuan/lexer/strings.yu:6:12
+Token[8]: var "var" @tests/yuan/lexer/strings.yu:7:1
+Token[9]: Identifier "str3" @tests/yuan/lexer/strings.yu:7:5
+Token[10]: = "=" @tests/yuan/lexer/strings.yu:7:10
+Token[11]: StringLiteral ""world"" @tests/yuan/lexer/strings.yu:7:12
+Token[12]: var "var" @tests/yuan/lexer/strings.yu:8:1
+Token[13]: Identifier "str4" @tests/yuan/lexer/strings.yu:8:5
+Token[14]: = "=" @tests/yuan/lexer/strings.yu:8:10
+Token[15]: StringLiteral ""Hello, World!"" @tests/yuan/lexer/strings.yu:8:12
+Token[16]: var "var" @tests/yuan/lexer/strings.yu:9:1
+Token[17]: Identifier "str5" @tests/yuan/lexer/strings.yu:9:5
+Token[18]: = "=" @tests/yuan/lexer/strings.yu:9:10
+Token[19]: StringLiteral ""Yuan Programming Language"" @tests/yuan/lexer/strings.yu:9:12
+Token[20]: var "var" @tests/yuan/lexer/strings.yu:12:1
+Token[21]: Identifier "str_space" @tests/yuan/lexer/strings.yu:12:5
+Token[22]: = "=" @tests/yuan/lexer/strings.yu:12:15
+Token[23]: StringLiteral ""hello world"" @tests/yuan/lexer/strings.yu:12:17
+Token[24]: var "var" @tests/yuan/lexer/strings.yu:13:1
+Token[25]: Identifier "str_punct" @tests/yuan/lexer/strings.yu:13:5
+Token[26]: = "=" @tests/yuan/lexer/strings.yu:13:15
+Token[27]: StringLiteral ""Hello, World! How are you?"" @tests/yuan/lexer/strings.yu:13:17
+Token[28]: var "var" @tests/yuan/lexer/strings.yu:14:1
+Token[29]: Identifier "str_symbols" @tests/yuan/lexer/strings.yu:14:5
+Token[30]: = "=" @tests/yuan/lexer/strings.yu:14:17
+Token[31]: StringLiteral ""!@#$%^&*()_+-=[]{}|':\",./<>?"" @tests/yuan/lexer/strings.yu:14:19
+Token[32]: var "var" @tests/yuan/lexer/strings.yu:17:1
+Token[33]: Identifier "esc1" @tests/yuan/lexer/strings.yu:17:5
+Token[34]: = "=" @tests/yuan/lexer/strings.yu:17:10
+Token[35]: StringLiteral ""hello\nworld"" @tests/yuan/lexer/strings.yu:17:12
+Token[36]: var "var" @tests/yuan/lexer/strings.yu:18:1
+Token[37]: Identifier "esc2" @tests/yuan/lexer/strings.yu:18:5
+Token[38]: = "=" @tests/yuan/lexer/strings.yu:18:10
+Token[39]: StringLiteral ""hello\tworld"" @tests/yuan/lexer/strings.yu:18:12
+Token[40]: var "var" @tests/yuan/lexer/strings.yu:19:1
+Token[41]: Identifier "esc3" @tests/yuan/lexer/strings.yu:19:5
+Token[42]: = "=" @tests/yuan/lexer/strings.yu:19:10
+Token[43]: StringLiteral ""hello\rworld"" @tests/yuan/lexer/strings.yu:19:12
+Token[44]: var "var" @tests/yuan/lexer/strings.yu:20:1
+Token[45]: Identifier "esc4" @tests/yuan/lexer/strings.yu:20:5
+Token[46]: = "=" @tests/yuan/lexer/strings.yu:20:10
+Token[47]: StringLiteral ""hello\\world"" @tests/yuan/lexer/strings.yu:20:12
+Token[48]: var "var" @tests/yuan/lexer/strings.yu:21:1
+Token[49]: Identifier "esc5" @tests/yuan/lexer/strings.yu:21:5
+Token[50]: = "=" @tests/yuan/lexer/strings.yu:21:10
+Token[51]: StringLiteral ""hello\"world"" @tests/yuan/lexer/strings.yu:21:12
+Token[52]: var "var" @tests/yuan/lexer/strings.yu:22:1
+Token[53]: Identifier "esc6" @tests/yuan/lexer/strings.yu:22:5
+Token[54]: = "=" @tests/yuan/lexer/strings.yu:22:10
+Token[55]: StringLiteral ""hello\'world"" @tests/yuan/lexer/strings.yu:22:12
+Token[56]: var "var" @tests/yuan/lexer/strings.yu:23:1
+Token[57]: Identifier "esc7" @tests/yuan/lexer/strings.yu:23:5
+Token[58]: = "=" @tests/yuan/lexer/strings.yu:23:10
+Token[59]: StringLiteral ""hello\0world"" @tests/yuan/lexer/strings.yu:23:12
+Token[60]: var "var" @tests/yuan/lexer/strings.yu:26:1
+Token[61]: Identifier "hex_esc1" @tests/yuan/lexer/strings.yu:26:5
+Token[62]: = "=" @tests/yuan/lexer/strings.yu:26:14
+Token[63]: StringLiteral ""\x41"" @tests/yuan/lexer/strings.yu:26:16
+Token[64]: var "var" @tests/yuan/lexer/strings.yu:27:1
+Token[65]: Identifier "hex_esc2" @tests/yuan/lexer/strings.yu:27:5
+Token[66]: = "=" @tests/yuan/lexer/strings.yu:27:14
+Token[67]: StringLiteral ""\x42\x43"" @tests/yuan/lexer/strings.yu:27:16
+Token[68]: var "var" @tests/yuan/lexer/strings.yu:28:1
+Token[69]: Identifier "hex_esc3" @tests/yuan/lexer/strings.yu:28:5
+Token[70]: = "=" @tests/yuan/lexer/strings.yu:28:14
+Token[71]: StringLiteral ""\x20"" @tests/yuan/lexer/strings.yu:28:16
+Token[72]: var "var" @tests/yuan/lexer/strings.yu:29:1
+Token[73]: Identifier "hex_esc4" @tests/yuan/lexer/strings.yu:29:5
+Token[74]: = "=" @tests/yuan/lexer/strings.yu:29:14
+Token[75]: StringLiteral ""\x0A"" @tests/yuan/lexer/strings.yu:29:16
+Token[76]: var "var" @tests/yuan/lexer/strings.yu:30:1
+Token[77]: Identifier "hex_esc5" @tests/yuan/lexer/strings.yu:30:5
+Token[78]: = "=" @tests/yuan/lexer/strings.yu:30:14
+Token[79]: StringLiteral ""\xFF"" @tests/yuan/lexer/strings.yu:30:16
+Token[80]: var "var" @tests/yuan/lexer/strings.yu:33:1
+Token[81]: Identifier "unicode1" @tests/yuan/lexer/strings.yu:33:5
+Token[82]: = "=" @tests/yuan/lexer/strings.yu:33:14
+Token[83]: StringLiteral ""\u{41}"" @tests/yuan/lexer/strings.yu:33:16
+Token[84]: var "var" @tests/yuan/lexer/strings.yu:34:1
+Token[85]: Identifier "unicode2" @tests/yuan/lexer/strings.yu:34:5
+Token[86]: = "=" @tests/yuan/lexer/strings.yu:34:14
+Token[87]: StringLiteral ""\u{4E2D}"" @tests/yuan/lexer/strings.yu:34:16
+Token[88]: var "var" @tests/yuan/lexer/strings.yu:35:1
+Token[89]: Identifier "unicode3" @tests/yuan/lexer/strings.yu:35:5
+Token[90]: = "=" @tests/yuan/lexer/strings.yu:35:14
+Token[91]: StringLiteral ""\u{1F600}"" @tests/yuan/lexer/strings.yu:35:16
+Token[92]: var "var" @tests/yuan/lexer/strings.yu:36:1
+Token[93]: Identifier "unicode4" @tests/yuan/lexer/strings.yu:36:5
+Token[94]: = "=" @tests/yuan/lexer/strings.yu:36:14
+Token[95]: StringLiteral ""\u{03B1}"" @tests/yuan/lexer/strings.yu:36:16
+Token[96]: var "var" @tests/yuan/lexer/strings.yu:37:1
+Token[97]: Identifier "unicode5" @tests/yuan/lexer/strings.yu:37:5
+Token[98]: = "=" @tests/yuan/lexer/strings.yu:37:14
+Token[99]: StringLiteral ""\u{0041}\u{0042}"" @tests/yuan/lexer/strings.yu:37:16
+Token[100]: var "var" @tests/yuan/lexer/strings.yu:40:1
+Token[101]: Identifier "complex_esc1" @tests/yuan/lexer/strings.yu:40:5
+Token[102]: = "=" @tests/yuan/lexer/strings.yu:40:18
+Token[103]: StringLiteral ""Line 1\nLine 2\tTabbed"" @tests/yuan/lexer/strings.yu:40:20
+Token[104]: var "var" @tests/yuan/lexer/strings.yu:41:1
+Token[105]: Identifier "complex_esc2" @tests/yuan/lexer/strings.yu:41:5
+Token[106]: = "=" @tests/yuan/lexer/strings.yu:41:18
+Token[107]: StringLiteral ""Quote: \"Hello\" and 'World'"" @tests/yuan/lexer/strings.yu:41:20
+Token[108]: var "var" @tests/yuan/lexer/strings.yu:42:1
+Token[109]: Identifier "complex_esc3" @tests/yuan/lexer/strings.yu:42:5
+Token[110]: = "=" @tests/yuan/lexer/strings.yu:42:18
+Token[111]: StringLiteral ""Path: C:\\Users\\Name\\file.txt"" @tests/yuan/lexer/strings.yu:42:20
+Token[112]: var "var" @tests/yuan/lexer/strings.yu:43:1
+Token[113]: Identifier "complex_esc4" @tests/yuan/lexer/strings.yu:43:5
+Token[114]: = "=" @tests/yuan/lexer/strings.yu:43:18
+Token[115]: StringLiteral ""Unicode: \u{4E2D}\u{6587} (Chinese)"" @tests/yuan/lexer/strings.yu:43:20
+Token[116]: var "var" @tests/yuan/lexer/strings.yu:46:1
+Token[117]: Identifier "raw1" @tests/yuan/lexer/strings.yu:46:5
+Token[118]: = "=" @tests/yuan/lexer/strings.yu:46:10
+Token[119]: RawStringLiteral "r"hello world"" @tests/yuan/lexer/strings.yu:46:12
+Token[120]: var "var" @tests/yuan/lexer/strings.yu:47:1
+Token[121]: Identifier "raw2" @tests/yuan/lexer/strings.yu:47:5
+Token[122]: = "=" @tests/yuan/lexer/strings.yu:47:10
+Token[123]: RawStringLiteral "r"no\nescapes\there"" @tests/yuan/lexer/strings.yu:47:12
+Token[124]: var "var" @tests/yuan/lexer/strings.yu:48:1
+Token[125]: Identifier "raw3" @tests/yuan/lexer/strings.yu:48:5
+Token[126]: = "=" @tests/yuan/lexer/strings.yu:48:10
+Token[127]: RawStringLiteral "r"C:\Users\Name\file.txt"" @tests/yuan/lexer/strings.yu:48:12
+Token[128]: var "var" @tests/yuan/lexer/strings.yu:49:1
+Token[129]: Identifier "raw4" @tests/yuan/lexer/strings.yu:49:5
+Token[130]: = "=" @tests/yuan/lexer/strings.yu:49:10
+Token[131]: RawStringLiteral "r"Quotes: "" @tests/yuan/lexer/strings.yu:49:12
+Token[132]: Identifier "hello" @tests/yuan/lexer/strings.yu:49:23
+Token[133]: StringLiteral "" and 'world'"" @tests/yuan/lexer/strings.yu:49:28
+Token[134]: var "var" @tests/yuan/lexer/strings.yu:50:1
+Token[135]: Identifier "raw5" @tests/yuan/lexer/strings.yu:50:5
+Token[136]: = "=" @tests/yuan/lexer/strings.yu:50:10
+Token[137]: RawStringLiteral "r"Backslashes: \n \t \r \\"" @tests/yuan/lexer/strings.yu:50:12
+Token[138]: var "var" @tests/yuan/lexer/strings.yu:53:1
+Token[139]: Identifier "raw_delim1" @tests/yuan/lexer/strings.yu:53:5
+Token[140]: = "=" @tests/yuan/lexer/strings.yu:53:16
+Token[141]: RawStringLiteral "r#"hello world"#" @tests/yuan/lexer/strings.yu:53:18
+Token[142]: var "var" @tests/yuan/lexer/strings.yu:54:1
+Token[143]: Identifier "raw_delim2" @tests/yuan/lexer/strings.yu:54:5
+Token[144]: = "=" @tests/yuan/lexer/strings.yu:54:16
+Token[145]: RawStringLiteral "r#"Contains "quotes" inside"#" @tests/yuan/lexer/strings.yu:54:18
+Token[146]: var "var" @tests/yuan/lexer/strings.yu:55:1
+Token[147]: Identifier "raw_delim3" @tests/yuan/lexer/strings.yu:55:5
+Token[148]: = "=" @tests/yuan/lexer/strings.yu:55:16
+Token[149]: RawStringLiteral "r##"Contains "quotes" and #hash#"##" @tests/yuan/lexer/strings.yu:55:18
+Token[150]: var "var" @tests/yuan/lexer/strings.yu:56:1
+Token[151]: Identifier "raw_delim4" @tests/yuan/lexer/strings.yu:56:5
+Token[152]: = "=" @tests/yuan/lexer/strings.yu:56:16
+Token[153]: RawStringLiteral "r###"Multiple #levels// of ##nesting##"###" @tests/yuan/lexer/strings.yu:56:18
+Token[154]: var "var" @tests/yuan/lexer/strings.yu:59:1
+Token[155]: Identifier "multiline1" @tests/yuan/lexer/strings.yu:59:5
+Token[156]: = "=" @tests/yuan/lexer/strings.yu:59:16
+Token[157]: MultilineStringLiteral """"
+hello
+world
+"""" @tests/yuan/lexer/strings.yu:59:18
+Token[158]: var "var" @tests/yuan/lexer/strings.yu:64:1
+Token[159]: Identifier "multiline2" @tests/yuan/lexer/strings.yu:64:5
+Token[160]: = "=" @tests/yuan/lexer/strings.yu:64:16
+Token[161]: MultilineStringLiteral """"
+Line 1
+Line 2
+Line 3
+"""" @tests/yuan/lexer/strings.yu:64:18
+Token[162]: var "var" @tests/yuan/lexer/strings.yu:70:1
+Token[163]: Identifier "multiline3" @tests/yuan/lexer/strings.yu:70:5
+Token[164]: = "=" @tests/yuan/lexer/strings.yu:70:16
+Token[165]: MultilineStringLiteral """"
+This is a
+multi-line string
+with various content:
+- Numbers: 123
+- Symbols: !@#$%
+- Unicode: 中文
+"""" @tests/yuan/lexer/strings.yu:70:18
+Token[166]: var "var" @tests/yuan/lexer/strings.yu:79:1
+Token[167]: Identifier "multiline4" @tests/yuan/lexer/strings.yu:79:5
+Token[168]: = "=" @tests/yuan/lexer/strings.yu:79:16
+Token[169]: MultilineStringLiteral """"
+Indented content:
+    Level 1
+        Level 2
+            Level 3
+"""" @tests/yuan/lexer/strings.yu:79:18
+Token[170]: var "var" @tests/yuan/lexer/strings.yu:87:1
+Token[171]: Identifier "multiline_esc" @tests/yuan/lexer/strings.yu:87:5
+Token[172]: = "=" @tests/yuan/lexer/strings.yu:87:19
+Token[173]: MultilineStringLiteral """"
+Line with \n escape
+Line with \t tab
+Line with \" quote
+"""" @tests/yuan/lexer/strings.yu:87:21
+Token[174]: var "var" @tests/yuan/lexer/strings.yu:94:1
+Token[175]: Identifier "empty_multiline" @tests/yuan/lexer/strings.yu:94:5
+Token[176]: = "=" @tests/yuan/lexer/strings.yu:94:21
+Token[177]: MultilineStringLiteral """""""" @tests/yuan/lexer/strings.yu:94:23
+Token[178]: var "var" @tests/yuan/lexer/strings.yu:97:1
+Token[179]: Identifier "newline_only" @tests/yuan/lexer/strings.yu:97:5
+Token[180]: = "=" @tests/yuan/lexer/strings.yu:97:18
+Token[181]: MultilineStringLiteral """"
+"""" @tests/yuan/lexer/strings.yu:97:20
+Token[182]: var "var" @tests/yuan/lexer/strings.yu:101:1
+Token[183]: Identifier "char1" @tests/yuan/lexer/strings.yu:101:5
+Token[184]: = "=" @tests/yuan/lexer/strings.yu:101:11
+Token[185]: CharLiteral "'A'" @tests/yuan/lexer/strings.yu:101:13
+Token[186]: var "var" @tests/yuan/lexer/strings.yu:102:1
+Token[187]: Identifier "char2" @tests/yuan/lexer/strings.yu:102:5
+Token[188]: = "=" @tests/yuan/lexer/strings.yu:102:11
+Token[189]: CharLiteral "'z'" @tests/yuan/lexer/strings.yu:102:13
+Token[190]: var "var" @tests/yuan/lexer/strings.yu:103:1
+Token[191]: Identifier "char3" @tests/yuan/lexer/strings.yu:103:5
+Token[192]: = "=" @tests/yuan/lexer/strings.yu:103:11
+Token[193]: CharLiteral "'0'" @tests/yuan/lexer/strings.yu:103:13
+Token[194]: var "var" @tests/yuan/lexer/strings.yu:104:1
+Token[195]: Identifier "char4" @tests/yuan/lexer/strings.yu:104:5
+Token[196]: = "=" @tests/yuan/lexer/strings.yu:104:11
+Token[197]: CharLiteral "' '" @tests/yuan/lexer/strings.yu:104:13
+Token[198]: var "var" @tests/yuan/lexer/strings.yu:105:1
+Token[199]: Identifier "char5" @tests/yuan/lexer/strings.yu:105:5
+Token[200]: = "=" @tests/yuan/lexer/strings.yu:105:11
+Token[201]: CharLiteral "'!'" @tests/yuan/lexer/strings.yu:105:13
+Token[202]: var "var" @tests/yuan/lexer/strings.yu:108:1
+Token[203]: Identifier "char_esc1" @tests/yuan/lexer/strings.yu:108:5
+Token[204]: = "=" @tests/yuan/lexer/strings.yu:108:15
+Token[205]: CharLiteral "'\n'" @tests/yuan/lexer/strings.yu:108:17
+Token[206]: var "var" @tests/yuan/lexer/strings.yu:109:1
+Token[207]: Identifier "char_esc2" @tests/yuan/lexer/strings.yu:109:5
+Token[208]: = "=" @tests/yuan/lexer/strings.yu:109:15
+Token[209]: CharLiteral "'\t'" @tests/yuan/lexer/strings.yu:109:17
+Token[210]: var "var" @tests/yuan/lexer/strings.yu:110:1
+Token[211]: Identifier "char_esc3" @tests/yuan/lexer/strings.yu:110:5
+Token[212]: = "=" @tests/yuan/lexer/strings.yu:110:15
+Token[213]: CharLiteral "'\r'" @tests/yuan/lexer/strings.yu:110:17
+Token[214]: var "var" @tests/yuan/lexer/strings.yu:111:1
+Token[215]: Identifier "char_esc4" @tests/yuan/lexer/strings.yu:111:5
+Token[216]: = "=" @tests/yuan/lexer/strings.yu:111:15
+Token[217]: CharLiteral "'\\'" @tests/yuan/lexer/strings.yu:111:17
+Token[218]: var "var" @tests/yuan/lexer/strings.yu:112:1
+Token[219]: Identifier "char_esc5" @tests/yuan/lexer/strings.yu:112:5
+Token[220]: = "=" @tests/yuan/lexer/strings.yu:112:15
+Token[221]: CharLiteral "'\''" @tests/yuan/lexer/strings.yu:112:17
+Token[222]: var "var" @tests/yuan/lexer/strings.yu:113:1
+Token[223]: Identifier "char_esc6" @tests/yuan/lexer/strings.yu:113:5
+Token[224]: = "=" @tests/yuan/lexer/strings.yu:113:15
+Token[225]: CharLiteral "'\"'" @tests/yuan/lexer/strings.yu:113:17
+Token[226]: var "var" @tests/yuan/lexer/strings.yu:114:1
+Token[227]: Identifier "char_esc7" @tests/yuan/lexer/strings.yu:114:5
+Token[228]: = "=" @tests/yuan/lexer/strings.yu:114:15
+Token[229]: CharLiteral "'\0'" @tests/yuan/lexer/strings.yu:114:17
+Token[230]: var "var" @tests/yuan/lexer/strings.yu:117:1
+Token[231]: Identifier "char_hex1" @tests/yuan/lexer/strings.yu:117:5
+Token[232]: = "=" @tests/yuan/lexer/strings.yu:117:15
+Token[233]: CharLiteral "'\x41'" @tests/yuan/lexer/strings.yu:117:17
+Token[234]: var "var" @tests/yuan/lexer/strings.yu:118:1
+Token[235]: Identifier "char_hex2" @tests/yuan/lexer/strings.yu:118:5
+Token[236]: = "=" @tests/yuan/lexer/strings.yu:118:15
+Token[237]: CharLiteral "'\x20'" @tests/yuan/lexer/strings.yu:118:17
+Token[238]: var "var" @tests/yuan/lexer/strings.yu:119:1
+Token[239]: Identifier "char_hex3" @tests/yuan/lexer/strings.yu:119:5
+Token[240]: = "=" @tests/yuan/lexer/strings.yu:119:15
+Token[241]: CharLiteral "'\xFF'" @tests/yuan/lexer/strings.yu:119:17
+Token[242]: var "var" @tests/yuan/lexer/strings.yu:122:1
+Token[243]: Identifier "char_unicode1" @tests/yuan/lexer/strings.yu:122:5
+Token[244]: = "=" @tests/yuan/lexer/strings.yu:122:19
+Token[245]: CharLiteral "'\u{41}'" @tests/yuan/lexer/strings.yu:122:21
+Token[246]: var "var" @tests/yuan/lexer/strings.yu:123:1
+Token[247]: Identifier "char_unicode2" @tests/yuan/lexer/strings.yu:123:5
+Token[248]: = "=" @tests/yuan/lexer/strings.yu:123:19
+Token[249]: CharLiteral "'\u{4E2D}'" @tests/yuan/lexer/strings.yu:123:21
+Token[250]: var "var" @tests/yuan/lexer/strings.yu:124:1
+Token[251]: Identifier "char_unicode3" @tests/yuan/lexer/strings.yu:124:5
+Token[252]: = "=" @tests/yuan/lexer/strings.yu:124:19
+Token[253]: CharLiteral "'\u{1F600}'" @tests/yuan/lexer/strings.yu:124:21
+Token[254]: var "var" @tests/yuan/lexer/strings.yu:127:1
+Token[255]: Identifier "chinese" @tests/yuan/lexer/strings.yu:127:5
+Token[256]: = "=" @tests/yuan/lexer/strings.yu:127:13
+Token[257]: StringLiteral ""你好世界"" @tests/yuan/lexer/strings.yu:127:15
+Token[258]: var "var" @tests/yuan/lexer/strings.yu:128:1
+Token[259]: Identifier "japanese" @tests/yuan/lexer/strings.yu:128:5
+Token[260]: = "=" @tests/yuan/lexer/strings.yu:128:14
+Token[261]: StringLiteral ""こんにちは世界"" @tests/yuan/lexer/strings.yu:128:16
+Token[262]: var "var" @tests/yuan/lexer/strings.yu:129:1
+Token[263]: Identifier "korean" @tests/yuan/lexer/strings.yu:129:5
+Token[264]: = "=" @tests/yuan/lexer/strings.yu:129:12
+Token[265]: StringLiteral ""안녕하세요 세계"" @tests/yuan/lexer/strings.yu:129:14
+Token[266]: var "var" @tests/yuan/lexer/strings.yu:130:1
+Token[267]: Identifier "russian" @tests/yuan/lexer/strings.yu:130:5
+Token[268]: = "=" @tests/yuan/lexer/strings.yu:130:13
+Token[269]: StringLiteral ""Привет мир"" @tests/yuan/lexer/strings.yu:130:15
+Token[270]: var "var" @tests/yuan/lexer/strings.yu:131:1
+Token[271]: Identifier "arabic" @tests/yuan/lexer/strings.yu:131:5
+Token[272]: = "=" @tests/yuan/lexer/strings.yu:131:12
+Token[273]: StringLiteral ""مرحبا بالعالم"" @tests/yuan/lexer/strings.yu:131:14
+Token[274]: var "var" @tests/yuan/lexer/strings.yu:132:1
+Token[275]: Identifier "emoji" @tests/yuan/lexer/strings.yu:132:5
+Token[276]: = "=" @tests/yuan/lexer/strings.yu:132:11
+Token[277]: StringLiteral ""Hello 👋 World 🌍!"" @tests/yuan/lexer/strings.yu:132:13
+Token[278]: var "var" @tests/yuan/lexer/strings.yu:135:1
+Token[279]: Identifier "long_string" @tests/yuan/lexer/strings.yu:135:5
+Token[280]: = "=" @tests/yuan/lexer/strings.yu:135:17
+Token[281]: StringLiteral ""This is a very long string that contains many words and should test the lexer's ability to handle long string literals without any issues or problems during the tokenization process."" @tests/yuan/lexer/strings.yu:135:19
+Token[282]: var "var" @tests/yuan/lexer/strings.yu:138:1
+Token[283]: Identifier "str_with_numbers" @tests/yuan/lexer/strings.yu:138:5
+Token[284]: = "=" @tests/yuan/lexer/strings.yu:138:22
+Token[285]: StringLiteral ""Version 1.2.3"" @tests/yuan/lexer/strings.yu:138:24
+Token[286]: var "var" @tests/yuan/lexer/strings.yu:139:1
+Token[287]: Identifier "str_with_hex" @tests/yuan/lexer/strings.yu:139:5
+Token[288]: = "=" @tests/yuan/lexer/strings.yu:139:18
+Token[289]: StringLiteral ""Color: #FF5733"" @tests/yuan/lexer/strings.yu:139:20
+Token[290]: var "var" @tests/yuan/lexer/strings.yu:140:1
+Token[291]: Identifier "str_with_binary" @tests/yuan/lexer/strings.yu:140:5
+Token[292]: = "=" @tests/yuan/lexer/strings.yu:140:21
+Token[293]: StringLiteral ""Binary: 10101010"" @tests/yuan/lexer/strings.yu:140:23
+Token[294]: var "var" @tests/yuan/lexer/strings.yu:143:1
+Token[295]: Identifier "special_chars" @tests/yuan/lexer/strings.yu:143:5
+Token[296]: = "=" @tests/yuan/lexer/strings.yu:143:19
+Token[297]: StringLiteral ""Special: ©®™€£¥§¶†‡•…‰‹›"" @tests/yuan/lexer/strings.yu:143:21
+Token[298]: StringLiteral ""''–—"" @tests/yuan/lexer/strings.yu:143:71
+Token[299]: var "var" @tests/yuan/lexer/strings.yu:146:1
+Token[300]: Identifier "json_like" @tests/yuan/lexer/strings.yu:146:5
+Token[301]: = "=" @tests/yuan/lexer/strings.yu:146:15
+Token[302]: StringLiteral ""{\"name\": \"John\", \"age\": 30}"" @tests/yuan/lexer/strings.yu:146:17
+Token[303]: var "var" @tests/yuan/lexer/strings.yu:149:1
+Token[304]: Identifier "url_like" @tests/yuan/lexer/strings.yu:149:5
+Token[305]: = "=" @tests/yuan/lexer/strings.yu:149:14
+Token[306]: StringLiteral ""https://example.com/path?param=value&other=123"" @tests/yuan/lexer/strings.yu:149:16
+Token[307]: var "var" @tests/yuan/lexer/strings.yu:152:1
+Token[308]: Identifier "regex_like" @tests/yuan/lexer/strings.yu:152:5
+Token[309]: = "=" @tests/yuan/lexer/strings.yu:152:16
+Token[310]: RawStringLiteral "r"^\d{3}-\d{2}-\d{4}$"" @tests/yuan/lexer/strings.yu:152:18
+Token[311]: var "var" @tests/yuan/lexer/strings.yu:155:1
+Token[312]: Identifier "whitespace_test" @tests/yuan/lexer/strings.yu:155:5
+Token[313]: = "=" @tests/yuan/lexer/strings.yu:155:21
+Token[314]: StringLiteral ""	spaces	and	tabs	"" @tests/yuan/lexer/strings.yu:155:23
+Token[315]: var "var" @tests/yuan/lexer/strings.yu:158:1
+Token[316]: Identifier "only_escapes" @tests/yuan/lexer/strings.yu:158:5
+Token[317]: = "=" @tests/yuan/lexer/strings.yu:158:18
+Token[318]: StringLiteral ""\n\t\r\\\"\'"" @tests/yuan/lexer/strings.yu:158:20
+Token[319]: var "var" @tests/yuan/lexer/strings.yu:161:1
+Token[320]: Identifier "long_unicode" @tests/yuan/lexer/strings.yu:161:5
+Token[321]: = "=" @tests/yuan/lexer/strings.yu:161:18
+Token[322]: StringLiteral ""中文测试字符串包含各种Unicode字符：αβγδεζηθικλμνξοπρστυφχψω"" @tests/yuan/lexer/strings.yu:161:20
+
+// 总计: 323 个 token

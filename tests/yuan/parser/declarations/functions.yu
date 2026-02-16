@@ -1,0 +1,84 @@
+// 函数声明测试用例
+
+// 基本函数
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+// 无返回值函数
+func print_hello() {
+    // 函数体
+}
+
+// 单表达式函数（需要函数体）
+func square(x: i32) -> i32 {
+    return x * x
+}
+
+// 泛型函数
+func identity<T>(value: T) -> T {
+    return value
+}
+
+// 多泛型参数
+func pair<T, U>(first: T, second: U) -> (T, U) {
+    return (first, second)
+}
+
+// 异步函数
+async func fetch_data() -> str {
+    return "data"
+}
+
+// 可能出错的函数
+func divide(a: i32, b: i32) -> !i32 {
+    if b == 0 {
+        return SysError.DivisionByZero
+    }
+    return a / b
+}
+
+// 异步且可能出错的函数
+async func async_divide(a: i32, b: i32) -> !i32 {
+    return divide(a, b)
+}
+
+// 简单函数（Yuan暂不支持默认参数）
+func greet(name: str) -> str {
+    // Yuan不支持字符串+操作，这里简化返回
+    return "Hello, World"
+}
+
+// 可见性修饰符
+pub func public_function() -> i32 {
+    return 42
+}
+
+priv func private_function() -> i32 {
+    return 0
+}
+
+internal func internal_function() -> i32 {
+    return 1
+}
+
+// 方法（在 impl 块中）
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+impl Point {
+    func new(x: f64, y: f64) -> Point {
+        return Point { x: x, y: y }
+    }
+    
+    func distance(self: &Self) -> f64 {
+        // 简化实现，避免方法调用语法问题
+        return 0.0
+    }
+    
+    func move_by(self: &mut Self, dx: f64, dy: f64) {
+        // 简化实现，暂时为空
+    }
+}

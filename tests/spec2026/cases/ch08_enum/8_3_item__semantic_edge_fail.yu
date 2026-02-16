@@ -1,0 +1,16 @@
+/// @spec_ref: 8.3
+/// @point_id: 8_3_item
+/// @case_id: 8_3_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3021
+/// @diag_keywords: method
+// negative semantic case: 8_3_item
+enum Mode { A, B }
+impl Mode {
+    func code(&self) -> i32 {
+        return self.missing_code()
+    }
+}
+func main() -> i32 { return Mode.A.code() }

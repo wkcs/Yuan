@@ -1,0 +1,10 @@
+// 测试 for-in 循环 - 访问循环变量
+
+func main() -> i32 {
+    var count = 0
+    for i in 0..5 {
+        count = count + 1
+        @print(@format("[{}]: count = {}\n", i, count))
+    }
+    return count  // 应该返回 5
+}

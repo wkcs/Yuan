@@ -1,0 +1,16 @@
+/// @spec_ref: 13.1
+/// @point_id: 13_1_item
+/// @case_id: 13_1_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 核心内置函数
+func main() -> i32 {
+    var s = @sizeof(i32)
+    var t = @typeof(s)
+    _ = t
+    @assert(s > 0)
+    return s as i32
+}

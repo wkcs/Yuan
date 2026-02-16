@@ -1,0 +1,25 @@
+/// @spec_ref: 6.1
+/// @point_id: 6_1_item
+/// @case_id: 6_1_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 函数定义
+func add(a: i32, b: i32) -> i32 {
+    var out = a + b
+    return out
+}
+
+func mul(a: i32, b: i32) -> i32 {
+    return a * b
+}
+
+func main() -> i32 {
+    var s = add(4, 5)
+    var p = mul(3, 4)
+    @assert(s == 9, "6.1 function definition sum")
+    @assert(p == 12, "6.1 function definition product")
+    return s + p
+}

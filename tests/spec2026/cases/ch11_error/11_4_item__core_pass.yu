@@ -1,0 +1,23 @@
+/// @spec_ref: 11.4
+/// @point_id: 11_4_item
+/// @case_id: 11_4_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 可能返回错误的函数
+func open(flag: bool) -> !i32 {
+    if flag {
+        return SysError.PermissionDenied { path: "a" }
+    }
+    return 1
+}
+
+func main() -> i32 {
+    var x = open(false)!
+    var __spec2026_actual: i32 = x
+    var __spec2026_expected: i32 = x
+    @assert(__spec2026_actual == __spec2026_expected, "11_4_item assertion failed")
+    return __spec2026_actual
+}

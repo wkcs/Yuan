@@ -1,0 +1,18 @@
+/// @spec_ref: 16.3.2
+/// @point_id: 16_3_2_2_mut
+/// @case_id: 16_3_2_2_mut__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级2_`-` `!` `~` `*` `&` `&mut`_一元运算符（含逻辑非）
+func main() -> i32 {
+    var a = -5
+    var b = !false
+    var c = ~1
+    @assert(a == -5, "16.3.2 unary minus")
+    @assert(b, "16.3.2 logical not")
+    @assert(c == -2, "16.3.2 bitwise not")
+    return 0
+}

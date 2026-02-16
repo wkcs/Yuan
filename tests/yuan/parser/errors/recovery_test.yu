@@ -1,0 +1,186 @@
+// 错误恢复测试用例 - 测试解析器的错误恢复能力
+
+// 多个错误，测试解析器能否继续解析后续代码
+func test_error_recovery() {
+    // 第一个错误：无效的数字
+    var invalid_num = 0x
+    
+    // 解析器应该能够恢复并继续解析这个有效的声明
+    var valid_num = 42
+    
+    // 第二个错误：不匹配的括号
+    var arr = [1, 2, 3
+    
+    // 解析器应该能够恢复并继续解析
+    var another_arr = [4, 5, 6]
+    
+    // 第三个错误：无效的函数调用
+    var result = invalid_func(
+    
+    // 解析器应该能够恢复
+    var valid_result = valid_func()
+}
+
+// 函数定义中的错误恢复
+func invalid_function_with_errors(param1: i32, param2) {  // 错误：param2 缺少类型
+    var x = 42
+    return x
+}
+
+// 解析器应该能够继续解析下一个函数
+func valid_function() -> i32 {
+    return 100
+}
+
+// 结构体定义中的错误恢复
+struct InvalidStruct {
+    field1: i32,
+    field2:,        // 错误：缺少类型
+    field3: f64,
+}
+
+// 解析器应该能够继续解析下一个结构体
+struct ValidStruct {
+    x: f64,
+    y: f64,
+}
+
+// 枚举定义中的错误恢复
+enum InvalidEnum {
+    Variant1,
+    Variant2(,      // 错误：参数类型不完整
+    Variant3,
+}
+
+// 解析器应该能够继续解析
+enum ValidEnum {
+    A,
+    B(i32),
+    C { field: str },
+}
+
+// 表达式中的错误恢复
+func test_expression_recovery() {
+    // 错误的表达式
+    var x = 1 +++ 2
+    
+    // 解析器应该能够恢复
+    var y = 3 + 4
+    
+    // 另一个错误
+    var z = func_call(arg1, arg2,)  // 错误：尾随逗号在某些情况下可能无效
+    
+    // 继续解析
+    var w = another_func()
+    
+    // 不匹配的括号错误
+    var result = (1 + 2 * 3
+    
+    // 解析器应该恢复
+    var correct = (4 + 5) * 6
+}
+
+// 语句中的错误恢复
+func test_statement_recovery() {
+    // 无效的 if 语句
+    if condition && {  // 错误：条件不完整
+        return 1
+    }
+    
+    // 解析器应该能够继续
+    if true {
+        return 2
+    }
+    
+    // 无效的 match 语句
+    match value {
+        1 => ,         // 错误：分支体为空
+        2 => return 2,
+    }
+    
+    // 继续解析
+    match value {
+        3 => return 3,
+        _ => return 0,
+    }
+    
+    // 无效的循环
+    while condition && {  // 错误：条件不完整
+        break
+    }
+    
+    // 解析器应该恢复
+    while true {
+        break
+    }
+}
+
+// 类型中的错误恢复
+func test_type_recovery() {
+    // 无效的类型
+    var x: [i32;] = []     // 错误：数组大小缺失
+    
+    // 解析器应该恢复
+    var y: [i32; 5] = [1, 2, 3, 4, 5]
+    
+    // 另一个类型错误
+    var z: func() ->       // 错误：返回类型缺失
+    
+    // 继续解析
+    var w: func() -> i32 = get_number
+}
+
+// 模式中的错误恢复
+func test_pattern_recovery() {
+    var tuple = (1, 2, 3)
+    
+    match tuple {
+        (a, b,) => a + b,     // 错误：模式不完整
+        (x, y, z) => x + y + z,  // 解析器应该能够恢复并解析这个
+    }
+    
+    var point = Point { x: 1.0, y: 2.0 }
+    
+    match point {
+        Point { x, } => x,    // 错误：结构体模式不完整
+        Point { x, y } => x + y,  // 解析器应该恢复
+    }
+}
+
+// 嵌套错误恢复
+func test_nested_recovery() {
+    // 多层嵌套中的错误
+    if condition {
+        match value {
+            1 => {
+                var x = invalid_expr +++ 2  // 错误
+                return x
+            },
+            2 => return 2,  // 解析器应该能够继续
+        }
+    } else {
+        // 这里应该能够正常解析
+        return 0
+    }
+}
+
+// 辅助函数和类型
+func valid_func() -> i32 {
+    return 42
+}
+
+func another_func() -> i32 {
+    return 100
+}
+
+func get_number() -> i32 {
+    return 1
+}
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+var condition = true
+var value = 1

@@ -1,0 +1,32 @@
+// 算术运算测试
+
+func test_add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+func test_sub(a: i32, b: i32) -> i32 {
+    return a - b
+}
+
+func test_mul(a: i32, b: i32) -> i32 {
+    return a * b
+}
+
+func test_div(a: i32, b: i32) -> i32 {
+    return a / b
+}
+
+func test_mod(a: i32, b: i32) -> i32 {
+    return a % b
+}
+
+func test_float_add(a: f64, b: f64) -> f64 {
+    return a + b
+}
+
+func test_float_mul(a: f64, b: f64) -> f64 {
+    return a * b
+}
+
+func main() {
+}

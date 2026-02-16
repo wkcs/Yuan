@@ -1,0 +1,14 @@
+/// @spec_ref: 16.5.1
+/// @point_id: 16_5_1_import_path
+/// @case_id: 16_5_1_import_path__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 16_5_1_import_path
+func main() -> i32 {
+    var m = @import(1)
+    _ = m
+    return 0
+}

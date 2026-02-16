@@ -1,0 +1,66 @@
+// Yuan 词法分析错误测试 - 无效数字
+// 测试各种无效数字字面量的错误处理
+
+// 不完整的十六进制数
+var hex1 = 0x
+var hex2 = 0X
+
+// 不完整的八进制数
+var oct1 = 0o
+var oct2 = 0O
+
+// 不完整的二进制数
+var bin1 = 0b
+var bin2 = 0B
+
+// 无效的十六进制数字
+var hex_invalid1 = 0xG
+var hex_invalid2 = 0x123G
+var hex_invalid3 = 0xGHIJ
+
+// 无效的八进制数字
+var oct_invalid1 = 0o8
+var oct_invalid2 = 0o789
+var oct_invalid3 = 0o123456789
+
+// 无效的二进制数字
+var bin_invalid1 = 0b2
+var bin_invalid2 = 0b1012
+var bin_invalid3 = 0b123456
+
+// 数字后跟无效字符
+var num_invalid1 = 123abc
+var num_invalid2 = 456def
+var num_invalid3 = 789xyz
+
+// 无效的浮点数格式
+var float_invalid1 = 1.2.3    // 多个小数点
+
+// 不完整的科学计数法
+var sci_invalid1 = 1e
+var sci_invalid2 = 1E
+var sci_invalid3 = 1e+
+var sci_invalid4 = 1e-
+var sci_invalid5 = 1E+
+var sci_invalid6 = 1E-
+
+// 科学计数法中的无效字符
+var sci_invalid7 = 1eabc
+var sci_invalid8 = 1e+abc
+var sci_invalid9 = 1e-xyz
+
+// 无效的类型后缀
+var suffix_invalid1 = 123xyz
+var suffix_invalid2 = 3.14abc
+var suffix_invalid3 = 0x123def  // 这里 def 不是有效后缀
+
+// 下划线使用错误
+var underscore_invalid1 = _123     // 开头的下划线
+var underscore_invalid2 = 123_     // 结尾的下划线
+var underscore_invalid3 = 1__23    // 连续下划线
+var underscore_invalid4 = 1._23    // 小数点前的下划线
+var underscore_invalid5 = 1.2_3_   // 结尾下划线
+
+// 超出范围的数字（词法分析器可能需要检测）
+var overflow1 = 999999999999999999999999999999999999999999999999999999999999
+var overflow2 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF

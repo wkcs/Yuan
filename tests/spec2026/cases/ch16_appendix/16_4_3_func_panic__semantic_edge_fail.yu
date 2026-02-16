@@ -1,0 +1,16 @@
+/// @spec_ref: 16.4.3
+/// @point_id: 16_4_3_func_panic
+/// @case_id: 16_4_3_func_panic__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003,E3027
+/// @diag_keywords: type mismatch,error
+// negative semantic case: 16_4_3_func_panic
+func risky() -> !i32 {
+    return SysError.DivisionByZero
+}
+func main() -> i32 {
+    var x: i32 = risky()
+    return x
+}

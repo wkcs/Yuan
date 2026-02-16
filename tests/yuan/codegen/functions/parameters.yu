@@ -1,0 +1,32 @@
+// 函数参数测试
+
+func no_params() -> i32 {
+    return 42
+}
+
+func one_param(x: i32) -> i32 {
+    return x
+}
+
+func two_params(x: i32, y: i32) -> i32 {
+    return x + y
+}
+
+func multiple_params(a: i32, b: i32, c: i32, d: i32) -> i32 {
+    return a + b + c + d
+}
+
+func mixed_types(i: i32, f: f64, b: bool) -> i32 {
+    if b {
+        return i
+    }
+    return 0
+}
+
+func test_param_usage(x: i32) -> i32 {
+    var y: i32 = x * 2
+    return y + x
+}
+
+func main() {
+}

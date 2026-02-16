@@ -1,0 +1,14 @@
+/// @spec_ref: 14.2.2
+/// @point_id: 14_2_2_std_fs
+/// @case_id: 14_2_2_std_fs__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E3021
+/// @diag_keywords: field,not found
+// negative semantic case: 14_2_2_std_fs
+const fs = @import("std").fs
+func main() -> i32 {
+    _ = fs.read_non_exist
+    return 0
+}

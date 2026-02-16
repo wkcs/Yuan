@@ -1,0 +1,13 @@
+/// @spec_ref: 16.3.8
+/// @point_id: 16_3_8_8
+/// @case_id: 16_3_8_8__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 16_3_8_8
+func main() -> i32 {
+    var prec = 1 +
+    return prec
+}

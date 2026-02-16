@@ -1,0 +1,13 @@
+/// @spec_ref: 5.7
+/// @point_id: 5_7_break_continue
+/// @case_id: 5_7_break_continue__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3013
+/// @diag_keywords: outside of loop
+// negative semantic case: 5_7_break_continue
+func main() -> i32 {
+    break
+    return 0
+}

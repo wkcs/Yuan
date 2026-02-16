@@ -1,0 +1,24 @@
+/// @spec_ref: 8.3
+/// @point_id: 8_3_item
+/// @case_id: 8_3_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 枚举方法
+enum Mode { A, B }
+
+impl Mode {
+    func code(&self) -> i32 {
+        match self {
+            Mode.A => 1,
+            Mode.B => 2,
+        }
+    }
+}
+
+func main() -> i32 {
+    @assert(true, "8_3_item assertion anchor")
+    return Mode.A.code()
+}

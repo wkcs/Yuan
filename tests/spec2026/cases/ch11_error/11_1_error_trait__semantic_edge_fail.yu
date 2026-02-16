@@ -1,0 +1,16 @@
+/// @spec_ref: 11.1
+/// @point_id: 11_1_error_trait
+/// @case_id: 11_1_error_trait__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3017,E3018
+/// @diag_keywords: error,trait
+// negative semantic case: 11_1_error_trait
+struct MyErr {}
+func build() -> !i32 {
+    return MyErr {}
+}
+func main() -> i32 {
+    return build()!
+}

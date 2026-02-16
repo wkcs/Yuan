@@ -1,0 +1,12 @@
+/// @spec_ref: 10.2
+/// @point_id: 10_2_item
+/// @case_id: 10_2_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3020
+/// @diag_keywords: redeclared
+// negative semantic case: 10_2_item
+pub const VALUE: i32 = 1
+pub const VALUE: i32 = 2
+func main() -> i32 { return VALUE }

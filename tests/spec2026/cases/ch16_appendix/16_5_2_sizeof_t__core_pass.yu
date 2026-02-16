@@ -1,0 +1,16 @@
+/// @spec_ref: 16.5.2
+/// @point_id: 16_5_2_sizeof_t
+/// @case_id: 16_5_2_sizeof_t__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 内置函数_`@sizeof(T)`_获取类型大小
+func main() -> i32 {
+    var size_i32 = @sizeof(i32)
+    var size_bool = @sizeof(bool)
+    @assert(size_i32 > 0, "16.5.2 sizeof i32")
+    @assert(size_bool > 0, "16.5.2 sizeof bool")
+    return (size_i32 + size_bool) as i32
+}

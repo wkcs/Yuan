@@ -1,0 +1,59 @@
+// loop 无限循环测试
+
+func test_loop_with_break() -> i32 {
+    var i: i32 = 0
+
+    loop {
+        if i == 10 {
+            break
+        }
+        i = i + 1
+    }
+
+    return i
+}
+
+func test_loop_with_continue() -> i32 {
+    var count: i32 = 0
+    var i: i32 = 0
+
+    loop {
+        i = i + 1
+        if i > 100 {
+            break
+        }
+        if i % 2 == 0 {
+            continue
+        }
+        count = count + 1
+    }
+
+    return count
+}
+
+func test_nested_loop() -> i32 {
+    var outer: i32 = 0
+    var result: i32 = 0
+
+    loop {
+        if outer >= 5 {
+            break
+        }
+
+        var inner: i32 = 0
+        loop {
+            if inner >= 3 {
+                break
+            }
+            result = result + 1
+            inner = inner + 1
+        }
+
+        outer = outer + 1
+    }
+
+    return result
+}
+
+func main() {
+}

@@ -1,0 +1,13 @@
+/// @spec_ref: 2.5.4
+/// @point_id: 2_5_4_item
+/// @case_id: 2_5_4_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: lexer
+/// @diag_codes: E1002
+/// @diag_keywords: unterminated string
+// negative semantic case: 2_5_4_item
+func main() -> i32 {
+    var s = "unterminated
+    return 0
+}

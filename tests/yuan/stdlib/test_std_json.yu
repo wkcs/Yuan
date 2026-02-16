@@ -1,0 +1,22 @@
+/// \file test_std_json.yu
+/// \brief std.json 回归测试
+
+const std = @import("std")
+const json = std.json
+const println = std.io.println
+
+func main() -> i32 {
+    var raw: str = "hello \"yuan\"\nline2"
+    var escaped: str = json.escape(raw)
+    println("[json] escaped = {}", escaped)
+
+    var quoted: str = json.quote("abc")
+    println("[json] quoted = {}", quoted)
+
+    var payload: str = "{\"model\":\"m1\",\"content\":\"你好\\nworld\"}"
+    var model: str = json.get_string_by_key(payload, "model")
+    var content: str = json.get_string_by_key(payload, "content")
+    println("[json] model = {}", model)
+    println("[json] content = {}", content)
+    return 0
+}

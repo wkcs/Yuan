@@ -1,0 +1,14 @@
+/// @spec_ref: 16.5.3
+/// @point_id: 16_5_3_typeof_value
+/// @case_id: 16_5_3_typeof_value__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3006,E2002
+/// @diag_keywords: argument,expected
+// negative semantic case: 16_5_3_typeof_value
+func main() -> i32 {
+    var t = @typeof()
+    _ = t
+    return 0
+}

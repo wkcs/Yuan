@@ -1,0 +1,83 @@
+// 运算符表达式测试用例
+
+func test_operators() {
+    var a = 10
+    var b = 20
+    var c = 3.14
+    var d = true
+    var e = false
+    
+    // 算术运算符
+    var add = a + b
+    var sub = a - b
+    var mul = a * b
+    var div = a / b
+    var mod = a % b
+    
+    // 一元运算符
+    var neg = -a
+    var not = !d
+    var bitnot = ~a
+    
+    // 比较运算符
+    var eq = a == b
+    var ne = a != b
+    var lt = a < b
+    var le = a <= b
+    var gt = a > b
+    var ge = a >= b
+    
+    // 逻辑运算符
+    var and = d && e
+    var or = d || e
+    
+    // 位运算符
+    var bitand = a & b
+    var bitor = a | b
+    var bitxor = a ^ b
+    var shl = a << 2
+    var shr = a >> 2
+    
+    // 赋值运算符
+    var x = 10
+    x += 5
+    x -= 3
+    x *= 2
+    x /= 4
+    x %= 3
+    x &= 0xFF
+    x |= 0x0F
+    x ^= 0xF0
+    x <<= 1
+    x >>= 1
+    
+    // 范围运算符
+    var range1 = 1..10
+    var range2 = 1..=10
+    
+    // 错误传播运算符
+    var result = risky_function()!
+    
+    // 类型转换
+    var cast = a as f64
+    
+    // 引用和解引用
+    var ref_a = &a
+    var mut_ref = &x
+    var deref = *ref_a
+    
+    // 复合表达式
+    var complex = (a + b) * (c - 1.0) / 2.0
+    var logical = (a > b) && (c > 0.0) || d
+    var mixed = a + b * c as f64 - d as i32
+    
+    // 运算符优先级测试
+    var precedence1 = a + b * c  // 应该是 a + (b * c)
+    var precedence2 = a * b + c  // 应该是 (a * b) + c
+    var precedence3 = a < b && c > d  // 应该是 (a < b) && (c > d)
+    var precedence4 = !d || e && true  // 应该是 (!d) || (e && true)
+}
+
+func risky_function() -> !i32 {
+    return 42
+}

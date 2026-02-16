@@ -1,0 +1,17 @@
+/// @spec_ref: 7.3
+/// @point_id: 7_3_item
+/// @case_id: 7_3_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3021
+/// @diag_keywords: method
+// negative semantic case: 7_3_item
+struct N { v: i32 }
+impl N {
+    func get(&self) -> i32 { return self.v }
+}
+func main() -> i32 {
+    var n = N { v: 1 }
+    return n.missing()
+}

@@ -1,0 +1,21 @@
+// 数组可变性测试
+// 测试数组元素的可变性
+
+// 不可变数组
+var arr1 = [1, 2, 3, 4, 5]
+// arr1[0] = 100  // 错误：数组是不可变的
+
+// 数组访问
+var first = arr1[0]
+var second = arr1[1]
+
+// 通过函数处理数组
+func sum_array(arr: &[i32; 5]) -> i32 {
+    return arr[0] + arr[1] + arr[2] + arr[3] + arr[4]
+}
+
+var total = sum_array(&arr1)
+
+// 二维数组
+var matrix = [[1, 2], [3, 4]]
+var elem = matrix[0][0]

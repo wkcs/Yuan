@@ -1,0 +1,14 @@
+/// @spec_ref: 16.3.2
+/// @point_id: 16_3_2_2_mut
+/// @case_id: 16_3_2_2_mut__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3038
+/// @diag_keywords: borrow
+// negative semantic case: 16_3_2_2_mut
+func main() -> i32 {
+    var p = &mut 1
+    _ = p
+    return 0
+}

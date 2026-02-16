@@ -1,0 +1,105 @@
+/// \file io.yu
+/// \brief 标准库 IO 模块
+
+const fs = @import("fs")
+
+pub struct Stdin {}
+pub struct Stdout {}
+pub struct Stderr {}
+
+pub struct File {
+    path: str,
+    mode: str,
+    closed: bool,
+}
+
+/// 打印文本到标准输出（不换行）
+pub func print(...args) {
+    if args.len == 0i64 {
+        return
+    }
+    var message: str = @format(args)
+    @print(message)
+}
+
+/// 打印一行文本到标准输出
+pub func println(...args) {
+    if args.len == 0i64 {
+        @print("\n")
+        return
+    }
+    var message: str = @format(args)
+    @print(message)
+    @print("\n")
+}
+
+/// 打印到标准错误（当前实现复用 stdout，带前缀）
+pub func eprint(...args) {
+    @print("[stderr] ")
+    if args.len == 0i64 {
+        return
+    }
+    var message: str = @format(args)
+    @print(message)
+}
+
+/// 打印到标准错误并换行
+pub func eprintln(...args) {
+    @print("[stderr] ")
+    if args.len == 0i64 {
+        @print("\n")
+        return
+    }
+    var message: str = @format(args)
+    @print(message)
+    @print("\n")
+}
+
+pub func stdin() -> Stdin {
+    return Stdin {}
+}
+
+pub func stdout() -> Stdout {
+    return Stdout {}
+}
+
+pub func stderr() -> Stderr {
+    return Stderr {}
+}
+
+impl Stdin {
+    pub func read_line(&self) -> str {
+        return @os_stdin_read_line()
+    }
+}
+
+impl Stdout {
+    pub func write(&self, message: str) {
+        @print(message)
+    }
+}
+
+impl Stderr {
+    pub func write(&self, message: str) {
+        @print("[stderr] ")
+        @print(message)
+    }
+}
+
+impl File {
+    pub func open(path: str, mode: str) -> File {
+        return File { path: path, mode: mode, closed: false }
+    }
+
+    pub func read_to_string(&self) -> str {
+        return fs.read_to_string(self.path)
+    }
+
+    pub func write_string(&self, content: str) {
+        fs.write(self.path, content)
+    }
+
+    pub func close(&mut self) {
+        self.closed = true
+    }
+}

@@ -1,0 +1,14 @@
+/// @spec_ref: 16.3.4
+/// @point_id: 16_3_4_4
+/// @case_id: 16_3_4_4__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级4_`*` `/` `%`_乘法、除法、取模
+func main() -> i32 {
+    var x = 9 * 5 / 3 % 4
+    @assert(x == 3, "16.3.4 mul/div/mod")
+    return x
+}

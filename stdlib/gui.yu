@@ -1,0 +1,387 @@
+/// \file gui.yu
+/// \brief 通用跨平台 GUI 抽象层（基于 FFI 后端）。
+
+const ffi = @import("ffi")
+
+pub const KEY_UP = 1u64
+pub const KEY_RIGHT = 2u64
+pub const KEY_DOWN = 4u64
+pub const KEY_LEFT = 8u64
+pub const KEY_QUIT = 16u64
+pub const KEY_ACTION = 32u64
+
+pub const KEY_CONFIRM = KEY_ACTION
+pub const KEY_PRIMARY = KEY_ACTION
+
+pub struct Color {
+    value: u64,
+}
+
+pub struct Point {
+    x: i32,
+    y: i32,
+}
+
+pub struct Rect {
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
+}
+
+pub struct Circle {
+    cx: i32,
+    cy: i32,
+    radius: i32,
+}
+
+pub struct TextSpan {
+    text: str,
+    x: i32,
+    y: i32,
+    color: Color,
+}
+
+pub struct WindowOptions {
+    width: i32,
+    height: i32,
+    title: str,
+}
+
+pub struct Input {
+    mask: u64,
+}
+
+impl Input {
+    pub func empty() -> Input {
+        return Input { mask: 0u64 }
+    }
+
+    pub func pressed(&self, key: u64) -> bool {
+        return (self.mask & key) != 0u64
+    }
+
+    pub func any_direction(&self) -> bool {
+        var dir: u64 = KEY_UP | KEY_RIGHT | KEY_DOWN | KEY_LEFT
+        return (self.mask & dir) != 0u64
+    }
+
+    pub func up(&self) -> bool {
+        return self.pressed(KEY_UP)
+    }
+
+    pub func right(&self) -> bool {
+        return self.pressed(KEY_RIGHT)
+    }
+
+    pub func down(&self) -> bool {
+        return self.pressed(KEY_DOWN)
+    }
+
+    pub func left(&self) -> bool {
+        return self.pressed(KEY_LEFT)
+    }
+
+    pub func quit(&self) -> bool {
+        return self.pressed(KEY_QUIT)
+    }
+
+    pub func action(&self) -> bool {
+        return self.pressed(KEY_ACTION)
+    }
+}
+
+pub struct Backend {
+    lib: ffi.Library,
+    fn_init: ffi.Symbol,
+    fn_should_close: ffi.Symbol,
+    fn_begin: ffi.Symbol,
+    fn_clear: ffi.Symbol,
+    fn_fill_rect: ffi.Symbol,
+    fn_draw_rect: ffi.Symbol,
+    fn_draw_line: ffi.Symbol,
+    fn_fill_circle: ffi.Symbol,
+    fn_draw_text: ffi.Symbol,
+    fn_set_title: ffi.Symbol,
+    fn_end: ffi.Symbol,
+    fn_poll: ffi.Symbol,
+    fn_sleep_ms: ffi.Symbol,
+    fn_shutdown: ffi.Symbol,
+}
+
+pub struct Context {
+    backend: Backend,
+    is_open: bool,
+}
+
+pub func rgb(r: u8, g: u8, b: u8) -> Color {
+    var v: u64 = ((r as u64) << 16u64) | ((g as u64) << 8u64) | (b as u64)
+    return Color { value: v }
+}
+
+pub func color_hex(value: u64) -> Color {
+    return Color { value: value & 0x00ffffffu64 }
+}
+
+pub func point(x: i32, y: i32) -> Point {
+    return Point { x: x, y: y }
+}
+
+pub func rect(x: i32, y: i32, w: i32, h: i32) -> Rect {
+    return Rect { x: x, y: y, w: w, h: h }
+}
+
+pub func circle(cx: i32, cy: i32, radius: i32) -> Circle {
+    return Circle { cx: cx, cy: cy, radius: radius }
+}
+
+pub func text_span(text: str, x: i32, y: i32, color: Color) -> TextSpan {
+    return TextSpan {
+        text: text,
+        x: x,
+        y: y,
+        color: color,
+    }
+}
+
+pub func window_options(width: i32, height: i32, title: str) -> WindowOptions {
+    return WindowOptions {
+        width: width,
+        height: height,
+        title: title,
+    }
+}
+
+pub func last_error() -> str {
+    return ffi.last_error()
+}
+
+func sym(lib: ffi.Library, name: str) -> ffi.Symbol {
+    return ffi.symbol(lib, name)
+}
+
+func backend_ok(b: &Backend) -> bool {
+    return b.lib != 0u64 &&
+           b.fn_init != 0u64 &&
+           b.fn_should_close != 0u64 &&
+           b.fn_begin != 0u64 &&
+           b.fn_clear != 0u64 &&
+           b.fn_fill_rect != 0u64 &&
+           b.fn_draw_rect != 0u64 &&
+           b.fn_draw_line != 0u64 &&
+           b.fn_fill_circle != 0u64 &&
+           b.fn_draw_text != 0u64 &&
+           b.fn_set_title != 0u64 &&
+           b.fn_end != 0u64 &&
+           b.fn_poll != 0u64 &&
+           b.fn_sleep_ms != 0u64 &&
+           b.fn_shutdown != 0u64
+}
+
+pub func open(options: WindowOptions) -> !Context {
+    var candidates = [
+        "./build/gui/yuan_gui_windows.dll",
+        "./build/gui/libyuan_gui_linux.so",
+        "./build/gui/libyuan_gui_macos.dylib",
+        "../build/gui/yuan_gui_windows.dll",
+        "../build/gui/libyuan_gui_linux.so",
+        "../build/gui/libyuan_gui_macos.dylib",
+    ]
+    var view: &[str] = candidates[..]
+    var lib: ffi.Library = 0u64
+    for path in view {
+        lib = ffi.open(path)
+        if lib != 0u64 {
+            break
+        }
+    }
+
+    if lib == 0u64 {
+        return SysError.FileNotFound { path: "build/gui/libyuan_gui_<platform>" }
+    }
+
+    var backend = Backend {
+        lib: lib,
+        fn_init: sym(lib, "yuan_gui_init"),
+        fn_should_close: sym(lib, "yuan_gui_should_close"),
+        fn_begin: sym(lib, "yuan_gui_begin_frame"),
+        fn_clear: sym(lib, "yuan_gui_clear_rgb"),
+        fn_fill_rect: sym(lib, "yuan_gui_fill_rect"),
+        fn_draw_rect: sym(lib, "yuan_gui_draw_rect"),
+        fn_draw_line: sym(lib, "yuan_gui_draw_line"),
+        fn_fill_circle: sym(lib, "yuan_gui_fill_circle"),
+        fn_draw_text: sym(lib, "yuan_gui_draw_text"),
+        fn_set_title: sym(lib, "yuan_gui_set_title"),
+        fn_end: sym(lib, "yuan_gui_end_frame"),
+        fn_poll: sym(lib, "yuan_gui_poll_input"),
+        fn_sleep_ms: sym(lib, "yuan_gui_sleep_ms"),
+        fn_shutdown: sym(lib, "yuan_gui_shutdown"),
+    }
+
+    if !backend_ok(&backend) {
+        _ = ffi.close(lib)
+        return SysError.ParseError { message: "missing required yuan_gui_* symbol" }
+    }
+
+    var ctitle: *mut u8 = ffi.alloc_cstring(options.title)
+    var ok: usize = ffi.call3(
+        backend.fn_init,
+        options.width as usize,
+        options.height as usize,
+        ctitle as usize
+    )
+    ffi.free_cstring(ctitle)
+
+    if ok == 0u64 {
+        _ = ffi.close(lib)
+        return SysError.ParseError { message: "yuan_gui_init failed" }
+    }
+
+    return Context {
+        backend: backend,
+        is_open: true,
+    }
+}
+
+pub func should_close(ctx: &Context) -> bool {
+    if !ctx.is_open {
+        return true
+    }
+    return ffi.call0(ctx.backend.fn_should_close) != 0u64
+}
+
+pub func begin(ctx: &Context) {
+    if !ctx.is_open {
+        return
+    }
+    _ = ffi.call0(ctx.backend.fn_begin)
+}
+
+pub func end(ctx: &Context) {
+    if !ctx.is_open {
+        return
+    }
+    _ = ffi.call0(ctx.backend.fn_end)
+}
+
+pub func clear(ctx: &Context, color: Color) {
+    if !ctx.is_open {
+        return
+    }
+    _ = ffi.call1(ctx.backend.fn_clear, color.value as usize)
+}
+
+pub func set_title(ctx: &Context, title: str) {
+    if !ctx.is_open {
+        return
+    }
+    var ctitle: *mut u8 = ffi.alloc_cstring(title)
+    _ = ffi.call1(
+        ctx.backend.fn_set_title,
+        ctitle as usize
+    )
+    ffi.free_cstring(ctitle)
+}
+
+pub func fill(ctx: &Context, r: Rect, color: Color) {
+    if !ctx.is_open {
+        return
+    }
+    _ = ffi.call5(
+        ctx.backend.fn_fill_rect,
+        r.x as usize,
+        r.y as usize,
+        r.w as usize,
+        r.h as usize,
+        color.value as usize
+    )
+}
+
+pub func stroke(ctx: &Context, r: Rect, color: Color) {
+    if !ctx.is_open {
+        return
+    }
+    _ = ffi.call5(
+        ctx.backend.fn_draw_rect,
+        r.x as usize,
+        r.y as usize,
+        r.w as usize,
+        r.h as usize,
+        color.value as usize
+    )
+}
+
+pub func line(ctx: &Context, p0: Point, p1: Point, color: Color) {
+    if !ctx.is_open {
+        return
+    }
+    _ = ffi.call5(
+        ctx.backend.fn_draw_line,
+        p0.x as usize,
+        p0.y as usize,
+        p1.x as usize,
+        p1.y as usize,
+        color.value as usize
+    )
+}
+
+pub func fill_disk(ctx: &Context, c: Circle, color: Color) {
+    if !ctx.is_open {
+        return
+    }
+    _ = ffi.call4(
+        ctx.backend.fn_fill_circle,
+        c.cx as usize,
+        c.cy as usize,
+        c.radius as usize,
+        color.value as usize
+    )
+}
+
+pub func text(ctx: &Context, span: TextSpan) {
+    if !ctx.is_open {
+        return
+    }
+    var ctext: *mut u8 = ffi.alloc_cstring(span.text)
+    _ = ffi.call4(
+        ctx.backend.fn_draw_text,
+        ctext as usize,
+        span.x as usize,
+        span.y as usize,
+        span.color.value as usize
+    )
+    ffi.free_cstring(ctext)
+}
+
+pub func poll_input(ctx: &Context) -> Input {
+    if !ctx.is_open {
+        return Input.empty()
+    }
+    return Input {
+        mask: ffi.call0(ctx.backend.fn_poll) as u64,
+    }
+}
+
+pub func key_down(input: Input, key: u64) -> bool {
+    return input.pressed(key)
+}
+
+pub func sleep_ms(ctx: &Context, ms: i32) {
+    if !ctx.is_open {
+        return
+    }
+    _ = ffi.call1(ctx.backend.fn_sleep_ms, ms as usize)
+}
+
+pub func shutdown(ctx: &Context) {
+    if !ctx.is_open {
+        return
+    }
+    _ = ffi.call0(ctx.backend.fn_shutdown)
+    // Keep backend module loaded until process exit to avoid teardown races
+    // with pending native window messages on Windows.
+}
+
+pub func close(ctx: &Context) {
+    shutdown(ctx)
+}

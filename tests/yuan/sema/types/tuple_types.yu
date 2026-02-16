@@ -1,0 +1,25 @@
+// 元组类型测试
+// 测试元组类型的声明和使用
+
+// 基本元组
+var pair: (i32, i32) = (10, 20)
+var triple: (i32, str, bool) = (42, "hello", true)
+
+// 类型推断
+var t1 = (1, 2, 3)
+var t2 = ("a", 100, true)
+
+// 元组索引
+var first = pair.0
+var second = pair.1
+var msg = triple.1
+
+// 嵌套元组
+var nested: ((i32, i32), i32) = ((1, 2), 3)
+
+// 函数返回元组
+func make_pair(a: i32, b: i32) -> (i32, i32) {
+    return (a, b)
+}
+
+var p = make_pair(1, 2)

@@ -1,0 +1,18 @@
+/// @spec_ref: 4.3
+/// @point_id: 4_3_item
+/// @case_id: 4_3_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 比较表达式
+func main() -> i32 {
+    if 3 < 5 && 5 >= 5 {
+        return 1
+    }
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "4_3_item assertion failed")
+    return __spec2026_actual
+}

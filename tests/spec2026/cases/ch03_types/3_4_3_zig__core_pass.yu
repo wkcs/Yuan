@@ -1,0 +1,23 @@
+/// @spec_ref: 3.4.3
+/// @point_id: 3_4_3_zig
+/// @case_id: 3_4_3_zig__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 引用与并发规则（Zig 风格）
+func mutate(x: &mut i32) {
+    *x += 3
+}
+
+func main() -> i32 {
+    var value: i32 = 4
+    var r: &i32 = &value
+    var p: *i32 = r as *i32
+    _ = p
+    mutate(&mut value)
+    @assert(*r == 7, "3.4 ref")
+    @assert(value == 7, "3.4 mut ref")
+    return 0
+}

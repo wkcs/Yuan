@@ -1,0 +1,29 @@
+/// @spec_ref: 11.6
+/// @point_id: 11_6_item
+/// @case_id: 11_6_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 自定义错误类型
+trait ErrorLike2 {
+    func message(&self) -> str
+}
+
+struct E {}
+
+impl ErrorLike2 for E {
+    func message(&self) -> str {
+        return "custom"
+    }
+}
+
+func main() -> i32 {
+    var e = E {}
+    _ = e.message()
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "11_6_item assertion failed")
+    return __spec2026_actual
+}

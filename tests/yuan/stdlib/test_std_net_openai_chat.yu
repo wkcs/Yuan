@@ -1,0 +1,204 @@
+/// \file test_std_net_openai_chat.yu
+/// \brief OpenAI-compatible chat demo based on current stdlib HTTP APIs.
+
+const std = @import("std")
+const http = std.net.http
+const json = std.json
+const io = std.io
+const println = std.io.println
+type String = std.string.String
+
+const DEFAULT_BASE_URL = "https://integrate.api.nvidia.com"
+const DEFAULT_MODEL = "moonshotai/kimi-k2.5"
+const DEFAULT_API_KEY = "nvapi-xxx"
+
+func byte_at(s: str, idx: usize) -> u8 {
+    var p: *u8 = (s.ptr as usize + idx) as *u8
+    var one: &[u8] = @slice(p, 1u64)
+    return one[0u64]
+}
+
+func str_slice_1(s: str, idx: usize) -> str {
+    var p: *u8 = (s.ptr as usize + idx) as *u8
+    return std.mem.str_from_parts(p, 1u64)
+}
+
+func str_eq(a: str, b: str) -> bool {
+    var a_len: usize = a.len() as usize
+    var b_len: usize = b.len() as usize
+    if a_len != b_len {
+        return false
+    }
+    var i: usize = 0u64
+    while i < a_len {
+        if byte_at(a, i) != byte_at(b, i) {
+            return false
+        }
+        i += 1u64
+    }
+    return true
+}
+
+func starts_with_at(haystack: str, needle: str, pos: usize) -> bool {
+    var h_len: usize = haystack.len() as usize
+    var n_len: usize = needle.len() as usize
+    if n_len == 0u64 {
+        return true
+    }
+    if pos + n_len > h_len {
+        return false
+    }
+
+    var i: usize = 0u64
+    while i < n_len {
+        if byte_at(haystack, pos + i) != byte_at(needle, i) {
+            return false
+        }
+        i += 1u64
+    }
+    return true
+}
+
+func find_substr(haystack: str, needle: str, from: usize) -> i64 {
+    var h_len: usize = haystack.len() as usize
+    var n_len: usize = needle.len() as usize
+    if n_len == 0u64 {
+        return from as i64
+    }
+    if from >= h_len {
+        return -1i64
+    }
+    if n_len > h_len {
+        return -1i64
+    }
+
+    var last: usize = h_len - n_len
+    var i: usize = from
+    while i <= last {
+        if starts_with_at(haystack, needle, i) {
+            return i as i64
+        }
+        i += 1u64
+    }
+    return -1i64
+}
+
+func build_chat_url(base_url: str) -> str {
+    if base_url.len() == 0 {
+        return @format("{}/v1/chat/completions", DEFAULT_BASE_URL)
+    }
+
+    if find_substr(base_url, "/v1/chat/completions", 0u64) >= 0i64 {
+        return base_url
+    }
+
+    var n: usize = base_url.len() as usize
+    var last: u8 = byte_at(base_url, n - 1u64)
+    if last == 47u8 {
+        return @format("{}v1/chat/completions", base_url)
+    }
+    return @format("{}/v1/chat/completions", base_url)
+}
+
+func build_chat_body(model: str, user_text: str, stream_enabled: bool) -> str {
+    var escaped_model: str = json.escape(model)
+    var escaped_user: str = json.escape(user_text)
+    var out = String.new()
+
+    out.push_str("{")
+    out.push_str("\"model\":\"")
+    out.push_str(escaped_model)
+    out.push_str("\",")
+    out.push_str("\"messages\":[{\"role\":\"user\",\"content\":\"")
+    out.push_str(escaped_user)
+    out.push_str("\"}],")
+    out.push_str("\"temperature\":0.7,")
+    out.push_str("\"max_tokens\":512,")
+    if stream_enabled {
+        out.push_str("\"stream\":true")
+    } else {
+        out.push_str("\"stream\":false")
+    }
+
+    out.push_str("}")
+    return out.as_str()
+}
+
+func build_request_headers(api_key: str) -> str {
+    if api_key.len() == 0 {
+        return "Content-Type: application/json\nAccept: text/event-stream"
+    }
+    return @format(
+        "Authorization: Bearer {}\nContent-Type: application/json\nAccept: text/event-stream",
+        api_key
+    )
+}
+
+func main() -> !i32 {
+    println("[openai-chat] OpenAI-compatible chat demo")
+    println("[openai-chat] stdlib HTTP headers enabled")
+    println("")
+
+    io.print("Base URL (default {}): ", DEFAULT_BASE_URL)
+    var base_url: str = io.stdin().read_line()
+    if base_url.len() == 0 {
+        base_url = DEFAULT_BASE_URL
+    }
+    var chat_url: str = build_chat_url(base_url)
+
+    io.print("Model (default {}): ", DEFAULT_MODEL)
+    var model: str = io.stdin().read_line()
+    if model.len() == 0 {
+        model = DEFAULT_MODEL
+    }
+
+    io.print("API key (default configured): ")
+    var api_key: str = io.stdin().read_line()
+    if api_key.len() == 0 {
+        api_key = DEFAULT_API_KEY
+    }
+    var opts: http.RequestOptions = http.RequestOptions.default()
+    opts.timeout_ms = 10000u64
+    opts.headers = build_request_headers(api_key)
+    opts.stream = true
+    var client: http.Client = http.client_with_options(opts)
+
+    println("")
+    println("Type your prompt, input `exit` to quit.")
+
+    loop {
+        io.print("you> ")
+        var user_text: str = io.stdin().read_line()
+        if user_text.len() == 0 {
+            continue
+        }
+        if str_eq(user_text, "exit") || str_eq(user_text, "quit") {
+            break
+        }
+
+        io.print("assistant> ")
+        var body: str = build_chat_body(model, user_text, opts.stream)
+        var resp: http.Response = http.client_send_post(client, chat_url, body)!
+
+        if resp.status < 200 || resp.status >= 300 {
+            println("")
+            println("[http] status = {}", resp.status)
+            println("[http] raw body: {}", resp.body)
+            continue
+        }
+
+        if opts.stream {
+            println("")
+        } else {
+            var content: str = json.get_string_by_key(resp.body, "content")
+            if content.len() == 0 {
+                println("assistant(raw)> {}", resp.body)
+            } else {
+                println("assistant> {}", content)
+            }
+        }
+    }
+
+    println("bye")
+    return 0
+}

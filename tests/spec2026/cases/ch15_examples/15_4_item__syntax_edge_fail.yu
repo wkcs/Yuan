@@ -1,0 +1,16 @@
+/// @spec_ref: 15.4
+/// @point_id: 15_4_item
+/// @case_id: 15_4_item__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: runtime
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 15_4_item
+func sum(a: i32, b: i32) -> i32 {
+    return a + b
+}
+func main() -> i32 {
+    var out = sum(1, )
+    return out
+}

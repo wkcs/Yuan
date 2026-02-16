@@ -1,0 +1,16 @@
+/// @spec_ref: 6.3
+/// @point_id: 6_3_item
+/// @case_id: 6_3_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3027,E3003
+/// @diag_keywords: error,type mismatch
+// negative semantic case: 6_3_item
+func risky() -> !i32 {
+    return SysError.DivisionByZero
+}
+func main() -> i32 {
+    var v: i32 = risky()
+    return v
+}

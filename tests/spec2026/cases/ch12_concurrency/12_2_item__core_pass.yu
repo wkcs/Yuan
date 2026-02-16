@@ -1,0 +1,20 @@
+/// @spec_ref: 12.2
+/// @point_id: 12_2_item
+/// @case_id: 12_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 线程
+const thread = @import("std").thread
+
+func worker() -> i32 {
+    return 1
+}
+
+func main() -> i32 {
+    var t = thread.spawn(worker)
+    @assert(true, "12_2_item assertion anchor")
+    return t.join()
+}

@@ -1,0 +1,17 @@
+/// @spec_ref: 2.5.8
+/// @point_id: 2_5_8_item
+/// @case_id: 2_5_8_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: lexer
+/// @diag_codes: 
+/// @diag_keywords: 
+// 元组字面量
+func main() -> i32 {
+    var tup = (1, true, "ok")
+    _ = tup
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "2_5_8_item assertion failed")
+    return __spec2026_actual
+}

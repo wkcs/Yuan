@@ -1,0 +1,90 @@
+/// \file channel.yu
+/// \brief 通道接口（共享队列实现，非阻塞语义）
+
+const collections = @import("collections")
+const mem = @import("mem")
+
+pub struct Sender<T> {
+    queue_ptr: *mut collections.Vec<T>,
+    closed_ptr: *mut i32,
+}
+
+pub struct Receiver<T> {
+    queue_ptr: *mut collections.Vec<T>,
+    closed_ptr: *mut i32,
+}
+
+pub func create<T>() -> (Sender<T>, Receiver<T>) {
+    var queue_ptr: *mut collections.Vec<T> = mem.alloc_t<collections.Vec<T>>(1u64)
+    var queue_slice: &mut [collections.Vec<T>] = mem.mut_slice_from_parts(queue_ptr, 1u64)
+    var queue: collections.Vec<T> = collections.Vec.new()
+    queue_slice[0] = queue
+
+    var closed_ptr: *mut i32 = mem.alloc_t<i32>(1u64)
+    var closed_slice: &mut [i32] = mem.mut_slice_from_parts(closed_ptr, 1u64)
+    closed_slice[0] = 0
+
+    return (
+        Sender {
+            queue_ptr: queue_ptr,
+            closed_ptr: closed_ptr,
+        },
+        Receiver {
+            queue_ptr: queue_ptr,
+            closed_ptr: closed_ptr,
+        }
+    )
+}
+
+impl Sender<T> {
+    pub func send(&mut self, value: T) {
+        if self.queue_ptr == 0u64 as *mut collections.Vec<T> {
+            return
+        }
+
+        var closed_slice: &[i32] = mem.slice_from_parts(self.closed_ptr as *i32, 1u64)
+        if closed_slice[0] != 0 {
+            return
+        }
+
+        var queue_slice: &mut [collections.Vec<T>] = mem.mut_slice_from_parts(self.queue_ptr, 1u64)
+        queue_slice[0].push(value)
+    }
+
+    pub func close(&mut self) {
+        if self.closed_ptr == 0u64 as *mut i32 {
+            return
+        }
+        var closed_slice: &mut [i32] = mem.mut_slice_from_parts(self.closed_ptr, 1u64)
+        closed_slice[0] = 1
+    }
+}
+
+impl Receiver<T> {
+    pub func recv(&mut self) -> ?T {
+        if self.queue_ptr == 0u64 as *mut collections.Vec<T> {
+            return None
+        }
+
+        var queue_slice: &mut [collections.Vec<T>] = mem.mut_slice_from_parts(self.queue_ptr, 1u64)
+        if queue_slice[0].is_empty() {
+            return None
+        }
+
+        var value: T = queue_slice[0].get(0u64)
+        queue_slice[0].remove(0u64)
+        return value
+    }
+
+    pub func try_recv(&mut self) -> ?T {
+        return self.recv()
+    }
+
+    pub func close(&mut self) {
+        if self.closed_ptr == 0u64 as *mut i32 {
+            return
+        }
+        var closed_slice: &mut [i32] = mem.mut_slice_from_parts(self.closed_ptr, 1u64)
+        closed_slice[0] = 1
+    }
+}

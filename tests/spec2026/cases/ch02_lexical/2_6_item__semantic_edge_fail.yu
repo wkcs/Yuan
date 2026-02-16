@@ -1,0 +1,13 @@
+/// @spec_ref: 2.6
+/// @point_id: 2_6_item
+/// @case_id: 2_6_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: lexer
+/// @diag_codes: E2005
+/// @diag_keywords: unexpected token
+// negative semantic case: 2_6_item
+func main() -> i32 {
+    var a = 1 var b = 2
+    return a + b
+}

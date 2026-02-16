@@ -1,0 +1,17 @@
+/// @spec_ref: 11.5.4
+/// @point_id: 11_5_4_item
+/// @case_id: 11_5_4_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003,E3027
+/// @diag_keywords: type mismatch,error
+// negative semantic case: 11_5_4_item
+func parse(x: str) -> !i32 {
+    if x.len() == 0 { return SysError.ParseError { message: "empty" } }
+    return 1
+}
+func inc(x: i32) -> !i32 { return x + 1 }
+func main() -> i32 {
+    return inc(parse(""))!
+}

@@ -1,0 +1,55 @@
+/// \file test_std_async.yu
+/// \brief 标准库 task(async) 模块回归测试
+
+const std = @import("std")
+const println = std.io.println
+const task = std.task
+
+func test_scheduler() {
+    var scheduler: task.Scheduler = task.scheduler_create()
+
+    task.scheduler_set_current(scheduler)
+    var current: task.Scheduler = task.scheduler_current()
+
+    var run_one_empty: bool = task.scheduler_run_one(current)
+    println("[async] run_one on empty queue = {}, expect false", run_one_empty)
+
+    task.scheduler_run_until_idle(current)
+    task.scheduler_clear_current()
+    task.scheduler_destroy(scheduler)
+}
+
+func test_promise() {
+    var promise_ok: task.Promise = task.promise_create()
+    println("[async] promise status pending: {}", task.promise_status(promise_ok) == 0)
+
+    task.promise_retain(promise_ok)
+    task.promise_resolve(promise_ok, 42u64)
+    var status_ok: i32 = task.promise_await_status(promise_ok)
+    println("[async] await fulfilled status: {}", status_ok == 1)
+    println("[async] fulfilled value = {}, expect 42", task.promise_value(promise_ok))
+
+    task.promise_release(promise_ok)
+    task.promise_release(promise_ok)
+
+    var promise_err: task.Promise = task.promise_create()
+    task.promise_reject(promise_err, 99u64)
+    var status_err: i32 = task.promise_await_status(promise_err)
+    println("[async] await rejected status: {}", status_err == -1)
+    println("[async] rejected error = {}, expect 99", task.promise_error(promise_err))
+    task.promise_release(promise_err)
+}
+
+func test_step_counter() {
+    var before: u64 = task.step_count()
+    task.step()
+    var after: u64 = task.step_count()
+    println("[async] step count grows: {}", after == before + 1u64)
+}
+
+func main() -> i32 {
+    test_scheduler()
+    test_promise()
+    test_step_counter()
+    return 0
+}

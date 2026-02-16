@@ -1,0 +1,13 @@
+/// @spec_ref: 3.2.1
+/// @point_id: 3_2_1_item
+/// @case_id: 3_2_1_item__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 3_2_1_item
+func main() -> i32 {
+    var typed: i32 =
+    return typed
+}

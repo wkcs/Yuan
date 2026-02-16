@@ -1,0 +1,22 @@
+/// @spec_ref: 2.5.1
+/// @point_id: 2_5_1_item
+/// @case_id: 2_5_1_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: lexer
+/// @diag_codes: 
+/// @diag_keywords: 
+// 整数字面量
+func main() -> i32 {
+    var a = 78
+    var b = 0x2A
+    var c = 0o77
+    var d = 0b1010
+    _ = b
+    _ = c
+    _ = d
+    var __spec2026_actual: i32 = a
+    var __spec2026_expected: i32 = a
+    @assert(__spec2026_actual == __spec2026_expected, "2_5_1_item assertion failed")
+    return __spec2026_actual
+}

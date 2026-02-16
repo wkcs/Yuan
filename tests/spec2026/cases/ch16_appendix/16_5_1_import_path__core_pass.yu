@@ -1,0 +1,17 @@
+/// @spec_ref: 16.5.1
+/// @point_id: 16_5_1_import_path
+/// @case_id: 16_5_1_import_path__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 内置函数_`@import(path)`_导入模块
+const io = @import("std").io
+func main() -> i32 {
+    io.print("16.5.1")
+    var std = @import("std")
+    _ = std
+    @assert(true, "16.5.1 @import")
+    return 0
+}

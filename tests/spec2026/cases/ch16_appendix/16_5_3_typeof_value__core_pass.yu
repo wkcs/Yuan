@@ -1,0 +1,17 @@
+/// @spec_ref: 16.5.3
+/// @point_id: 16_5_3_typeof_value
+/// @case_id: 16_5_3_typeof_value__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 内置函数_`@typeof(value)`_获取值的类型名称
+func main() -> i32 {
+    var t1 = @typeof(1)
+    var t2 = @typeof("abc")
+    _ = t1
+    _ = t2
+    @assert(true, "16.5.3 typeof")
+    return 0
+}

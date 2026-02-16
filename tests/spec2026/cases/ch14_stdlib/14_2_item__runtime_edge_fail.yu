@@ -1,0 +1,14 @@
+/// @spec_ref: 14.2
+/// @point_id: 14_2_item
+/// @case_id: 14_2_item__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E3021
+/// @diag_keywords: field,not found
+// negative semantic case: 14_2_item
+const std = @import("std")
+func main() -> i32 {
+    _ = std.core_missing
+    return 0
+}

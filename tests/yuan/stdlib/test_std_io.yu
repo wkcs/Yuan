@@ -1,0 +1,15 @@
+/// \file test_std_io.yu
+/// \brief 测试标准库 IO 模块
+
+const std = @import("std")
+
+func test_io() {
+    std.io.println("Hello, {}!", "World")
+    std.io.println("测试中文输出")
+    std.io.print("不换行输出")
+    std.io.print(" 继续输出\n")
+}
+
+func main() {
+    test_io()
+}

@@ -1,0 +1,14 @@
+/// @spec_ref: 16.5.7
+/// @point_id: 16_5_7_file
+/// @case_id: 16_5_7_file__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 内置函数_`@file()`_当前文件名
+func main() -> i32 {
+    var file = @file()
+    @assert(file.len() > 0, "16.5.7 @file")
+    return 0
+}

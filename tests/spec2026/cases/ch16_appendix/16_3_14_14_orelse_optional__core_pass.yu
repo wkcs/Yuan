@@ -1,0 +1,17 @@
+/// @spec_ref: 16.3.14
+/// @point_id: 16_3_14_14_orelse_optional
+/// @case_id: 16_3_14_14_orelse_optional__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级14_`orelse`_Optional 默认值
+func main() -> i32 {
+    var none_v: ?i32 = None
+    var some_v: ?i32 = 6
+    var a = none_v orelse 9
+    var b = some_v orelse 9
+    @assert(a == 9 && b == 6, "16.3.14 orelse")
+    return a + b
+}

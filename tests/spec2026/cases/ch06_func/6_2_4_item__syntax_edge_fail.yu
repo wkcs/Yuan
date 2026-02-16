@@ -1,0 +1,16 @@
+/// @spec_ref: 6.2.4
+/// @point_id: 6_2_4_item
+/// @case_id: 6_2_4_item__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 6_2_4_item
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+func main() -> i32 {
+    var v = add(1, )
+    return v
+}

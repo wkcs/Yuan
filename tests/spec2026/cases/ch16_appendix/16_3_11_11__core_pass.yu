@@ -1,0 +1,15 @@
+/// @spec_ref: 16.3.11
+/// @point_id: 16_3_11_11
+/// @case_id: 16_3_11_11__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级11_`==` `!=`_相等性
+func main() -> i32 {
+    var eq = 7 == 7
+    var ne = 7 != 8
+    @assert(eq && ne, "16.3.11 equality")
+    return 0
+}

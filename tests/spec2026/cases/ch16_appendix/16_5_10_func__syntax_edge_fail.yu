@@ -1,0 +1,13 @@
+/// @spec_ref: 16.5.10
+/// @point_id: 16_5_10_func
+/// @case_id: 16_5_10_func__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 16_5_10_func
+func main() -> i32 {
+    var b = @sizeof(
+    return b as i32
+}

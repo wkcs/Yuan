@@ -1,0 +1,21 @@
+/// @spec_ref: 16.4.4
+/// @point_id: 16_4_4_func_err
+/// @case_id: 16_4_4_func_err__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 错误语法_`func()! -> err { }`_调用函数，如果出错则执行错误处理块
+func fetch(id: i32) -> !i32 {
+    if id == 0 { return SysError.FileNotFound { path: "none" } }
+    return id + 10
+}
+func main() -> i32 {
+    var a: i32 = fetch(1)! -> err {
+        _ = err.message()
+        return -1
+    }
+    @assert(a == 11, "16.4.4 ! -> err block")
+    return 0
+}

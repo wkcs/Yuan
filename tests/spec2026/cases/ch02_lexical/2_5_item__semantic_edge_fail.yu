@@ -1,0 +1,14 @@
+/// @spec_ref: 2.5
+/// @point_id: 2_5_item
+/// @case_id: 2_5_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: lexer
+/// @diag_codes: E1007
+/// @diag_keywords: character literal
+// negative semantic case: 2_5_item
+func main() -> i32 {
+    var lit = 'ab'
+    _ = lit
+    return 0
+}

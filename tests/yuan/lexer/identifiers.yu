@@ -1,0 +1,109 @@
+// Yuan 标识符测试
+// 测试各种标识符格式，包括 Unicode 支持
+
+// 基本标识符
+var simple_name = 1
+var camelCase = 2
+var PascalCase = 3
+var snake_case = 4
+var UPPER_CASE = 5
+
+// 带数字的标识符
+var name1 = 1
+var var2 = 2
+var test123 = 3
+var a1b2c3 = 4
+
+// 下划线标识符
+var _ = 1          // 通配符
+var _private = 2   // 私有变量约定
+var __internal = 3 // 内部变量约定
+var value_ = 4     // 尾随下划线
+
+// 长标识符
+var very_long_identifier_name_that_should_be_valid = 1
+var AnotherVeryLongIdentifierWithMixedCase = 2
+
+// Unicode 标识符（中文）
+var 变量名 = 1
+var 函数名 = 2
+var 类型名 = 3
+var 中文标识符 = 4
+
+// Unicode 标识符（其他语言）
+var имя = 1        // 俄文
+var nombre = 2     // 西班牙文
+var 名前 = 3       // 日文
+var 이름 = 4       // 韩文
+var όνομα = 5      // 希腊文
+
+// Unicode 标识符（表情符号和特殊字符）
+var café = 1       // 带重音符号
+var naïve = 2      // 带分音符号
+var résumé = 3     // 法文
+var Москва = 4     // 俄文城市名
+
+// 混合 ASCII 和 Unicode
+var user_用户 = 1
+var data_数据 = 2
+var config_配置 = 3
+
+// 内置函数标识符（以 @ 开头）
+@import "std/io"
+@export func public_api()
+@inline func fast_function()
+@deprecated func old_function()
+@test func unit_test()
+
+// 复杂的内置标识符
+@compile_time_constant PI = 3.14159
+@memory_layout struct PackedStruct
+@error_handling func may_fail() -> !i32
+
+// 标识符在不同上下文中的使用
+struct 结构体名 {
+    字段1: i32,
+    field_2: str,
+    третье_поле: bool,
+}
+
+func 函数名(参数1: i32, param_2: str) -> bool {
+    var 局部变量 = 参数1
+    return 局部变量 > 0
+}
+
+enum 枚举类型 {
+    选项一,
+    Option_Two,
+    Третий_Вариант,
+}
+
+// 泛型标识符
+func generic_function<T, U, 类型参数>(value: T) -> U {
+    // 泛型函数体
+}
+
+struct Container<元素类型> {
+    data: 元素类型,
+}
+
+// 模块和命名空间标识符
+mod 模块名 {
+    pub struct 公共结构 {}
+    priv func 私有函数() {}
+}
+
+// 特殊情况：关键字后的标识符
+var after_var = 1
+func after_func() {}
+struct after_struct {}
+
+// 边界情况：单字符标识符
+var a = 1
+var b = 2
+var x = 3
+var y = 4
+var z = 5
+
+// 边界情况：最大长度标识符（测试词法分析器的缓冲区处理）
+var this_is_an_extremely_long_identifier_name_that_tests_the_lexer_buffer_handling_capabilities_and_should_still_be_parsed_correctly_without_any_issues_or_truncation_problems = 42

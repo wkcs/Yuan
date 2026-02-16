@@ -1,0 +1,21 @@
+/// @spec_ref: 16.4.9
+/// @point_id: 16_4_9_err_full_trace
+/// @case_id: 16_4_9_err_full_trace__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 错误语法_`err.full_trace()`_获取完整的错误追踪信息
+func fail() -> !i32 {
+    return SysError.DivisionByZero
+}
+func main() -> i32 {
+    var out: i32 = fail()! -> err {
+        var trace = err.full_trace()
+        _ = trace
+        @assert(true, "16.4.9 err.full_trace")
+        return 5
+    }
+    return out
+}

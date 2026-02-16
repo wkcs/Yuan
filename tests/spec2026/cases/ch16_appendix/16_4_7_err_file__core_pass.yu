@@ -1,0 +1,21 @@
+/// @spec_ref: 16.4.7
+/// @point_id: 16_4_7_err_file
+/// @case_id: 16_4_7_err_file__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 错误语法_`err.file`_获取出错的文件名
+func fail() -> !i32 {
+    return SysError.FileNotFound { path: "a.txt" }
+}
+func main() -> i32 {
+    var out: i32 = fail()! -> err {
+        var file = err.file
+        _ = file
+        @assert(true, "16.4.7 err.file")
+        return 3
+    }
+    return out
+}

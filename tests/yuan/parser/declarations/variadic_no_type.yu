@@ -1,0 +1,16 @@
+// 测试无类型约束的可变参数
+
+// 无类型约束的可变参数
+func print_all(prefix: str, ...args) {
+    // args 可以包含任意类型的值
+}
+
+// 仅无类型约束可变参数
+func log(...messages) {
+    // ...
+}
+
+// 混合：带类型约束和无类型约束
+func mixed(x: i32, ...values) -> i32 {
+    return x
+}

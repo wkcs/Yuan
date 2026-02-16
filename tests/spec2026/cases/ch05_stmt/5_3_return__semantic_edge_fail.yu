@@ -1,0 +1,15 @@
+/// @spec_ref: 5.3
+/// @point_id: 5_3_return
+/// @case_id: 5_3_return__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 5_3_return
+func f() -> i32 {
+    return "bad"
+}
+func main() -> i32 {
+    return f()
+}

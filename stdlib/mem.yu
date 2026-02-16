@@ -1,0 +1,72 @@
+/// \file mem.yu
+/// \brief 内存与指针工具模块
+
+/// 分配原始字节缓冲
+pub func alloc(size: usize) -> *mut u8 {
+    return @alloc(size)
+}
+
+/// 重新分配原始字节缓冲
+pub func realloc(ptr_: *mut u8, size: usize) -> *mut u8 {
+    return @realloc(ptr_, size)
+}
+
+/// 释放原始字节缓冲
+pub func free(ptr_: *mut u8) {
+    @free(ptr_)
+}
+
+/// 按字节拷贝
+pub func copy_bytes(dest: *mut u8, src: *u8, size: usize) {
+    @memcpy(dest, src, size)
+}
+
+/// 按字节移动
+pub func move_bytes(dest: *mut u8, src: *u8, size: usize) {
+    @memmove(dest, src, size)
+}
+
+/// 按字节填充
+pub func set_bytes(dest: *mut u8, value: u8, size: usize) {
+    @memset(dest, value, size)
+}
+
+/// 泛型分配（元素个数）
+pub func alloc_t<T>(count: usize) -> *mut T {
+    return @alloc(count * @sizeof(T)) as *mut T
+}
+
+/// 泛型重新分配（元素个数）
+pub func realloc_t<T>(ptr_: *mut T, count: usize) -> *mut T {
+    return @realloc(ptr_ as *mut u8, count * @sizeof(T)) as *mut T
+}
+
+/// 泛型拷贝（元素个数）
+pub func copy<T>(dest: *mut T, src: *T, count: usize) {
+    copy_bytes(dest as *mut u8, src as *u8, count * @sizeof(T))
+}
+
+/// 泛型移动（元素个数）
+pub func move<T>(dest: *mut T, src: *T, count: usize) {
+    move_bytes(dest as *mut u8, src as *u8, count * @sizeof(T))
+}
+
+/// 指针偏移（元素单位）
+pub func ptr_add<T>(ptr_: *T, index: usize) -> *T {
+    return (ptr_ as usize + index * @sizeof(T)) as *T
+}
+
+/// 从指针与长度构造切片（不可变）
+pub func slice_from_parts<T>(ptr_: *T, len: usize) -> &[T] {
+    return @slice(ptr_, len)
+}
+
+/// 从指针与长度构造切片（可变）
+pub func mut_slice_from_parts<T>(ptr_: *mut T, len: usize) -> &mut [T] {
+    return @slice(ptr_, len)
+}
+
+/// 从指针与长度构造字符串
+pub func str_from_parts(ptr_: *u8, len: usize) -> str {
+    return @str_from_parts(ptr_, len)
+}

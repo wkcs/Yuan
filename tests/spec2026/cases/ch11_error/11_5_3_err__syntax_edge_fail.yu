@@ -1,0 +1,13 @@
+/// @spec_ref: 11.5.3
+/// @point_id: 11_5_3_err
+/// @case_id: 11_5_3_err__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 11_5_3_err
+func main() -> i32 {
+    var error_edge =
+    return 0
+}

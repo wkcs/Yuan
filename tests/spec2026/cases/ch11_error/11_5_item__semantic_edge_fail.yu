@@ -1,0 +1,16 @@
+/// @spec_ref: 11.5
+/// @point_id: 11_5_item
+/// @case_id: 11_5_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3046
+/// @diag_keywords: unhandled error propagation
+// negative semantic case: 11_5_item
+func risky() -> !i32 {
+    return SysError.DivisionByZero
+}
+func main() -> i32 {
+    var x = risky()!
+    return x
+}

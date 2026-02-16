@@ -1,0 +1,29 @@
+// 基本类型测试
+// 测试各种基本类型的变量声明和使用
+
+// 整数类型
+var a: i32 = 42
+var b: i64 = 100
+var c: u8 = 255
+var d: isize = -10
+
+// 浮点类型
+var e: f32 = 3.14
+var f: f64 = 2.718281828
+
+// 布尔类型
+var g: bool = true
+var h: bool = false
+
+// 字符类型
+var i: char = 'A'
+
+// 字符串类型
+var j: str = "Hello, Yuan!"
+
+// 类型推断
+var k = 123       // 推断为 i32
+var l = 3.14      // 推断为 f64
+var m = true      // 推断为 bool
+var n = 'x'       // 推断为 char
+var o = "test"    // 推断为 str

@@ -1,0 +1,147 @@
+// Yuan 关键字测试
+// 测试所有 Yuan 语言关键字的词法分析
+
+// 变量和常量声明关键字
+var x = 10
+const PI = 3.14
+
+// 函数相关关键字
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+async func fetch_data() -> str {
+    return "data"
+}
+
+// 结构体和枚举关键字
+struct Point {
+    pub x: f32,
+    pub y: f32,
+}
+
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+// Trait 和实现关键字
+trait Display {
+    func show(self) -> str
+}
+
+impl Display for Point {
+    func show(self) -> str {
+        return "Point"
+    }
+}
+
+// 可见性关键字
+pub func public_function() {}
+priv func private_function() {}
+internal func internal_function() {}
+
+// 控制流关键字
+func control_flow_test() {
+    if true {
+        // if 分支
+    } elif false {
+        // elif 分支
+    } else {
+        // else 分支
+    }
+    
+    match x {
+        1 => return,
+        _ => break,
+    }
+    
+    while true {
+        continue
+    }
+    
+    loop {
+        break
+    }
+    
+    for item in items {
+        // 循环体
+    }
+}
+
+// 布尔字面量关键字
+var flag1 = true
+var flag2 = false
+
+// 异步和等待关键字
+async func async_example() {
+    var result = await some_async_call()
+}
+
+// 类型转换关键字
+var num = 42 as f64
+
+// 自引用关键字
+struct SelfTest {
+    func method(self) -> Self {
+        return self
+    }
+}
+
+// 可变性关键字
+var mut counter = 0
+var data_ref = &counter
+var mut_ref = &mut counter
+
+// 指针关键字
+var ptr: *i32
+var mut_ptr: *mut i32
+
+// 空类型关键字
+func void_function() -> void {}
+
+// 延迟执行关键字
+func defer_example() {
+    defer cleanup()
+    // 函数体
+}
+
+// 类型别名关键字
+type UserId = u64
+
+// 泛型约束关键字
+func generic_func<T>(value: T) -> T where T: Display {
+    return value
+}
+
+// None 字面量关键字
+var optional_value: ?i32 = None
+
+// 错误处理关键字
+func error_example() -> !str {
+    var result = risky_operation() orelse return "default"
+    return result
+}
+
+// 所有基本类型关键字
+var i8_val: i8 = 1
+var i16_val: i16 = 2
+var i32_val: i32 = 3
+var i64_val: i64 = 4
+var i128_val: i128 = 5
+var isize_val: isize = 6
+
+var u8_val: u8 = 1
+var u16_val: u16 = 2
+var u32_val: u32 = 3
+var u64_val: u64 = 4
+var u128_val: u128 = 5
+var usize_val: usize = 6
+
+var f32_val: f32 = 1.0
+var f64_val: f64 = 2.0
+
+var bool_val: bool = true
+var char_val: char = 'A'
+var str_val: str = "hello"

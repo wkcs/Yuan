@@ -1,0 +1,38 @@
+// 完整的可变参数测试程序
+
+// 带类型约束的可变参数
+func sum(...numbers: i32) -> i32 {
+    var total: i32 = 0
+    for n in numbers {
+        total += n
+    }
+    return total
+}
+
+// 无类型约束的可变参数
+func print_all(...args) {
+    // 可以接受任意类型的参数
+    var count: i32 = 0
+    for item in args {
+        // 仅测试类型可遍历
+        var last = item
+        count += 1
+    }
+    var args_len = args.len
+}
+
+// 混合参数
+func format(template: str, ...values) -> str {
+    var values_len = values.len
+    var first = values[0]
+    return template
+}
+
+func main() -> i32 {
+    var result: i32 = sum(1, 2, 3)
+    print_all()
+    var msg: str = format("test", 1)
+    var result_copy = result
+    var msg_copy = msg
+    return 0
+}

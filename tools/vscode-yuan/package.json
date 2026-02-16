@@ -1,0 +1,52 @@
+{
+  "name": "yuan-language-support",
+  "displayName": "Yuan Language Support",
+  "description": "Syntax highlighting and basic editor support for the Yuan language.",
+  "version": "0.1.0",
+  "publisher": "yuan-lang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yuan-lang/yuan.git",
+    "directory": "tools/vscode-yuan"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "yuan",
+    "yuanc",
+    "language"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "yuan",
+        "aliases": [
+          "Yuan",
+          "yuan"
+        ],
+        "extensions": [
+          ".yu"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "yuan",
+        "scopeName": "source.yuan",
+        "path": "./syntaxes/yuan.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "yuan",
+        "path": "./snippets/yuan.code-snippets"
+      }
+    ]
+  }
+}

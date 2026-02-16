@@ -1,0 +1,14 @@
+/// @spec_ref: 7.3
+/// @point_id: 7_3_item
+/// @case_id: 7_3_item__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 7_3_item
+struct P { x: i32, y: i32 }
+func main() -> i32 {
+    var p = P { x: , y: 2 }
+    return p.y
+}

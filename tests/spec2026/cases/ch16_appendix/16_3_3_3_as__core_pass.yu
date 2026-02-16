@@ -1,0 +1,16 @@
+/// @spec_ref: 16.3.3
+/// @point_id: 16_3_3_3_as
+/// @case_id: 16_3_3_3_as__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级3_`as`_类型转换
+func main() -> i32 {
+    var raw: i32 = 9
+    var f: f64 = raw as f64
+    var back: i32 = f as i32
+    @assert(back == 9, "16.3.3 as cast")
+    return back
+}

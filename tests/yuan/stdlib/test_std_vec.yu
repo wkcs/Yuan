@@ -1,0 +1,43 @@
+/// \file test_std_vec.yu
+/// \brief 标准库 Vec 模块回归测试
+
+const std = @import("std")
+const println = std.io.println
+
+func test_vec_core_ops() {
+    var arr = [1, 2, 3, 4]
+    var v: std.collections.Vec<i32> = std.collections.Vec.from_slice(arr[..])
+
+    println("[vec] len after from_slice = {}, expect 4", v.len)
+    println("[vec] capacity >= 4: {}", v.capacity() >= 4u64)
+    println("[vec] get(0) = {}, expect 1", v.get(0u64))
+    println("[vec] last() = {}, expect 4", v.last())
+
+    v.push(5)
+    println("[vec] len after push = {}, expect 5", v.len)
+    println("[vec] last() after push = {}, expect 5", v.last())
+
+    var popped: i32 = v.pop()
+    println("[vec] pop() = {}, expect 5", popped)
+    println("[vec] len after pop = {}, expect 4", v.len)
+
+    v.remove(1u64)
+    println("[vec] len after remove(1) = {}, expect 3", v.len)
+    println("[vec] get(1) after remove = {}, expect 3", v.get(1u64))
+
+    var view: &[i32] = v.as_slice()
+    var sum: i32 = 0
+    for n in view {
+        sum += n
+    }
+    println("[vec] sum over slice = {}, expect 8", sum)
+
+    v.clear()
+    println("[vec] len after clear = {}, expect 0", v.len)
+    v.free()
+}
+
+func main() -> i32 {
+    test_vec_core_ops()
+    return 0
+}

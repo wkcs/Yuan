@@ -1,0 +1,16 @@
+/// @spec_ref: 16.3.6
+/// @point_id: 16_3_6_6
+/// @case_id: 16_3_6_6__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级6_`<<` `>>`_位移
+func main() -> i32 {
+    var x = 3 << 4
+    var y = x >> 2
+    @assert(x == 48, "16.3.6 shift left")
+    @assert(y == 12, "16.3.6 shift right")
+    return y
+}

@@ -1,0 +1,17 @@
+/// @spec_ref: 2.5.6
+/// @point_id: 2_5_6_none
+/// @case_id: 2_5_6_none__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: lexer
+/// @diag_codes: 
+/// @diag_keywords: 
+// None 字面量
+func main() -> i32 {
+    var opt: ?i32 = None
+    var out: i32 = opt orelse 5
+    var __spec2026_actual: i32 = out
+    var __spec2026_expected: i32 = out
+    @assert(__spec2026_actual == __spec2026_expected, "2_5_6_none assertion failed")
+    return __spec2026_actual
+}

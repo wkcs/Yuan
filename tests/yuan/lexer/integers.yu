@@ -1,0 +1,128 @@
+// Yuan 整数字面量测试
+// 测试各种整数字面量格式
+
+// 十进制整数
+var dec1 = 0
+var dec2 = 1
+var dec3 = 42
+var dec4 = 123
+var dec5 = 999999
+var dec6 = 1234567890
+
+// 十六进制整数
+var hex1 = 0x0
+var hex2 = 0x1
+var hex3 = 0xA
+var hex4 = 0xF
+var hex5 = 0x10
+var hex6 = 0xFF
+var hex7 = 0x123
+var hex8 = 0xABCD
+var hex9 = 0xDEADBEEF
+var hex10 = 0x1234567890ABCDEF
+
+// 十六进制（大小写混合）
+var hex_mixed1 = 0xaBc
+var hex_mixed2 = 0XaBc  // 大写 X
+var hex_mixed3 = 0xDeAdBeEf
+
+// 八进制整数
+var oct1 = 0o0
+var oct2 = 0o1
+var oct3 = 0o7
+var oct4 = 0o10
+var oct5 = 0o77
+var oct6 = 0o123
+var oct7 = 0o777
+var oct8 = 0o1234567
+
+// 二进制整数
+var bin1 = 0b0
+var bin2 = 0b1
+var bin3 = 0b10
+var bin4 = 0b11
+var bin5 = 0b1010
+var bin6 = 0b1111
+var bin7 = 0b10101010
+var bin8 = 0b11111111
+var bin9 = 0b1010101010101010
+
+// 带下划线分隔符的整数
+var sep1 = 1_000
+var sep2 = 1_000_000
+var sep3 = 123_456_789
+var sep4 = 0x1_2_3_4
+var sep5 = 0x12_34_56_78
+var sep6 = 0o1_2_3_4
+var sep7 = 0b1010_1010
+var sep8 = 0b1111_0000_1010_0101
+
+// 带类型后缀的整数
+// 有符号整数后缀
+var i8_1 = 127i8
+var i8_2 = 0x7Fi8
+var i16_1 = 32767i16
+var i16_2 = 0x7FFFi16
+var i32_1 = 2147483647i32
+var i32_2 = 0x7FFFFFFFi32
+var i64_1 = 9223372036854775807i64
+var i64_2 = 0x7FFFFFFFFFFFFFFFi64
+var i128_1 = 170141183460469231731687303715884105727i128
+var isize_1 = 1000isize
+
+// 无符号整数后缀
+var u8_1 = 255u8
+var u8_2 = 0xFFu8
+var u16_1 = 65535u16
+var u16_2 = 0xFFFFu16
+var u32_1 = 4294967295u32
+var u32_2 = 0xFFFFFFFFu32
+var u64_1 = 18446744073709551615u64
+var u64_2 = 0xFFFFFFFFFFFFFFFFu64
+var u128_1 = 340282366920938463463374607431768211455u128
+var usize_1 = 1000usize
+
+// 组合：下划线分隔符 + 类型后缀
+var combo1 = 1_000i32
+var combo2 = 1_000_000u64
+var combo3 = 0x12_34_56_78u32
+var combo4 = 0b1010_1010_1111_0000u16
+var combo5 = 0o123_456_701u64
+
+// 边界值测试
+// 最小值
+var min_i8 = 0i8
+var min_u8 = 0u8
+var min_i16 = 0i16
+var min_u16 = 0u16
+var min_i32 = 0i32
+var min_u32 = 0u32
+var min_i64 = 0i64
+var min_u64 = 0u64
+
+// 最大值（近似）
+var max_i8 = 127i8
+var max_u8 = 255u8
+var max_i16 = 32767i16
+var max_u16 = 65535u16
+var max_i32 = 2147483647i32
+var max_u32 = 4294967295u32
+
+// 特殊情况：单独的 0
+var zero1 = 0
+var zero2 = 0x0
+var zero3 = 0o0
+var zero4 = 0b0
+var zero5 = 0i32
+var zero6 = 0u32
+
+// 长整数字面量
+var long1 = 123456789012345678901234567890
+var long2 = 0x123456789ABCDEF0123456789ABCDEF
+var long3 = 0b101010101010101010101010101010101010101010101010
+
+// 复杂的分隔符模式
+var complex1 = 1_2_3_4_5_6_7_8_9_0
+var complex2 = 0x1_2_3_4_5_6_7_8_9_A_B_C_D_E_F
+var complex3 = 0b1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0
+var complex4 = 0o1_2_3_4_5_6_7_0_1_2_3_4_5_6_7

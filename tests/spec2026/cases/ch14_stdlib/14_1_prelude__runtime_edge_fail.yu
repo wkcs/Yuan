@@ -1,0 +1,13 @@
+/// @spec_ref: 14.1
+/// @point_id: 14_1_prelude
+/// @case_id: 14_1_prelude__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E3001
+/// @diag_keywords: undeclared identifier
+// negative semantic case: 14_1_prelude
+func main() -> i32 {
+    prelude_println("x")
+    return 0
+}

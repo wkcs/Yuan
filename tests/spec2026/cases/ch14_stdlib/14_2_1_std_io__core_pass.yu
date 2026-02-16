@@ -1,0 +1,19 @@
+/// @spec_ref: 14.2.1
+/// @point_id: 14_2_1_std_io
+/// @case_id: 14_2_1_std_io__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: runtime
+/// @diag_codes: 
+/// @diag_keywords: 
+// std.io
+const io = @import("std").io
+
+func main() -> i32 {
+    io.print("a")
+    io.println("b")
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "14_2_1_std_io assertion failed")
+    return __spec2026_actual
+}

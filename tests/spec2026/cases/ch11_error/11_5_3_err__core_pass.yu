@@ -1,0 +1,23 @@
+/// @spec_ref: 11.5.3
+/// @point_id: 11_5_3_err
+/// @case_id: 11_5_3_err__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 使用 `-> err {}` 处理错误
+func d(a: i32, b: i32) -> !i32 {
+    if b == 0 {
+        return SysError.DivisionByZero
+    }
+    return a / b
+}
+
+func main() -> i32 {
+    var x = d(10, 2)!
+    var __spec2026_actual: i32 = x
+    var __spec2026_expected: i32 = x
+    @assert(__spec2026_actual == __spec2026_expected, "11_5_3_err assertion failed")
+    return __spec2026_actual
+}

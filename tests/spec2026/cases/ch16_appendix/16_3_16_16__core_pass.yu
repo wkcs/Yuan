@@ -1,0 +1,16 @@
+/// @spec_ref: 16.3.16
+/// @point_id: 16_3_16_16
+/// @case_id: 16_3_16_16__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级16_`=` `+=` `-=` `*=` `/=` `%=` `&=` `\_=` `^=` `<<=` `>>=`
+func main() -> i32 {
+    var x: i32 = 8
+    x += 4
+    x -= 2
+    @assert(x == 10, "16.3.16 assignment operators")
+    return 0
+}

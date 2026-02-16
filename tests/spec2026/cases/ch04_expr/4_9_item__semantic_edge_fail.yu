@@ -1,0 +1,13 @@
+/// @spec_ref: 4.9
+/// @point_id: 4_9_item
+/// @case_id: 4_9_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3015,E3003
+/// @diag_keywords: argument,type mismatch
+// negative semantic case: 4_9_item
+func main() -> i32 {
+    var f = func(x: i32) -> i32 { return x }
+    return f(1, 2)
+}

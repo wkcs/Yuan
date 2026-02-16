@@ -1,0 +1,77 @@
+/// \file fs.yu
+/// \brief 文件系统工具（OS 运行时实现）
+
+const collections = @import("collections")
+
+pub struct DirEntry {
+    path: str,
+    name: str,
+    is_file: bool,
+    is_dir: bool,
+}
+
+pub func read_to_string(path: str) -> str {
+    return @os_read_file(path)
+}
+
+/// 兼容旧 API
+pub func read_text(path: str) -> str {
+    return read_to_string(path)
+}
+
+pub func write(path: str, content: str) {
+    _ = @os_write_file(path, content)
+}
+
+/// 兼容旧 API
+pub func write_text(path: str, content: str) {
+    write(path, content)
+}
+
+pub func exists(path: str) -> bool {
+    return @os_exists(path)
+}
+
+pub func is_file(path: str) -> bool {
+    return @os_is_file(path)
+}
+
+pub func is_dir(path: str) -> bool {
+    return @os_is_dir(path)
+}
+
+pub func create_dir(path: str) {
+    _ = @os_create_dir(path)
+}
+
+pub func create_dir_all(path: str) {
+    _ = @os_create_dir_all(path)
+}
+
+pub func remove_dir(path: str) {
+    _ = @os_remove_dir(path)
+}
+
+pub func remove_file(path: str) {
+    _ = @os_remove_file(path)
+}
+
+pub func read_dir(path: str) -> collections.Vec<DirEntry> {
+    var entries: collections.Vec<DirEntry> = collections.Vec.new()
+    var handle: usize = @os_read_dir_open(path)
+    if handle == 0u64 {
+        return entries
+    }
+
+    while @os_read_dir_next(handle) {
+        entries.push(DirEntry {
+            path: @os_read_dir_entry_path(handle),
+            name: @os_read_dir_entry_name(handle),
+            is_file: @os_read_dir_entry_is_file(handle),
+            is_dir: @os_read_dir_entry_is_dir(handle),
+        })
+    }
+
+    @os_read_dir_close(handle)
+    return entries
+}

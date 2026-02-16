@@ -1,0 +1,22 @@
+/// \file test_std_fs.yu
+/// \brief std.fs 模块回归测试
+
+const std = @import("std")
+const fs = std.fs
+const println = std.io.println
+
+func main() -> i32 {
+    fs.write("demo.txt", "hello")
+    println("[fs] exists('demo.txt') = {}", fs.exists("demo.txt"))
+    println("[fs] is_file('demo.txt') = {}", fs.is_file("demo.txt"))
+    println("[fs] is_dir('demo.txt') = {}", fs.is_dir("demo.txt"))
+
+    var text: str = fs.read_to_string("demo.txt")
+    println("[fs] read_to_string len = {}, expect 5", text.len())
+
+    var entries: std.collections.Vec<fs.DirEntry> = fs.read_dir(".")
+    println("[fs] read_dir entries len > 0 = {}", entries.len() > 0u64)
+    entries.free()
+
+    return 0
+}

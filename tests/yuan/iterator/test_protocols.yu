@@ -1,0 +1,96 @@
+// 迭代器协议回归：
+// 1. 自定义 iter()/next() 协议
+// 2. tuple.iter() 与异构元组迭代
+// 3. slice.iter() 语义与代码生成（通过函数体覆盖）
+
+const println = @import("std").io.println
+
+trait Iterator {
+    func next(&mut self) -> ?i32
+}
+
+struct CounterIter {
+    current: i32,
+    end: i32,
+}
+
+impl Iterator for CounterIter {
+    func next(&mut self) -> ?i32 {
+        if self.current >= self.end {
+            return None
+        }
+        var value: i32 = self.current
+        self.current += 1
+        return value
+    }
+}
+
+struct Counter {
+    start: i32,
+    end: i32,
+}
+
+impl Counter {
+    func iter(&self) -> CounterIter {
+        return CounterIter { current: self.start, end: self.end }
+    }
+}
+
+func counter_sum(counter: Counter) -> i32 {
+    var total: i32 = 0
+    for n in counter {
+        total += n
+    }
+    return total
+}
+
+func tuple_iter_count() -> i32 {
+    var values = (1, true, "ok")
+    var count: i32 = 0
+    for item in values.iter() {
+        var copy = item
+        _ = copy
+        count += 1
+        println("item = {}", item)
+    }
+    return count
+}
+
+func tuple_direct_count() -> i32 {
+    var values = (1, true, "ok")
+    var count: i32 = 0
+    for item in values {
+        var copy = item
+        _ = copy
+        count += 1
+    }
+    return count
+}
+
+func sum_slice_param(s: &[i32]) -> i32 {
+    var total: i32 = 0
+    for n in s {
+        total += n
+    }
+    return total
+}
+
+func opt_local_none() -> ?i32 {
+    var done: ?i32 = None
+    return done
+}
+
+func opt_local_some(v: i32) -> ?i32 {
+    var out: ?i32 = v
+    return out
+}
+
+func main() -> i32 {
+    var counter = Counter { start: 0, end: 5 }
+    @assert(counter_sum(counter) == 10, "custom iter protocol")
+    @assert(tuple_iter_count() == 3, "tuple iter")
+    @assert(tuple_direct_count() == 3, "tuple direct iter")
+    @assert((opt_local_some(7) orelse 0) == 7, "opt local some")
+    @assert((opt_local_none() orelse -1) == -1, "opt local none")
+    return 0
+}

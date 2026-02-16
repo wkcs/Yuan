@@ -1,0 +1,17 @@
+/// @spec_ref: 2.6
+/// @point_id: 2_6_item
+/// @case_id: 2_6_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: lexer
+/// @diag_codes: 
+/// @diag_keywords: 
+// 语句分隔
+func main() -> i32 {
+    var a = 24
+    var b = 26
+    var __spec2026_actual: i32 = a + b
+    var __spec2026_expected: i32 = a + b
+    @assert(__spec2026_actual == __spec2026_expected, "2_6_item assertion failed")
+    return __spec2026_actual
+}

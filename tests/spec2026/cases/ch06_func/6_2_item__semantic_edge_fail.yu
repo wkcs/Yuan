@@ -1,0 +1,13 @@
+/// @spec_ref: 6.2
+/// @point_id: 6_2_item
+/// @case_id: 6_2_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 6_2_item
+func add(a: i32, b: i32) -> i32 { return a + b }
+func main() -> i32 {
+    return add("1", 2)
+}

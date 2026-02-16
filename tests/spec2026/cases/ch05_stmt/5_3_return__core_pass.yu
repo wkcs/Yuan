@@ -1,0 +1,26 @@
+/// @spec_ref: 5.3
+/// @point_id: 5_3_return
+/// @case_id: 5_3_return__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// return 语句
+func classify(x: i32) -> i32 {
+    if x < 0 {
+        return -1
+    }
+    if x == 0 {
+        return 0
+    }
+    return 1
+}
+
+func main() -> i32 {
+    var a = classify(-2)
+    var b = classify(0)
+    var c = classify(9)
+    @assert(a == -1 && b == 0 && c == 1, "5.3 return behavior")
+    return a + b + c
+}

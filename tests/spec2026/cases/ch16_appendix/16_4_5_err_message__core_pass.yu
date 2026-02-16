@@ -1,0 +1,21 @@
+/// @spec_ref: 16.4.5
+/// @point_id: 16_4_5_err_message
+/// @case_id: 16_4_5_err_message__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 错误语法_`err.message()`_获取错误消息
+func fail() -> !i32 {
+    return SysError.ParseError { message: "bad format" }
+}
+func main() -> i32 {
+    var out: i32 = fail()! -> err {
+        var msg = err.message()
+        _ = msg
+        @assert(true, "16.4.5 err.message")
+        return 1
+    }
+    return out
+}

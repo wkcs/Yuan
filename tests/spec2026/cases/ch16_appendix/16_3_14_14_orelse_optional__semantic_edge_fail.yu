@@ -1,0 +1,14 @@
+/// @spec_ref: 16.3.14
+/// @point_id: 16_3_14_14_orelse_optional
+/// @case_id: 16_3_14_14_orelse_optional__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: optional
+// negative semantic case: 16_3_14_14_orelse_optional
+func main() -> i32 {
+    var n: i32 = 1
+    var x = n orelse 5
+    return x
+}

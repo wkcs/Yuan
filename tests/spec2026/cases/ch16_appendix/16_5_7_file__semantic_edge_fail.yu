@@ -1,0 +1,14 @@
+/// @spec_ref: 16.5.7
+/// @point_id: 16_5_7_file
+/// @case_id: 16_5_7_file__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3006
+/// @diag_keywords: argument
+// negative semantic case: 16_5_7_file
+func main() -> i32 {
+    var f = @file(1)
+    _ = f
+    return 0
+}

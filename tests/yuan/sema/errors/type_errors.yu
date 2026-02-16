@@ -1,0 +1,28 @@
+// 类型错误测试
+// 测试类型不匹配的错误检测
+// 预期：编译时报错
+
+// 错误：整数赋值给字符串
+// var s: str = 42  // error: type mismatch
+
+// 错误：布尔值不能用于算术运算
+// var x = true + 1  // error: type mismatch
+
+// 错误：函数返回类型不匹配
+// func bad_return() -> i32 {
+//     return "hello"  // error: return type mismatch
+// }
+
+// 错误：函数参数类型不匹配
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+// var result = add("one", "two")  // error: type mismatch
+
+// 错误：数组元素类型不一致
+// var arr = [1, "two", 3]  // error: type mismatch
+
+// 错误：条件表达式必须是布尔类型
+// if 42 {  // error: condition must be bool
+//     // ...
+// }

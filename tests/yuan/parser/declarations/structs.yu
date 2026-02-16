@@ -1,0 +1,78 @@
+// 结构体声明测试用例
+
+// 基本结构体
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+// 空结构体
+struct Empty {}
+
+// 单字段结构体
+struct Wrapper {
+    value: i32,
+}
+
+// 复杂字段类型
+struct Complex {
+    id: u64,
+    name: str,
+    active: bool,
+    scores: [f64; 10],
+    metadata: ?str,
+    callback: func(i32) -> bool,
+}
+
+// 泛型结构体
+struct Container<T> {
+    data: T,
+    size: usize,
+}
+
+// 多泛型参数
+struct Pair<T, U> {
+    first: T,
+    second: U,
+}
+
+// 泛型结构体（暂不支持where约束）
+struct Comparable<T> {
+    value: T,
+}
+
+// 可见性修饰符
+pub struct PublicStruct {
+    pub field1: i32,
+    priv field2: str,
+    internal field3: bool,
+}
+
+// 嵌套结构体
+struct Outer {
+    inner: Inner,
+    data: i32,
+}
+
+struct Inner {
+    value: str,
+}
+
+// 递归结构体（通过指针）
+struct Node {
+    data: i32,
+    next: ?*Node,
+}
+
+// 结构体（Yuan不支持元组结构体语法）
+struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+
+struct Point3D {
+    x: f64,
+    y: f64,
+    z: f64,
+}

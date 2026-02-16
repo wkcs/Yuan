@@ -1,0 +1,15 @@
+/// @spec_ref: 7.4
+/// @point_id: 7_4_item
+/// @case_id: 7_4_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 7_4_item
+struct Box<T> { v: T }
+func main() -> i32 {
+    var b = Box<i32> { v: "x" }
+    _ = b
+    return 0
+}

@@ -1,0 +1,47 @@
+/// \file std.yu
+/// \brief Yuan 标准库主入口
+
+/// IO 模块 - 输入输出功能
+pub const io = @import("io")
+
+/// fmt 模块 - 字符串格式化
+pub const fmt = @import("fmt")
+
+/// mem 模块 - 内存与指针工具
+pub const mem = @import("mem")
+
+/// ffi 模块 - C FFI 动态库调用
+pub const ffi = @import("ffi")
+
+/// gui 模块 - 跨平台 GUI 抽象（FFI 后端）
+pub const gui = @import("gui")
+
+/// string 模块 - String 类型
+pub const string = @import("string")
+
+/// json 模块 - JSON 编解码工具
+pub const json = @import("json")
+
+/// collections 模块 - Vec / HashMap / HashSet
+pub const collections = @import("collections")
+
+/// fs 模块 - 文件系统工具
+pub const fs = @import("fs")
+
+/// time 模块 - 时间工具
+pub const time = @import("time")
+
+/// math 模块 - 数学函数
+pub const math = @import("math")
+
+/// thread 模块 - 线程接口
+pub const thread = @import("thread")
+
+/// task 模块 - 协程调度与 Promise 工具
+pub const task = @import("async")
+
+/// sync 模块 - 同步原语（通道等）
+pub const sync = @import("sync")
+
+/// net 模块 - 网络接口
+pub const net = @import("net")

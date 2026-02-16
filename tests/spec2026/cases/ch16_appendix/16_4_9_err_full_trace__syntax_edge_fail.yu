@@ -1,0 +1,19 @@
+/// @spec_ref: 16.4.9
+/// @point_id: 16_4_9_err_full_trace
+/// @case_id: 16_4_9_err_full_trace__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 16_4_9_err_full_trace
+func risky() -> !i32 {
+    return SysError.ParseError { message: "x" }
+}
+func main() -> i32 {
+    var v: i32 = risky()! -> err {
+        _ = err.message(
+        return 0
+    }
+    return v
+}

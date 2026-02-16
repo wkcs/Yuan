@@ -1,0 +1,29 @@
+// 结构体可变性测试
+// 测试结构体字段的可变性
+
+struct Point {
+    x: i32,
+    y: i32
+}
+
+// 不可变结构体
+var p1 = Point { x: 10, y: 20 }
+// p1.x = 100  // 错误：结构体是不可变的
+
+// 嵌套结构体
+struct Rectangle {
+    origin: Point,
+    size: Point
+}
+
+var rect = Rectangle {
+    origin: Point { x: 0, y: 0 },
+    size: Point { x: 100, y: 50 }
+}
+
+// 结构体访问
+func get_x(p: &Point) -> i32 {
+    return p.x
+}
+
+var x_val = get_x(&p1)

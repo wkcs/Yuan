@@ -1,0 +1,38 @@
+/// \file thread.yu
+/// \brief 线程接口（spawn 当前为同步执行；sleep/yield 接入 OS）
+
+const time = @import("time")
+
+pub struct Thread<T> {
+    value: T,
+    finished: bool,
+}
+
+impl Thread<T> {
+    pub func join(&self) -> T {
+        return self.value
+    }
+
+    pub func is_finished(&self) -> bool {
+        return self.finished
+    }
+
+    pub func free(&mut self) {
+        self.finished = true
+    }
+}
+
+/// 启动线程（当前实现同步执行）
+pub func spawn<T>(task: func() -> T) -> Thread<T> {
+    var result: T = task()
+    return Thread { value: result, finished: true }
+}
+
+pub func sleep(duration: time.Duration) {
+    @os_sleep_nanos(duration.as_nanos())
+}
+
+/// 让出执行权
+pub func yield_now() {
+    @os_yield()
+}

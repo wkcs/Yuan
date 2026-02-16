@@ -1,0 +1,13 @@
+/// @spec_ref: 4.6
+/// @point_id: 4_6_item
+/// @case_id: 4_6_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 4_6_item
+func main() -> i32 {
+    var arr: [i32; 2] = [1, 2]
+    return arr[true]
+}

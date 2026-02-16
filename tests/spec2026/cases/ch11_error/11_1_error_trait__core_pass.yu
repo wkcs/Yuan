@@ -1,0 +1,29 @@
+/// @spec_ref: 11.1
+/// @point_id: 11_1_error_trait
+/// @case_id: 11_1_error_trait__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// Error Trait
+trait ErrorLike {
+    func message(&self) -> str
+}
+
+struct MyErr {}
+
+impl ErrorLike for MyErr {
+    func message(&self) -> str {
+        return "err"
+    }
+}
+
+func main() -> i32 {
+    var e = MyErr {}
+    _ = e.message()
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "11_1_error_trait assertion failed")
+    return __spec2026_actual
+}

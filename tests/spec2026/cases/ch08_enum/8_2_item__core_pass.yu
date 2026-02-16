@@ -1,0 +1,25 @@
+/// @spec_ref: 8.2
+/// @point_id: 8_2_item
+/// @case_id: 8_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 枚举使用
+enum Result {
+    Ok(i32),
+    Err(str),
+}
+
+func main() -> i32 {
+    var r = Result.Ok(5)
+    var out = match r {
+        Result.Ok(v) => v,
+        Result.Err(_) => 0,
+    }
+    var __spec2026_actual: i32 = out
+    var __spec2026_expected: i32 = out
+    @assert(__spec2026_actual == __spec2026_expected, "8_2_item assertion failed")
+    return __spec2026_actual
+}

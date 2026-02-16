@@ -1,0 +1,19 @@
+// 引用可变性测试
+// 测试引用类型的可变性检查
+
+var value = 42
+
+// 不可变引用
+var ref1: &i32 = &value
+
+// 函数参数的引用可变性
+func read_only(r: &i32) -> i32 {
+    return *r
+}
+
+func modify(r: &mut i32) {
+    *r = *r + 1
+}
+
+// 调用
+var result = read_only(&value)

@@ -1,0 +1,13 @@
+/// @spec_ref: 2.5.6
+/// @point_id: 2_5_6_none
+/// @case_id: 2_5_6_none__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: lexer
+/// @diag_codes: E3001
+/// @diag_keywords: undeclared identifier
+// negative semantic case: 2_5_6_none
+func main() -> i32 {
+    var o: ?i32 = none
+    return 0
+}

@@ -1,0 +1,14 @@
+/// @spec_ref: 16.3.13
+/// @point_id: 16_3_13_13
+/// @case_id: 16_3_13_13__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级13_`\_\
+func main() -> i32 {
+    var x = false || (4 > 1)
+    @assert(x, "16.3.13 logical or")
+    return 0
+}

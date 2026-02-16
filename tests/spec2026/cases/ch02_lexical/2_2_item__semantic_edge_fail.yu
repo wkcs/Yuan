@@ -1,0 +1,13 @@
+/// @spec_ref: 2.2
+/// @point_id: 2_2_item
+/// @case_id: 2_2_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: lexer
+/// @diag_codes: E1001
+/// @diag_keywords: invalid character
+// negative semantic case: 2_2_item
+func main() -> i32 {
+    var 1name = 3
+    return 0
+}

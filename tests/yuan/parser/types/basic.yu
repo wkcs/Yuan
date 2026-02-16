@@ -1,0 +1,100 @@
+// 基本类型测试用例
+
+func test_basic_types() {
+    // 内置类型
+    var void_var: void
+    var bool_var: bool = true
+    var char_var: char = 'a'
+    var str_var: str = "hello"
+    
+    // 整数类型
+    var i8_var: i8 = 127
+    var i16_var: i16 = 32767
+    var i32_var: i32 = 2147483647
+    var i64_var: i64 = 9223372036854775807
+    var i128_var: i128 = 123456789
+    var isize_var: isize = 1000
+    
+    // 无符号整数类型
+    var u8_var: u8 = 255
+    var u16_var: u16 = 65535
+    var u32_var: u32 = 4294967295
+    var u64_var: u64 = 18446744073709551615
+    var u128_var: u128 = 987654321
+    var usize_var: usize = 1000
+    
+    // 浮点类型
+    var f32_var: f32 = 3.14
+    var f64_var: f64 = 2.718281828459045
+    
+    // 数组类型
+    var fixed_array: [i32; 5] = [1, 2, 3, 4, 5]
+    var empty_array: [i32; 0] = []
+    var large_array: [u8; 5] = [0, 0, 0, 0, 0]  // 简化表示
+    
+    // 多维数组
+    var matrix: [[i32; 3]; 3] = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    var tensor: [[[f64; 2]; 2]; 2] = [[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0]]]
+    
+    // 切片类型
+    var slice: &[i32] = &fixed_array
+    var mut_slice: &[i32] = &fixed_array
+    var str_slice: &str = "hello"
+    
+    // 元组类型
+    var unit: () = ()
+    var single: (i32,) = (42,)
+    var pair: (i32, f64) = (42, 3.14)
+    var triple: (i32, f64, bool) = (42, 3.14, true)
+    var complex_tuple: (str, [i32], (bool, char)) = ("test", [1, 2, 3], (true, 'x'))
+    
+    // 可选类型
+    var optional_int: ?i32 = Some(42)
+    var optional_str: ?str = None
+    var optional_array: ?[i32] = Some([1, 2, 3])
+    
+    // 引用类型
+    var ref_int: &i32 = &i32_var
+    var mut_ref_int: &i32 = &i32_var
+    var ref_str: &str = &str_var
+    var ref_array: &[i32; 5] = &fixed_array
+    
+    // 指针类型
+    var ptr_int: *i32 = &i32_var
+    var mut_ptr_int: *i32 = &i32_var
+    var ptr_str: *str = &str_var
+    
+    // 函数类型
+    var func_ptr: func(i32, i32) -> i32 = add
+    var no_param_func: func() -> bool = is_ready
+    var no_return_func: func(str) = print_message
+    var complex_func: func(&str, &mut [i32]) -> ?usize = find_and_modify
+    
+    // 高阶函数类型
+    var higher_order: func(func(i32) -> i32, i32) -> i32 = apply_function
+    var callback: func(func() -> bool) = register_callback
+}
+
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+func is_ready() -> bool {
+    return true
+}
+
+func print_message(msg: str) {
+    // 打印消息
+}
+
+func find_and_modify(pattern: &str, data: &mut [i32]) -> ?usize {
+    return None
+}
+
+func apply_function(f: func(i32) -> i32, value: i32) -> i32 {
+    return f(value)
+}
+
+func register_callback(callback: func() -> bool) {
+    // 注册回调
+}

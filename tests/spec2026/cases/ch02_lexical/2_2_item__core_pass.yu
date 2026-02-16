@@ -1,0 +1,17 @@
+/// @spec_ref: 2.2
+/// @point_id: 2_2_item
+/// @case_id: 2_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: lexer
+/// @diag_codes: 
+/// @diag_keywords: 
+// 标识符
+func main() -> i32 {
+    var ident_20 = 20
+    var also_ident_22: i32 = ident_20
+    var __spec2026_actual: i32 = also_ident_22
+    var __spec2026_expected: i32 = also_ident_22
+    @assert(__spec2026_actual == __spec2026_expected, "2_2_item assertion failed")
+    return __spec2026_actual
+}

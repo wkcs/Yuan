@@ -1,0 +1,9 @@
+// 最简单的 Range 测试 - 不使用任何内置函数
+
+func main() -> i32 {
+    var sum = 0
+    for i in 0..3 {
+        sum = sum + 1
+    }
+    return sum
+}

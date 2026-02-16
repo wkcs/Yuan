@@ -1,0 +1,19 @@
+/// @spec_ref: 14.2
+/// @point_id: 14_2_item
+/// @case_id: 14_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: runtime
+/// @diag_codes: 
+/// @diag_keywords: 
+// 核心模块
+const std = @import("std")
+
+func main() -> i32 {
+    _ = std.io
+    _ = std.fmt
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "14_2_item assertion failed")
+    return __spec2026_actual
+}

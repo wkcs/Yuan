@@ -1,0 +1,20 @@
+// 简单返回语句测试
+
+func return_void() {
+    return
+}
+
+func return_integer() -> i32 {
+    return 42
+}
+
+func return_bool() -> bool {
+    return true
+}
+
+func return_float() -> f64 {
+    return 3.14
+}
+
+func main() {
+}

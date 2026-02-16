@@ -1,0 +1,21 @@
+/// @spec_ref: 16.4.6
+/// @point_id: 16_4_6_err_func_name
+/// @case_id: 16_4_6_err_func_name__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 错误语法_`err.func_name`_获取出错的函数名
+func fail() -> !i32 {
+    return SysError.PermissionDenied { path: "/tmp/x" }
+}
+func main() -> i32 {
+    var out: i32 = fail()! -> err {
+        var fn = err.func_name
+        _ = fn
+        @assert(true, "16.4.6 err.func_name")
+        return 2
+    }
+    return out
+}

@@ -1,0 +1,14 @@
+/// @spec_ref: 12.2
+/// @point_id: 12_2_item
+/// @case_id: 12_2_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 12_2_item
+const thread = @import("std").thread
+func main() -> i32 {
+    var t = thread.spawn(1)
+    return t.join()
+}

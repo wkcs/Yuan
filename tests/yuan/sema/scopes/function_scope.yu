@@ -1,0 +1,39 @@
+// 函数作用域测试
+// 测试函数参数和局部变量的作用域
+
+var global_var = 42
+
+func outer_func(param: i32) -> i32 {
+    // 参数在函数体内可见
+    var local = param * 2
+
+    // 可以访问全局变量
+    var result = local + global_var
+
+    return result
+}
+
+// 函数间不共享局部变量
+func another_func() {
+    var another_local = 10
+    // param 和 local 在这里不可见
+}
+
+// 参数遮蔽全局变量
+var x = 100
+
+func shadow_test(x: i32) -> i32 {
+    // 参数 x 遮蔽了全局变量 x
+    return x * 2
+}
+
+// 嵌套块作用域
+func nested_blocks() -> i32 {
+    var outer = 1
+    {
+        var inner = 2
+        var sum = outer + inner
+    }
+    // inner 不可见
+    return outer
+}

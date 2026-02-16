@@ -1,0 +1,239 @@
+// 可见性修饰符测试用例
+
+// 公开函数
+pub func public_function() -> i32 {
+    return 42
+}
+
+// 私有函数
+priv func private_function() -> str {
+    return "private"
+}
+
+// 包内可见函数
+internal func internal_function() -> bool {
+    return true
+}
+
+// 默认可见性（私有）
+func default_function() -> f64 {
+    return 3.14
+}
+
+// 公开结构体
+pub struct PublicStruct {
+    pub public_field: i32,
+    priv private_field: str,
+    internal internal_field: bool,
+    default_field: f64,  // 默认私有
+}
+
+// 私有结构体
+priv struct PrivateStruct {
+    pub field1: i32,     // 结构体私有，但字段可以是公开的
+    priv field2: str,
+    field3: bool,
+}
+
+// 包内可见结构体
+internal struct InternalStruct {
+    pub public_field: i32,
+    internal internal_field: str,
+    private_field: bool,
+}
+
+// 公开枚举
+pub enum PublicEnum {
+    Variant1,
+    Variant2(i32),
+    Variant3 { field: str },
+}
+
+// 私有枚举
+priv enum PrivateEnum {
+    Option1,
+    Option2(bool),
+}
+
+// 包内可见枚举
+internal enum InternalEnum {
+    Choice1,
+    Choice2 { value: f64 },
+}
+
+// 公开 Trait
+pub trait PublicTrait {
+    func public_method(&self) -> i32
+    func default_method(&self) -> str {
+        return "default"
+    }
+}
+
+// 私有 Trait
+priv trait PrivateTrait {
+    func private_method(&self) -> bool
+}
+
+// 包内可见 Trait
+internal trait InternalTrait {
+    func internal_method(&self) -> f64
+}
+
+// 结构体实现中的可见性
+impl PublicStruct {
+    // 公开关联函数
+    pub func new(value: i32) -> PublicStruct {
+        PublicStruct {
+            public_field: value,
+            private_field: "private",
+            internal_field: true,
+            default_field: 0.0,
+        }
+    }
+    
+    // 私有方法
+    priv func private_method(&self) -> str {
+        return self.private_field
+    }
+    
+    // 包内可见方法
+    internal func internal_method(&self) -> bool {
+        return self.internal_field
+    }
+    
+    // 默认可见性方法（私有）
+    func default_method(&self) -> f64 {
+        return self.default_field
+    }
+    
+    // 公开方法
+    pub func get_public_field(&self) -> i32 {
+        return self.public_field
+    }
+    
+    // 公开可变方法
+    pub func set_public_field(&mut self, value: i32) {
+        self.public_field = value
+    }
+}
+
+// Trait 实现中的可见性
+impl PublicTrait for PublicStruct {
+    func public_method(&self) -> i32 {
+        return self.public_field
+    }
+}
+
+impl PrivateTrait for PublicStruct {
+    func private_method(&self) -> bool {
+        return self.internal_field
+    }
+}
+
+impl InternalTrait for PublicStruct {
+    func internal_method(&self) -> f64 {
+        return self.default_field
+    }
+}
+
+// 泛型类型的可见性
+pub struct PublicGeneric<T> {
+    pub value: T,
+    priv internal: i32,
+}
+
+priv struct PrivateGeneric<T, U> {
+    first: T,
+    second: U,
+}
+
+// 泛型实现的可见性
+impl<T> PublicGeneric<T> {
+    pub func new(value: T) -> PublicGeneric<T> {
+        PublicGeneric {
+            value: value,
+            internal: 0,
+        }
+    }
+    
+    priv func get_internal(&self) -> i32 {
+        return self.internal
+    }
+}
+
+// 类型别名的可见性
+pub type PublicAlias = i32
+priv type PrivateAlias = str
+internal type InternalAlias = bool
+type DefaultAlias = f64  // 默认私有
+
+// 常量的可见性
+pub const PUBLIC_CONSTANT: i32 = 100
+priv const PRIVATE_CONSTANT: str = "private"
+internal const INTERNAL_CONSTANT: bool = true
+const DEFAULT_CONSTANT: f64 = 3.14159  // 默认私有
+
+// 模块级变量的可见性
+pub var public_variable: i32 = 0
+priv var private_variable: str = "hidden"
+internal var internal_variable: bool = false
+var default_variable: f64 = 0.0  // 默认私有
+
+// 嵌套可见性
+pub struct OuterStruct {
+    pub inner: InnerStruct,
+    priv private_inner: PrivateInner,
+}
+
+pub struct InnerStruct {
+    pub value: i32,
+}
+
+priv struct PrivateInner {
+    data: str,
+}
+
+// 可见性与继承
+pub trait BasePublicTrait {
+    func base_method(&self) -> i32
+}
+
+pub trait DerivedPublicTrait: BasePublicTrait {
+    func derived_method(&self) -> str
+}
+
+// 测试可见性
+func test_visibility() {
+    // 可以访问公开项
+    var public_val: i32 = public_function()
+    var public_struct = PublicStruct.new(42)
+    var public_field: i32 = public_struct.public_field
+    
+    // 可以访问包内项（在同一包内）
+    var internal_val: bool = internal_function()
+    var internal_struct = InternalStruct {
+        public_field: 1,
+        internal_field: "internal",
+        private_field: true,
+    }
+    
+    // 可以访问私有项（在同一文件内）
+    var private_val: str = private_function()
+    var private_struct = PrivateStruct {
+        field1: 1,
+        field2: "private",
+        field3: false,
+    }
+    
+    // 可以访问默认项（在同一文件内）
+    var default_val: f64 = default_function()
+    
+    // 使用公开类型别名
+    var alias_val: PublicAlias = 123
+    
+    // 使用公开常量
+    var const_val: i32 = PUBLIC_CONSTANT
+    
+    // 访问公开变量
+    public_variable = 100
+}

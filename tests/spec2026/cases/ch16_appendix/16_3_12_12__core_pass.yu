@@ -1,0 +1,14 @@
+/// @spec_ref: 16.3.12
+/// @point_id: 16_3_12_12
+/// @case_id: 16_3_12_12__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级12_`&&`_逻辑与
+func main() -> i32 {
+    var x = true && (3 > 1)
+    @assert(x, "16.3.12 logical and")
+    return 0
+}

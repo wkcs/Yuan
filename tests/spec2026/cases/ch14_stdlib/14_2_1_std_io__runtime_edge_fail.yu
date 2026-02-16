@@ -1,0 +1,14 @@
+/// @spec_ref: 14.2.1
+/// @point_id: 14_2_1_std_io
+/// @case_id: 14_2_1_std_io__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E3021
+/// @diag_keywords: field,not found
+// negative semantic case: 14_2_1_std_io
+const io = @import("std").io
+func main() -> i32 {
+    io.printline("x")
+    return 0
+}

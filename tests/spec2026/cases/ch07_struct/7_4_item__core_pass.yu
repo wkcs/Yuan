@@ -1,0 +1,20 @@
+/// @spec_ref: 7.4
+/// @point_id: 7_4_item
+/// @case_id: 7_4_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 泛型结构体
+struct Box<T> {
+    v: T,
+}
+
+func main() -> i32 {
+    var b = Box<i32> { v: 9 }
+    var __spec2026_actual: i32 = b.v
+    var __spec2026_expected: i32 = b.v
+    @assert(__spec2026_actual == __spec2026_expected, "7_4_item assertion failed")
+    return __spec2026_actual
+}

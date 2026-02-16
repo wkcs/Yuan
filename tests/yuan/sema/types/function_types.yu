@@ -1,0 +1,39 @@
+// 函数类型测试
+// 测试函数声明和调用的类型检查
+
+// 基本函数
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+// 无返回值函数
+func greet(name: str) {
+    // 打印问候语
+}
+
+// 多参数函数
+func power(base: i32, exp: i32) -> i32 {
+    var result = 1
+    var i = 0
+    while i < exp {
+        result = result * base
+        i = i + 1
+    }
+    return result
+}
+
+// 函数调用
+var sum = add(10, 20)
+var sq = power(5, 2)
+var cube = power(3, 3)
+
+// 高阶函数
+func apply(f: func(i32) -> i32, x: i32) -> i32 {
+    return f(x)
+}
+
+func double(n: i32) -> i32 {
+    return n * 2
+}
+
+var result = apply(double, 21)

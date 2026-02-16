@@ -1,0 +1,39 @@
+// if 语句测试
+
+func test_if_simple(x: i32) -> i32 {
+    if x > 0 {
+        return 1
+    }
+    return 0
+}
+
+func test_if_else(x: i32) -> i32 {
+    if x > 0 {
+        return 1
+    } else {
+        return -1
+    }
+}
+
+func test_if_elif_else(x: i32) -> i32 {
+    if x > 0 {
+        return 1
+    } elif x < 0 {
+        return -1
+    } else {
+        return 0
+    }
+}
+
+func test_nested_if(x: i32, y: i32) -> i32 {
+    if x > 0 {
+        if y > 0 {
+            return 2
+        }
+        return 1
+    }
+    return 0
+}
+
+func main() {
+}

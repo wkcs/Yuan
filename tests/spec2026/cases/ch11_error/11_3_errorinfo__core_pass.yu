@@ -1,0 +1,23 @@
+/// @spec_ref: 11.3
+/// @point_id: 11_3_errorinfo
+/// @case_id: 11_3_errorinfo__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// ErrorInfo 错误信息结构
+func g() -> !i32 {
+    return SysError.FileNotFound { path: "x" }
+}
+
+func main() -> i32 {
+    var out: i32 = g()! -> err {
+        _ = err.message()
+        return 0
+    }
+    var __spec2026_actual: i32 = out
+    var __spec2026_expected: i32 = out
+    @assert(__spec2026_actual == __spec2026_expected, "11_3_errorinfo assertion failed")
+    return __spec2026_actual
+}

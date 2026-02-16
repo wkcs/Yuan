@@ -1,0 +1,8 @@
+// 最简单的 Range 测试
+
+func main() -> i32 {
+    for i in 0..3 {
+        @print(i)
+    }
+    return 0
+}

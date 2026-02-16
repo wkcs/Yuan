@@ -1,0 +1,40 @@
+// 循环作用域测试
+// 测试循环中的变量作用域
+
+func test_while_scope() {
+    var counter = 0
+
+    while counter < 10 {
+        var local = counter * 2
+        counter = counter + 1
+        // local 在循环体内可见
+    }
+    // local 不可见，但 counter 仍然可见
+    var final_count = counter
+}
+
+func test_loop_scope() {
+    var i = 0
+
+    loop {
+        var temp = i
+        i = i + 1
+        if i >= 10 {
+            break
+        }
+    }
+    // temp 不可见
+}
+
+// 循环内块作用域
+func test_nested_blocks_in_loop() {
+    var i = 0
+    while i < 5 {
+        var outer_local = i
+        {
+            var inner_local = outer_local * 2
+        }
+        // inner_local 不可见
+        i = i + 1
+    }
+}

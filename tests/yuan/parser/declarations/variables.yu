@@ -1,0 +1,32 @@
+// 变量声明测试用例
+
+// 基本变量声明
+var x: i32 = 42
+var y = 100  // 类型推断
+var z: f64   // 无初始值
+
+// 可变变量（Yuan 语言中所有 var 声明的变量都是可变的）
+var a: i32 = 10
+var b = 20
+
+// 常量声明
+const PI: f64 = 3.14159
+const MAX_SIZE = 1000
+
+// 复杂类型变量
+var arr: [i32; 5] = [1, 2, 3, 4, 5]
+var slice: &[i32] = &arr
+var tuple: (i32, f64, bool) = (42, 3.14, true)
+var optional: ?i32 = 100
+
+// 引用类型
+var ref_x: &i32 = &x
+var mut_ref: &i32 = &a
+
+// 指针类型
+var pointer: *i32 = &x
+var mut_pointer: *i32 = &a
+
+// 字符串变量
+var name: str = "Yuan"
+var message = "Hello, World!"

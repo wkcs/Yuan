@@ -1,0 +1,14 @@
+/// @spec_ref: 14.2.6
+/// @point_id: 14_2_6_std_math
+/// @case_id: 14_2_6_std_math__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 14_2_6_std_math
+const math = @import("std").math
+func main() -> i32 {
+    _ = math.sin("x")
+    return 0
+}

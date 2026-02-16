@@ -1,0 +1,23 @@
+/// \file fmt.yu
+/// \brief 标准库格式化模块
+
+/// 格式化字符串（第一个参数通常是格式模板）
+pub func format(...args) -> str {
+    return @format(args)
+}
+
+/// 连接两个字符串
+pub func concat(a: str, b: str) -> str {
+    return @format("{}{}", a, b)
+}
+
+/// 重复字符串（简单实现）
+pub func repeat(s: str, count: usize) -> str {
+    var out: str = ""
+    var i: usize = 0u64
+    while i < count {
+        out = @format("{}{}", out, s)
+        i += 1u64
+    }
+    return out
+}

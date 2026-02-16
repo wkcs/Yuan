@@ -1,0 +1,24 @@
+// 字面量测试 - 各种类型的字面量
+
+func test_integer_literals() -> i32 {
+    return 123
+}
+
+func test_bool_literals() -> bool {
+    return false
+}
+
+func test_float_literals() -> f64 {
+    return 2.718
+}
+
+func test_char_literal() -> char {
+    return 'a'
+}
+
+func test_string_literal() -> str {
+    return "Hello, Yuan!"
+}
+
+func main() {
+}

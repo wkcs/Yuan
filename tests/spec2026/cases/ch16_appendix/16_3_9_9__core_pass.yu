@@ -1,0 +1,17 @@
+/// @spec_ref: 16.3.9
+/// @point_id: 16_3_9_9
+/// @case_id: 16_3_9_9__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级9_`\_`
+func main() -> i32 {
+    var flags = 0b0101
+    flags |= 0b1000
+    var combined = flags | 0b0010
+    @assert(flags == 0b1101, "16.3.9 bit or assign")
+    @assert(combined == 0b1111, "16.3.9 bit or result")
+    return combined
+}

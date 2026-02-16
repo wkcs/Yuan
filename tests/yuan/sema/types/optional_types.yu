@@ -1,0 +1,25 @@
+// 可选类型测试
+// 测试可选类型的声明和使用
+
+// 可选类型声明
+var maybe_int: ?i32 = 42
+var nothing: ?str = none
+
+// 可选类型返回函数
+func find(target: i32) -> ?i32 {
+    if target > 0 {
+        return target
+    }
+    return none
+}
+
+var index = find(3)
+
+// 函数内使用可选类型
+func use_optional() -> i32 {
+    var opt: ?i32 = 10
+    if opt != none {
+        return 1
+    }
+    return 0
+}

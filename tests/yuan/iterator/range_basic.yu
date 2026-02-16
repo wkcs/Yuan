@@ -1,0 +1,43 @@
+// 测试基本的 Range 迭代器功能
+
+func main() -> i32 {
+    // 测试 1: 基本的范围迭代 (不包含结束值)
+    var sum1 = 0
+    for i in 0..5 {
+        sum1 = sum1 + i
+    }
+    // 应该是 0 + 1 + 2 + 3 + 4 = 10
+    @assert(sum1 == 10, "Range 0..5 should sum to 10")
+
+    // 测试 2: 包含结束值的范围迭代
+    var sum2 = 0
+    for i in 0..=5 {
+        sum2 = sum2 + i
+    }
+    // 应该是 0 + 1 + 2 + 3 + 4 + 5 = 15
+    @assert(sum2 == 15, "Range 0..=5 should sum to 15")
+
+    // 测试 3: 从非零开始的范围
+    var sum3 = 0
+    for i in 5..10 {
+        sum3 = sum3 + i
+    }
+    // 应该是 5 + 6 + 7 + 8 + 9 = 35
+    @assert(sum3 == 35, "Range 5..10 should sum to 35")
+
+    // 测试 4: 单元素范围
+    var count = 0
+    for i in 5..6 {
+        count = count + 1
+    }
+    @assert(count == 1, "Range 5..6 should have 1 element")
+
+    // 测试 5: 空范围
+    var empty_count = 0
+    for i in 5..5 {
+        empty_count = empty_count + 1
+    }
+    @assert(empty_count == 0, "Range 5..5 should be empty")
+
+    return 0
+}

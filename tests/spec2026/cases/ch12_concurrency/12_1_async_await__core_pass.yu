@@ -1,0 +1,20 @@
+/// @spec_ref: 12.1
+/// @point_id: 12_1_async_await
+/// @case_id: 12_1_async_await__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// async/await
+async func fetch_value() -> !i32 {
+    return 7
+}
+
+async func main() -> !i32 {
+    var v: i32 = (await fetch_value())!
+    var __spec2026_actual: i32 = v
+    var __spec2026_expected: i32 = v
+    @assert(__spec2026_actual == __spec2026_expected, "12_1_async_await assertion failed")
+    return __spec2026_actual
+}

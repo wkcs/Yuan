@@ -1,0 +1,18 @@
+/// @spec_ref: 14.2.6
+/// @point_id: 14_2_6_std_math
+/// @case_id: 14_2_6_std_math__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: runtime
+/// @diag_codes: 
+/// @diag_keywords: 
+// std.math
+const math = @import("std").math
+
+func main() -> i32 {
+    _ = math
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "14_2_6_std_math assertion failed")
+    return __spec2026_actual
+}

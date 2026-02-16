@@ -1,0 +1,17 @@
+/// @spec_ref: 4.8
+/// @point_id: 4_8_match
+/// @case_id: 4_8_match__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E2014,E3003
+/// @diag_keywords: match,exhaustive
+// negative semantic case: 4_8_match
+enum E { A, B }
+func main() -> i32 {
+    var e = E.A
+    var x = match e {
+        E.B => 2,
+    }
+    return x
+}

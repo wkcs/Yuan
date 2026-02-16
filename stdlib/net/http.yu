@@ -1,0 +1,256 @@
+/// \file http.yu
+/// \brief HTTP 接口（OS 运行时实现，依赖 libcurl）
+
+const METHOD_GET = "GET"
+const METHOD_POST = "POST"
+
+pub struct Response {
+    status: i32,
+    body: str,
+}
+
+impl Response {
+    pub func ok(&self) -> bool {
+        return self.status >= 200 && self.status < 300
+    }
+
+    pub func is_client_error(&self) -> bool {
+        return self.status >= 400 && self.status < 500
+    }
+
+    pub func is_server_error(&self) -> bool {
+        return self.status >= 500 && self.status < 600
+    }
+}
+
+pub struct RequestOptions {
+    timeout_ms: u64,
+    headers: str,
+    stream: bool,
+}
+
+impl RequestOptions {
+    pub func default() -> RequestOptions {
+        return RequestOptions {
+            timeout_ms: 30000u64,
+            headers: "",
+            stream: false,
+        }
+    }
+
+    pub func set_timeout(&self, timeout_ms: u64) -> RequestOptions {
+        return RequestOptions {
+            timeout_ms: timeout_ms,
+            headers: self.headers,
+            stream: self.stream,
+        }
+    }
+
+    pub func set_headers(&self, headers: str) -> RequestOptions {
+        return RequestOptions {
+            timeout_ms: self.timeout_ms,
+            headers: headers,
+            stream: self.stream,
+        }
+    }
+
+    pub func set_stream(&self, enabled: bool) -> RequestOptions {
+        return RequestOptions {
+            timeout_ms: self.timeout_ms,
+            headers: self.headers,
+            stream: enabled,
+        }
+    }
+}
+
+pub struct Request {
+    method: str,
+    url: str,
+    body: str,
+    options: RequestOptions,
+}
+
+impl Request {
+    pub func new_get(url: str) -> Request {
+        return Request {
+            method: METHOD_GET,
+            url: url,
+            body: "",
+            options: RequestOptions.default(),
+        }
+    }
+
+    pub func new_post(url: str, body: str) -> Request {
+        return Request {
+            method: METHOD_POST,
+            url: url,
+            body: body,
+            options: RequestOptions.default(),
+        }
+    }
+
+    pub func set_options(&self, options: RequestOptions) -> Request {
+        return Request {
+            method: self.method,
+            url: self.url,
+            body: self.body,
+            options: options,
+        }
+    }
+}
+
+pub trait RequestExecutor {
+    func request(&self, req: Request) -> !Response
+}
+
+pub struct Client {
+    defaults: RequestOptions,
+}
+
+impl RequestExecutor for Client {
+    func request(&self, req: Request) -> !Response {
+        if req.method == METHOD_GET {
+            return Response {
+                status: @os_http_get_status(req.url, req.options.timeout_ms, req.options.headers),
+                body: @os_http_get_body(req.url, req.options.timeout_ms, req.options.headers),
+            }
+        }
+
+        if req.method == METHOD_POST {
+            return Response {
+                status: @os_http_post_status(
+                    req.url,
+                    req.body,
+                    req.options.timeout_ms,
+                    req.options.headers,
+                    req.options.stream
+                ),
+                body: @os_http_post_body(
+                    req.url,
+                    req.body,
+                    req.options.timeout_ms,
+                    req.options.headers,
+                    req.options.stream
+                ),
+            }
+        }
+
+        return SysError.ParseError { message: @format("unsupported HTTP method: {}", req.method) }
+    }
+}
+
+pub func request_or_err(req: Request) -> !Response {
+    if req.method == METHOD_GET {
+        return Response {
+            status: @os_http_get_status(req.url, req.options.timeout_ms, req.options.headers),
+            body: @os_http_get_body(req.url, req.options.timeout_ms, req.options.headers),
+        }
+    }
+
+    if req.method == METHOD_POST {
+        return Response {
+            status: @os_http_post_status(
+                req.url,
+                req.body,
+                req.options.timeout_ms,
+                req.options.headers,
+                req.options.stream
+            ),
+            body: @os_http_post_body(
+                req.url,
+                req.body,
+                req.options.timeout_ms,
+                req.options.headers,
+                req.options.stream
+            ),
+        }
+    }
+
+    return SysError.ParseError { message: @format("unsupported HTTP method: {}", req.method) }
+}
+
+pub async func request_async(req: Request) -> !Response {
+    @async_step()
+    var resp: Response = request_or_err(req)!
+    @async_step()
+    return resp
+}
+
+pub func client() -> Client {
+    return Client { defaults: RequestOptions.default() }
+}
+
+pub func client_with_options(options: RequestOptions) -> Client {
+    return Client { defaults: options }
+}
+
+pub func client_send_get(client: Client, url: str) -> !Response {
+    var req: Request = Request.new_get(url)
+    req.options = client.defaults
+    return request_or_err(req)
+}
+
+pub func client_send_post(client: Client, url: str, body: str) -> !Response {
+    var req: Request = Request.new_post(url, body)
+    req.options = client.defaults
+    return request_or_err(req)
+}
+
+pub async func client_send_get_async(client: Client, url: str) -> !Response {
+    @async_step()
+    var req: Request = Request.new_get(url)
+    req.options = client.defaults
+    var resp: Response = request_or_err(req)!
+    @async_step()
+    return resp
+}
+
+pub async func client_send_post_async(client: Client, url: str, body: str) -> !Response {
+    @async_step()
+    var req: Request = Request.new_post(url, body)
+    req.options = client.defaults
+    var resp: Response = request_or_err(req)!
+    @async_step()
+    return resp
+}
+
+pub func request(method: str, url: str) -> Request {
+    return Request {
+        method: method,
+        url: url,
+        body: "",
+        options: RequestOptions.default(),
+    }
+}
+
+pub func request_with_body(method: str, url: str, body: str) -> Request {
+    return Request {
+        method: method,
+        url: url,
+        body: body,
+        options: RequestOptions.default(),
+    }
+}
+
+pub func response(status: i32, body: str) -> Response {
+    return Response {
+        status: status,
+        body: body,
+    }
+}
+
+pub func get_or_err(url: str) -> !Response {
+    return request_or_err(Request.new_get(url))
+}
+
+pub async func get_async(url: str) -> !Response {
+    return (await request_async(Request.new_get(url)))!
+}
+
+pub func post_or_err(url: str, body: str) -> !Response {
+    return request_or_err(Request.new_post(url, body))
+}
+
+pub async func post_async(url: str, body: str) -> !Response {
+    return (await request_async(Request.new_post(url, body)))!
+}

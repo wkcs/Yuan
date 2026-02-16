@@ -1,0 +1,66 @@
+// Yuan 词法分析错误测试 - 无效字符
+// 测试各种无效字符的错误处理
+
+// 无效的控制字符（这些字符在源码中不应该出现）
+var invalid1 = 42 // 这里包含一个无效的控制字符
+
+// 无效的 Unicode 字符序列
+var invalid2 = "hello" // 包含无效的 UTF-8 序列
+
+// 不支持的特殊字符
+var invalid3 = 42 $ 10 // $ 不是有效的运算符
+
+// 无效的标识符字符
+var 123invalid = 10 // 标识符不能以数字开头
+
+// 无效的字符字面量
+var invalid_char1 = '' // 空字符字面量
+var invalid_char2 = 'ab' // 多字符字面量
+
+// 无效的转义序列
+var invalid_escape1 = "\q" // 无效的转义字符
+var invalid_escape2 = "\x" // 不完整的十六进制转义
+var invalid_escape3 = "\xGG" // 无效的十六进制数字
+
+// 无效的 Unicode 转义
+var invalid_unicode1 = "\u" // 不完整的 Unicode 转义
+var invalid_unicode2 = "\u{" // 不完整的 Unicode 转义
+var invalid_unicode3 = "\u{GGGG}" // 无效的十六进制数字
+
+// 未终止的字符串
+var unterminated_string = "hello world
+
+// 未终止的字符字面量
+var unterminated_char = 'a
+
+// 未终止的块注释
+/* 这是一个未终止的块注释 */
+var code_after_comment = 42
+
+// 无效的数字字面量
+var invalid_number1 = 123abc // 数字后跟无效字符
+var invalid_number2 = 0x // 不完整的十六进制数
+var invalid_number3 = 0b // 不完整的二进制数
+var invalid_number4 = 0o // 不完整的八进制数
+
+// 无效的浮点数
+var invalid_float1 = 1.2.3 // 多个小数点
+var invalid_float2 = 1e // 不完整的科学计数法
+var invalid_float3 = 1e+ // 不完整的指数
+
+// 无效的原始字符串
+var invalid_raw1 = r"unterminated raw string
+var invalid_raw2 = r#"mismatched delimiters"##
+
+// 无效的多行字符串
+var invalid_multiline = """unterminated multiline string
+"""
+
+// 无效的运算符组合
+var invalid_op1 = a === b // 三个等号
+var invalid_op2 = a <=> b // 无效的比较运算符
+var invalid_op3 = a ** b // 无效的幂运算符
+
+// 无效的标点符号使用
+var invalid_punct1 = @@@ // 多个 @ 符号
+var invalid_punct2 = ### // 多个 // 符号（不在注释中）

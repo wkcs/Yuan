@@ -1,0 +1,35 @@
+/// \file test_error_union_struct_payload.yu
+/// \brief 回归测试：错误联合 `!Struct` 的代码生成与处理。
+
+const std = @import("std")
+const println = std.io.println
+
+struct Pair {
+    a: i32,
+    b: i32,
+}
+
+func make_pair(ok: bool) -> !Pair {
+    if ok {
+        return Pair { a: 7, b: 8 }
+    }
+    return SysError.ParseError { message: "pair failed" }
+}
+
+func forward_pair(ok: bool) -> !Pair {
+    var p: Pair = make_pair(ok)!
+    return p
+}
+
+func main() -> i32 {
+    var p1: Pair = forward_pair(true)! -> err {
+        Pair { a: -1, b: -1 }
+    }
+    var p2: Pair = forward_pair(false)! -> err {
+        Pair { a: 3, b: 4 }
+    }
+
+    println("[err-struct] p1=({}, {}), p2=({}, {})", p1.a, p1.b, p2.a, p2.b)
+    println("[err-struct] sum={}, expect 22", p1.a + p1.b + p2.a + p2.b)
+    return 0
+}

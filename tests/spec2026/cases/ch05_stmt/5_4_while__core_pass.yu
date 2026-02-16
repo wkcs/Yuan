@@ -1,0 +1,20 @@
+/// @spec_ref: 5.4
+/// @point_id: 5_4_while
+/// @case_id: 5_4_while__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// while 循环
+func main() -> i32 {
+    var i: i32 = 0
+    var sum: i32 = 0
+    while i < 6 {
+        i += 1
+        sum += i
+    }
+    @assert(i == 6, "5.4 while loop count")
+    @assert(sum == 21, "5.4 while loop accumulation")
+    return sum
+}

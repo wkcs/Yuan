@@ -1,0 +1,4 @@
+/// \file net.yu
+/// \brief 网络模块集合
+
+pub const http = @import("net.http")

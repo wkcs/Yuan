@@ -1,0 +1,15 @@
+/// @spec_ref: 16.4.1
+/// @point_id: 16_4_1_func_f_t_t
+/// @case_id: 16_4_1_func_f_t_t__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 16_4_1_func_f_t_t
+func f() -> !i32 {
+    return "bad"
+}
+func main() -> i32 {
+    return f()!
+}

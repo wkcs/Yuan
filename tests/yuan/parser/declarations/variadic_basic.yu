@@ -1,0 +1,17 @@
+// 测试基本的可变参数语法
+
+// 带类型约束的可变参数
+func sum_all(...numbers: i32) -> i32 {
+    var total: i32 = 0
+    return total
+}
+
+// 混合普通参数和可变参数
+func print_all(prefix: str, ...args: str) {
+    // ...
+}
+
+// 仅可变参数
+func test(...values: i64) -> i64 {
+    return 0
+}

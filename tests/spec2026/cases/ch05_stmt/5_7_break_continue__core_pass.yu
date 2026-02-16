@@ -1,0 +1,25 @@
+/// @spec_ref: 5.7
+/// @point_id: 5_7_break_continue
+/// @case_id: 5_7_break_continue__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// break 和 continue
+func main() -> i32 {
+    var i: i32 = 0
+    var sum: i32 = 0
+    while i < 8 {
+        i += 1
+        if i == 2 {
+            continue
+        }
+        if i == 7 {
+            break
+        }
+        sum += i
+    }
+    @assert(sum == 19, "5.7 break and continue")
+    return sum
+}

@@ -1,0 +1,14 @@
+/// @spec_ref: 16.3.5
+/// @point_id: 16_3_5_5
+/// @case_id: 16_3_5_5__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级5_`+` `-`_加法、减法
+func main() -> i32 {
+    var x = 20 + 7 - 9
+    @assert(x == 18, "16.3.5 add/sub")
+    return x
+}

@@ -1,0 +1,15 @@
+/// @spec_ref: 15.3
+/// @point_id: 15_3_item
+/// @case_id: 15_3_item__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E2003,E2005
+/// @diag_keywords: variadic,unexpected token
+// negative semantic case: 15_3_item
+func sum(...values: i32, tail: i32) -> i32 {
+    return tail
+}
+func main() -> i32 {
+    return sum(1, 2, 3)
+}

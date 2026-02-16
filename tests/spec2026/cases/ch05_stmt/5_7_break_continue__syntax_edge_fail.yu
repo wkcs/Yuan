@@ -1,0 +1,15 @@
+/// @spec_ref: 5.7
+/// @point_id: 5_7_break_continue
+/// @case_id: 5_7_break_continue__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 5_7_break_continue
+func main() -> i32 {
+    if true {
+        var stmt =
+    }
+    return 0
+}

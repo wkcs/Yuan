@@ -1,0 +1,13 @@
+/// @spec_ref: 5.8
+/// @point_id: 5_8_defer
+/// @case_id: 5_8_defer__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E2008,E2005
+/// @diag_keywords: expected declaration,unexpected token
+// negative semantic case: 5_8_defer
+defer @assert(true)
+func main() -> i32 {
+    return 0
+}

@@ -1,0 +1,18 @@
+/// @spec_ref: 16.4.4
+/// @point_id: 16_4_4_func_err
+/// @case_id: 16_4_4_func_err__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005
+/// @diag_keywords: expected,err
+// negative semantic case: 16_4_4_func_err
+func risky() -> !i32 {
+    return SysError.DivisionByZero
+}
+func main() -> i32 {
+    var x: i32 = risky()! -> {
+        return 0
+    }
+    return x
+}

@@ -1,0 +1,15 @@
+/// @spec_ref: 16.3.1
+/// @point_id: 16_3_1_1
+/// @case_id: 16_3_1_1__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3015,E3003
+/// @diag_keywords: call,type mismatch
+// negative semantic case: 16_3_1_1
+func main() -> i32 {
+    var x: i32 = 1
+    var y = x()
+    _ = y
+    return 0
+}

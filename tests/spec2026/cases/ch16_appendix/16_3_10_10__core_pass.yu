@@ -1,0 +1,15 @@
+/// @spec_ref: 16.3.10
+/// @point_id: 16_3_10_10
+/// @case_id: 16_3_10_10__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 运算符优先级10_`<` `>` `<=` `>=`_关系运算
+func main() -> i32 {
+    var a = 3 < 4
+    var b = 5 >= 5
+    @assert(a && b, "16.3.10 relational")
+    return 0
+}

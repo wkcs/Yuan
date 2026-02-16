@@ -1,0 +1,18 @@
+/// @spec_ref: 16.5.10
+/// @point_id: 16_5_10_func
+/// @case_id: 16_5_10_func__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 内置函数_`@func()`_当前函数名
+func helper_name_len() -> i32 {
+    var n = @func()
+    return n.len() as i32
+}
+func main() -> i32 {
+    var len = helper_name_len()
+    @assert(len > 0, "16.5.10 @func")
+    return len
+}

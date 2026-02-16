@@ -1,0 +1,9 @@
+[
+  {
+    "case_id": "8_2_item__semantic_edge_fail",
+    "reason": "enum variant match qualification diagnostics unstable",
+    "issue": "spec2026-known-gap-8.2",
+    "owner": "compiler-team",
+    "since": "2026-02-16"
+  }
+]

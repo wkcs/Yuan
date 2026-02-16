@@ -1,0 +1,14 @@
+/// @spec_ref: 14.2.4
+/// @point_id: 14_2_4_std_fmt
+/// @case_id: 14_2_4_std_fmt__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E3021
+/// @diag_keywords: field,not found
+// negative semantic case: 14_2_4_std_fmt
+const fmt = @import("std").fmt
+func main() -> i32 {
+    _ = fmt.format_missing
+    return 0
+}

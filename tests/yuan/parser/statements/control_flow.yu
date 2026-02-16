@@ -1,0 +1,166 @@
+// 控制流语句测试用例
+
+func test_control_flow_statements() {
+    var x = 10
+    var y = 20
+    var condition = true
+    
+    // If 语句
+    if x > y {
+        x = y
+    }
+    
+    if condition {
+        x += 1
+    } else {
+        x -= 1
+    }
+    
+    // 多分支 if
+    if x > 100 {
+        x = 100
+    } elif x < 0 {
+        x = 0
+    } else {
+        x = x
+    }
+    
+    // 嵌套 if
+    if x > 0 {
+        if y > 0 {
+            x += y
+        } else {
+            x -= y
+        }
+    }
+    
+    // While 循环
+    while x > 0 {
+        x -= 1
+    }
+    
+    while condition && x < 100 {
+        x += 1
+        if x > 50 {
+            condition = false
+        }
+    }
+    
+    // 无限循环
+    loop {
+        x += 1
+        if x > 1000 {
+            break
+        }
+        if x % 2 == 0 {
+            continue
+        }
+    }
+    
+    // For 循环
+    for i in 0..10 {
+        x += i
+    }
+    
+    for item in [1, 2, 3, 4, 5] {
+        x += item
+    }
+    
+    for (index, value) in [10, 20, 30].enumerate() {
+        x += index + value
+    }
+    
+    // 嵌套 for 循环
+    for i in 0..3 {
+        for j in 0..3 {
+            x += i * j
+        }
+    }
+    
+    // Match 语句
+    var option: ?i32 = Some(42)
+    match option {
+        Some(value) => {
+            x = value
+        },
+        None => {
+            x = 0
+        },
+    }
+    
+    // 复杂 match
+    var message = Message.Move { x: 10, y: 20 }
+    match message {
+        Message.Quit => {
+            return
+        },
+        Message.Move { x: mx, y: my } => {
+            x = mx
+            y = my
+        },
+        Message.Write(text) => {
+            // 处理写入
+        },
+        Message.ChangeColor(r, g, b) => {
+            // 处理颜色变化
+        },
+    }
+    
+    // 带守卫的 match
+    var number = 15
+    match number {
+        n if n < 0 => {
+            x = 0
+        },
+        n if n > 100 => {
+            x = 100
+        },
+        n => {
+            x = n
+        },
+    }
+    
+    // Break 和 Continue
+    for i in 0..100 {
+        if i % 2 == 0 {
+            continue
+        }
+        if i > 50 {
+            break
+        }
+        x += i
+    }
+    
+    // 带值的 break
+    var result = loop {
+        x += 1
+        if x > 100 {
+            break x
+        }
+    }
+    
+    // Defer 语句
+    defer {
+        // 清理代码
+        x = 0
+    }
+    
+    defer cleanup()
+    
+    defer {
+        // 多语句 defer
+        y = 0
+        condition = false
+    }
+}
+
+func cleanup() {
+    // 清理函数
+}
+
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(str),
+    ChangeColor(u8, u8, u8),
+}

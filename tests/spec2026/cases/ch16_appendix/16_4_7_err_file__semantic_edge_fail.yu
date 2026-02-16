@@ -1,0 +1,14 @@
+/// @spec_ref: 16.4.7
+/// @point_id: 16_4_7_err_file
+/// @case_id: 16_4_7_err_file__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3021
+/// @diag_keywords: field,not found
+// negative semantic case: 16_4_7_err_file
+func main() -> i32 {
+    var err: i32 = 1
+    _ = err.file
+    return 0
+}

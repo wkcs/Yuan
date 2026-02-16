@@ -1,0 +1,102 @@
+/// \file async.yu
+/// \brief 协程调度器与 Promise 运行时封装
+
+/// 调度器句柄（运行时内部对象指针）
+pub type Scheduler = usize
+
+/// Promise 句柄（运行时内部对象指针）
+pub type Promise = usize
+
+const STATUS_PENDING: i32 = 0
+const STATUS_FULFILLED: i32 = 1
+const STATUS_REJECTED: i32 = 2
+
+/// 创建调度器
+pub func scheduler_create() -> Scheduler {
+    return @async_scheduler_create()
+}
+
+/// 销毁调度器
+pub func scheduler_destroy(scheduler: Scheduler) {
+    @async_scheduler_destroy(scheduler)
+}
+
+/// 设置当前线程的默认调度器
+pub func scheduler_set_current(scheduler: Scheduler) {
+    @async_scheduler_set_current(scheduler)
+}
+
+/// 清空当前线程的默认调度器
+pub func scheduler_clear_current() {
+    @async_scheduler_set_current(0u64)
+}
+
+/// 获取当前线程的默认调度器
+pub func scheduler_current() -> Scheduler {
+    return @async_scheduler_current()
+}
+
+/// 执行一个待调度任务
+pub func scheduler_run_one(scheduler: Scheduler) -> bool {
+    return @async_scheduler_run_one(scheduler) != 0
+}
+
+/// 执行直到队列为空
+pub func scheduler_run_until_idle(scheduler: Scheduler) {
+    @async_scheduler_run_until_idle(scheduler)
+}
+
+/// 创建 Promise
+pub func promise_create() -> Promise {
+    return @async_promise_create()
+}
+
+/// Promise 引用计数 +1
+pub func promise_retain(promise: Promise) {
+    @async_promise_retain(promise)
+}
+
+/// Promise 引用计数 -1
+pub func promise_release(promise: Promise) {
+    @async_promise_release(promise)
+}
+
+/// Promise 状态：0=pending, 1=fulfilled, 2=rejected
+pub func promise_status(promise: Promise) -> i32 {
+    return @async_promise_status(promise)
+}
+
+/// 读取 fulfilled 值（仅在状态为 fulfilled 时有效）
+pub func promise_value(promise: Promise) -> usize {
+    return @async_promise_value(promise)
+}
+
+/// 读取 rejected 错误值（仅在状态为 rejected 时有效）
+pub func promise_error(promise: Promise) -> usize {
+    return @async_promise_error(promise)
+}
+
+/// 完成 Promise
+pub func promise_resolve(promise: Promise, value: usize) {
+    @async_promise_resolve(promise, value)
+}
+
+/// 失败 Promise
+pub func promise_reject(promise: Promise, error: usize) {
+    @async_promise_reject(promise, error)
+}
+
+/// 阻塞/泵送调度器直到 Promise 完成，返回状态码
+pub func promise_await_status(promise: Promise) -> i32 {
+    return @async_promise_await(promise)
+}
+
+/// 推进一次异步执行（触发 suspend point）
+pub func step() {
+    @async_step()
+}
+
+/// 已执行的异步步数
+pub func step_count() -> u64 {
+    return @async_step_count()
+}

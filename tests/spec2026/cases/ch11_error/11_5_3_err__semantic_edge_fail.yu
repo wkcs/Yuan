@@ -1,0 +1,19 @@
+/// @spec_ref: 11.5.3
+/// @point_id: 11_5_3_err
+/// @case_id: 11_5_3_err__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3021
+/// @diag_keywords: field,not found
+// negative semantic case: 11_5_3_err
+func risky() -> !i32 {
+    return SysError.DivisionByZero
+}
+func main() -> i32 {
+    var v: i32 = risky()! -> err {
+        _ = err.not_exist
+        return 0
+    }
+    return v
+}

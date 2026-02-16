@@ -1,0 +1,25 @@
+// 变量可变性测试
+// 测试 var 和 const 的可变性检查
+
+// 不可变变量（默认）
+var immutable = 42
+// immutable = 100  // 错误：不能给不可变变量赋值
+
+// 常量
+const PI = 3.14159
+const MAX_SIZE = 1024
+// PI = 3.0  // 错误：不能给常量赋值
+
+// 函数参数默认不可变
+func process(value: i32) -> i32 {
+    // value = value + 1  // 错误：参数不可变
+    var copy = value + 1  // 正确：创建副本
+    return copy
+}
+
+// 在函数内使用局部变量
+func test_local() -> i32 {
+    var a = 10
+    var b = 20
+    return a + b
+}

@@ -1,0 +1,14 @@
+/// @spec_ref: 16.4.9
+/// @point_id: 16_4_9_err_full_trace
+/// @case_id: 16_4_9_err_full_trace__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3021,E3015
+/// @diag_keywords: method,argument
+// negative semantic case: 16_4_9_err_full_trace
+func main() -> i32 {
+    var err: i32 = 1
+    _ = err.full_trace(1)
+    return 0
+}

@@ -1,0 +1,205 @@
+// 复杂类型测试用例
+
+// 用户定义类型
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+struct Generic<T> {
+    value: T,
+}
+
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+func test_complex_types() {
+    // 结构体类型
+    var point: Point = Point { x: 1.0, y: 2.0 }
+    var generic_int: Generic<i32> = Generic { value: 42 }
+    var generic_str: Generic<str> = Generic { value: "hello" }
+    
+    // 嵌套泛型
+    var nested: Generic<Generic<i32>> = Generic { 
+        value: Generic { value: 42 } 
+    }
+    
+    // 枚举类型
+    var some_value: Option<i32> = Some(42)
+    var none_value: Option<str> = None
+    var ok_result: Result<i32, str> = Ok(42)
+    var err_result: Result<i32, str> = Err("error")
+    
+    // 复杂泛型组合
+    var complex1: Option<Result<i32, str>> = Some(Ok(42))
+    var complex2: Result<Option<i32>, str> = Ok(Some(42))
+    var complex3: Vec<Option<Result<Point, str>>> = Vec.new()
+    
+    // 函数类型与泛型
+    var generic_func: func<T>(T) -> T = identity
+    var option_func: func(i32) -> Option<i32> = safe_divide
+    var result_func: func(i32, i32) -> Result<i32, str> = divide
+    
+    // 错误类型
+    var error_result: !i32 = risky_operation()
+    var error_option: !Option<i32> = risky_optional()
+    var error_generic: !Generic<str> = risky_generic()
+    
+    // 复杂函数类型
+    var mapper: func<T, U>(T, func(T) -> U) -> U = map_value
+    var reducer: func<T>(Vec<T>, T, func(T, T) -> T) -> T = reduce_vec
+    var filter_map: func<T, U>(Vec<T>, func(T) -> Option<U>) -> Vec<U> = filter_and_map
+    
+    // 约束类型
+    var comparable: Comparable<i32> = Comparable { value: 42 }
+    var displayable: Box<dyn Display> = Box.new("hello")
+    
+    // 关联类型
+    var iterator: impl Iterator<Item = i32> = vec![1, 2, 3].into_iter()
+    var collector: impl Collect<Item = i32, Output = Vec<i32>> = Vec.new()
+    
+    // 高阶类型
+    var higher_kinded: Higher<Option> = Higher.new()
+    var monad: impl Monad<i32> = Some(42)
+    
+    // 递归类型
+    var list: List<i32> = List.Cons(1, Box.new(List.Cons(2, Box.new(List.Nil))))
+    var tree: Tree<str> = Tree.Node {
+        value: "root",
+        left: Box.new(Tree.Leaf("left")),
+        right: Box.new(Tree.Leaf("right"))
+    }
+    
+    // 类型别名
+    var string_result: StringResult = Ok("success")
+    var int_option: IntOption = Some(42)
+    var point_vec: PointVec = vec![Point { x: 1.0, y: 2.0 }]
+    
+    // 复杂嵌套类型
+    var ultra_complex: HashMap<str, Vec<Option<Result<Point, Box<dyn Error>>>>> = HashMap.new()
+}
+
+// 类型别名
+type StringResult = Result<str, str>
+type IntOption = Option<i32>
+type PointVec = Vec<Point>
+
+// 约束结构体
+struct Comparable<T> where T: Ord {
+    value: T,
+}
+
+// 递归枚举
+enum List<T> {
+    Cons(T, Box<List<T>>),
+    Nil,
+}
+
+enum Tree<T> {
+    Leaf(T),
+    Node {
+        value: T,
+        left: Box<Tree<T>>,
+        right: Box<Tree<T>>,
+    },
+}
+
+// 高阶类型
+struct Higher<F> {
+    _phantom: PhantomData<F>,
+}
+
+impl<F> Higher<F> {
+    func new() -> Self {
+        return Higher { _phantom: PhantomData }
+    }
+}
+
+// Trait 定义
+trait Display {
+    func to_string(&self) -> str
+}
+
+trait Iterator {
+    type Item
+    func next(&mut self) -> ?Self.Item
+}
+
+trait Collect {
+    type Item
+    type Output
+    func collect(&self) -> Self.Output
+}
+
+trait Monad<T> {
+    func bind<U>(&self, f: func(T) -> Self<U>) -> Self<U>
+}
+
+trait Error {
+    func message(&self) -> str
+}
+
+// 辅助函数
+func identity<T>(value: T) -> T {
+    return value
+}
+
+func safe_divide(x: i32) -> Option<i32> {
+    if x == 0 {
+        return None
+    }
+    return Some(100 / x)
+}
+
+func divide(a: i32, b: i32) -> Result<i32, str> {
+    if b == 0 {
+        return Err("Division by zero")
+    }
+    return Ok(a / b)
+}
+
+func risky_operation() -> !i32 {
+    return 42
+}
+
+func risky_optional() -> !Option<i32> {
+    return Some(42)
+}
+
+func risky_generic<T>() -> !Generic<T> {
+    return Generic { value: default() }
+}
+
+func map_value<T, U>(value: T, f: func(T) -> U) -> U {
+    return f(value)
+}
+
+func reduce_vec<T>(vec: Vec<T>, init: T, f: func(T, T) -> T) -> T {
+    var result = init
+    for item in vec {
+        result = f(result, item)
+    }
+    return result
+}
+
+func filter_and_map<T, U>(vec: Vec<T>, f: func(T) -> ?U) -> Vec<U> {
+    var result = Vec.new()
+    for item in vec {
+        match f(item) {
+            value => result.push(value),
+            None => {},
+        }
+    }
+    return result
+}
+
+func default<T>() -> T {
+    // 默认值实现
+}

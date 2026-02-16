@@ -1,0 +1,18 @@
+/// @spec_ref: 16.4.1
+/// @point_id: 16_4_1_func_f_t_t
+/// @case_id: 16_4_1_func_f_t_t__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 错误语法_`func f(...) -> !T`_函数可能返回类型 T 或错误
+func parse_digit(ch: str) -> !i32 {
+    if ch == "7" { return 7 }
+    return SysError.ParseError { message: "not digit" }
+}
+func main() -> i32 {
+    var v = parse_digit("7")!
+    @assert(v == 7, "16.4.1 func -> !T")
+    return v
+}

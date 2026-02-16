@@ -1,0 +1,55 @@
+// 字面量表达式测试用例
+
+func test_literals() {
+    // 整数字面量
+    var a = 42
+    var b = 0x2A
+    var c = 0o52
+    var d = 0b101010
+    var e = 1_000_000
+    var f = 42i32
+    var g = 100u64
+    
+    // 浮点数字面量
+    var h = 3.14
+    var i = 2.5e10
+    var j = 1.5E-5
+    var k = 3.14f32
+    var l = 2.718f64
+    var m = 1_000.5
+    
+    // 布尔字面量
+    var n = true
+    var o = false
+    
+    // 字符字面量
+    var p = 'a'
+    var q = '\n'
+    var r = '\t'
+    var s = '\''
+    var t = '\\'
+    var u = '\x41'
+    var v = '\u{1F600}'
+    
+    // 字符串字面量
+    var w = "Hello, World!"
+    var x = "Line 1\nLine 2"
+    var y = "Tab\tSeparated"
+    var z = "Quote: \"Hello\""
+    var aa = "Backslash: \\"
+    var bb = "Unicode: \u{1F600}"
+    
+    // 原始字符串
+    var cc = r"Raw string with \n no escapes"
+    var dd = r###"Raw string with "quotes" and #"###
+    
+    // 多行字符串
+    var ee = """
+    This is a
+    multi-line
+    string
+    """
+    
+    // None 字面量
+    var ff: ?i32 = None
+}

@@ -1,0 +1,18 @@
+/// @spec_ref: 16.4.3
+/// @point_id: 16_4_3_func_panic
+/// @case_id: 16_4_3_func_panic__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 错误语法_`func()`_调用可能出错的函数，如果出错则 panic
+func maybe(flag: bool) -> !i32 {
+    if flag { return 5 }
+    return SysError.ParseError { message: "boom" }
+}
+func main() -> i32 {
+    var ok = maybe(true)
+    @assert(ok == 5, "16.4.3 call may panic on error")
+    return ok
+}

@@ -1,0 +1,37 @@
+/// \file struct_trait_impl.yu
+/// \brief 测试结构体、trait 与 impl 的语义支持
+
+const std = @import("std")
+const println = std.io.println
+const format = std.fmt.format
+
+pub struct Point {
+    x: i32,
+    y: i32,
+}
+
+// 结构体的固有实现
+impl Point {
+    func new(x: i32, y: i32) -> Self {
+        return Point{ x: x, y: y }
+    }
+
+    func sum(&self) -> i32 {
+        return self.x + self.y
+    }
+}
+
+// 为 Point 实现 Display trait
+impl Display for Point {
+    func to_string(&self) -> str {
+        return format("Point{{x: {}, y: {}}}", self.x, self.y)
+    }
+}
+
+func main() {
+    var p = Point.new(1, 2)
+    var q = Point{ x: 3, y: 4 }
+    var total: i32 = p.sum() + q.sum()
+    println("total = {}", total)
+    println("p = {}, q = {}", p, q)
+}

@@ -1,0 +1,14 @@
+/// @spec_ref: 16.4.5
+/// @point_id: 16_4_5_err_message
+/// @case_id: 16_4_5_err_message__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3021
+/// @diag_keywords: method,not found
+// negative semantic case: 16_4_5_err_message
+func main() -> i32 {
+    var err: i32 = 1
+    _ = err.message()
+    return 0
+}

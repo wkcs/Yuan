@@ -1,0 +1,89 @@
+{
+  "Function": {
+    "prefix": "func",
+    "body": [
+      "func ${1:name}(${2:args})${3: -> ${4:void}} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Declare a function"
+  },
+  "Main Function": {
+    "prefix": "main",
+    "body": [
+      "func main() {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Insert a main function"
+  },
+  "Struct": {
+    "prefix": "struct",
+    "body": [
+      "struct ${1:Name} {",
+      "\t${2:field}: ${3:i32},",
+      "}"
+    ],
+    "description": "Declare a struct"
+  },
+  "Enum": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Name} {",
+      "\t${2:Variant},",
+      "}"
+    ],
+    "description": "Declare an enum"
+  },
+  "Impl": {
+    "prefix": "impl",
+    "body": [
+      "impl ${1:Type} {",
+      "\tfunc ${2:method}(&self)${3: -> ${4:void}} {",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ],
+    "description": "Declare an impl block"
+  },
+  "If Else": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition} {",
+      "\t$2",
+      "} else {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Insert an if/else block"
+  },
+  "Match": {
+    "prefix": "match",
+    "body": [
+      "match ${1:value} {",
+      "\t${2:Pattern} => {",
+      "\t\t$0",
+      "\t},",
+      "}"
+    ],
+    "description": "Insert a match expression"
+  },
+  "For In": {
+    "prefix": "for",
+    "body": [
+      "for ${1:item} in ${2:items} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Insert a for-in loop"
+  },
+  "Error Propagation Block": {
+    "prefix": "errblk",
+    "body": [
+      "${1:value}! -> err {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Insert an error handling block"
+  }
+}

@@ -1,0 +1,42 @@
+/// \file test_std_c_ffi.yu
+/// \brief 标准库 c 模块回归测试（动态库 + 符号调用）。
+
+const std = @import("std")
+const println = std.io.println
+
+func main() -> i32 {
+    var libc: std.ffi.Library = std.ffi.open_self()
+    println("[c] open_self handle != 0: {}", libc != 0u64)
+    if libc == 0u64 {
+        println("[c] open_self error: {}", std.ffi.last_error())
+        return 1
+    }
+
+    var abs_sym: std.ffi.Symbol = std.ffi.symbol(libc, "abs")
+    println("[c] symbol(abs) != 0: {}", abs_sym != 0u64)
+    if abs_sym == 0u64 {
+        println("[c] symbol(abs) error: {}", std.ffi.last_error())
+        std.ffi.close(libc)
+        return 1
+    }
+
+    var abs_v: i32 = std.ffi.call1(abs_sym, ((-7i32) as usize)) as i32
+    println("[c] abs(-7) = {}, expect 7", abs_v)
+
+    var atoi_sym: std.ffi.Symbol = std.ffi.symbol(libc, "atoi")
+    println("[c] symbol(atoi) != 0: {}", atoi_sym != 0u64)
+    if atoi_sym == 0u64 {
+        println("[c] symbol(atoi) error: {}", std.ffi.last_error())
+        std.ffi.close(libc)
+        return 1
+    }
+
+    var text: *mut u8 = std.ffi.alloc_cstring("12345")
+    var atoi_v: i32 = std.ffi.call1(atoi_sym, text as usize) as i32
+    println("[c] atoi(\"12345\") = {}, expect 12345", atoi_v)
+    std.ffi.free_cstring(text)
+
+    var closed: bool = std.ffi.close(libc)
+    println("[c] close ok: {}", closed)
+    return 0
+}

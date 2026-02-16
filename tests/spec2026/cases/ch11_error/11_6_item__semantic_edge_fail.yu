@@ -1,0 +1,16 @@
+/// @spec_ref: 11.6
+/// @point_id: 11_6_item
+/// @case_id: 11_6_item__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E3017,E3018
+/// @diag_keywords: error,trait
+// negative semantic case: 11_6_item
+struct AppError {}
+func fail() -> !i32 {
+    return AppError {}
+}
+func main() -> i32 {
+    return fail()!
+}

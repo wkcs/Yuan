@@ -1,0 +1,22 @@
+/// @spec_ref: 7.3
+/// @point_id: 7_3_item
+/// @case_id: 7_3_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 方法
+struct N { v: i32 }
+
+impl N {
+    func get(&self) -> i32 {
+        return self.v
+    }
+}
+
+func main() -> i32 {
+    var n = N { v: 5 }
+    @assert(true, "7_3_item assertion anchor")
+    return n.get()
+}

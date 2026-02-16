@@ -1,0 +1,33 @@
+/// @spec_ref: 9.3
+/// @point_id: 9_3_trait
+/// @case_id: 9_3_trait__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// Trait 约束
+trait Render {
+    func render(&self) -> str
+}
+
+func show<T: Render>(v: &T) -> str {
+    return v.render()
+}
+
+struct W {}
+
+impl Render for W {
+    func render(&self) -> str {
+        return "w"
+    }
+}
+
+func main() -> i32 {
+    var w = W {}
+    _ = show(&w)
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "9_3_trait assertion failed")
+    return __spec2026_actual
+}

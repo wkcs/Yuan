@@ -1,0 +1,14 @@
+/// @spec_ref: 10.3
+/// @point_id: 10_3_item
+/// @case_id: 10_3_item__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes: E2002,E2005,E2021
+/// @diag_keywords: expected expression,unexpected token,expected
+// syntax edge case: 10_3_item
+const io = @import("std").io
+func main() -> i32 {
+    io.println(
+    return 0
+}

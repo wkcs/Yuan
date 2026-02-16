@@ -1,0 +1,18 @@
+/// @spec_ref: 7.2
+/// @point_id: 7_2_item
+/// @case_id: 7_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 结构体实例化
+struct P { x: i32, y: i32 }
+
+func main() -> i32 {
+    var p = P { x: 3, y: 4 }
+    var __spec2026_actual: i32 = p.x
+    var __spec2026_expected: i32 = p.x
+    @assert(__spec2026_actual == __spec2026_expected, "7_2_item assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,17 @@
+/// @spec_ref: 10.2
+/// @point_id: 10_2_item
+/// @case_id: 10_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 模块定义
+pub const VALUE: i32 = 3
+
+func main() -> i32 {
+    var __spec2026_actual: i32 = VALUE
+    var __spec2026_expected: i32 = VALUE
+    @assert(__spec2026_actual == __spec2026_expected, "10_2_item assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,40 @@
+// match 作用域测试
+// 测试 match 表达式中的模式绑定作用域
+
+enum Option {
+    Some(i32),
+    None
+}
+
+func test_match_scope(n: i32) -> i32 {
+    match n {
+        0 => {
+            return 0
+        }
+        1 => {
+            return 1
+        }
+        _ => {
+            return n * 2
+        }
+    }
+}
+
+// match 表达式的结果
+func test_match_expr() -> str {
+    var n = 5
+    var result = match n {
+        0 => "zero",
+        1 => "one",
+        _ => "many"
+    }
+    return result
+}
+
+// 简单 match 测试
+func simple_match(b: bool) -> i32 {
+    match b {
+        true => { return 1 }
+        false => { return 0 }
+    }
+}

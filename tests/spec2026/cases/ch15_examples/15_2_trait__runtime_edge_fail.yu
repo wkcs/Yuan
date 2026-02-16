@@ -1,0 +1,17 @@
+/// @spec_ref: 15.2
+/// @point_id: 15_2_trait
+/// @case_id: 15_2_trait__runtime_edge_fail
+/// @expect: fail
+/// @boundary: runtime_edge
+/// @phase: runtime
+/// @diag_codes: E3003
+/// @diag_keywords: type mismatch
+// negative semantic case: 15_2_trait
+trait Shape { func area(&self) -> f64 }
+struct Rect { w: f64, h: f64 }
+impl Shape for Rect {
+    func area(&self) -> i32 {
+        return 0
+    }
+}
+func main() -> i32 { return 0 }

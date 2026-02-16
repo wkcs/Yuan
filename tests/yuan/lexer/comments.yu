@@ -1,0 +1,208 @@
+// Yuan 注释测试
+// 测试各种注释格式的词法分析
+
+// 这是单行注释
+var x = 10 // 行末注释
+
+// 多个连续的单行注释
+// 第一行注释
+// 第二行注释
+// 第三行注释
+
+/* 这是块注释 */
+var y = 20
+
+/* 
+多行块注释
+第二行
+第三行
+*/
+
+/*
+ * 带星号格式的块注释
+ * 每行都有星号
+ * 这是常见的文档风格
+ */
+
+/* 嵌套的 /* 块注释 */ 测试 */
+
+/*
+包含代码的注释：
+var commented_code = 42
+func commented_function() {}
+*/
+
+/// 文档注释（三斜杠）
+/// 用于生成文档
+/// 支持 Markdown 格式
+func documented_function() {}
+
+/// 单行文档注释
+var documented_variable = 100
+
+///
+/// 多行文档注释
+/// 
+/// // 示例
+/// 
+/// ```yuan
+/// var example = 42
+/// ```
+/// 
+struct DocumentedStruct {
+    /// 字段文档注释
+    field: i32,
+}
+
+// 注释中的特殊字符
+// !@#$%^&*()_+-=[]{}|;':\",./<>?
+// 中文注释：这是中文注释测试
+// Unicode: αβγδεζηθικλμνξοπρστυφχψω
+// Emoji: 😀😃😄😁😆😅😂🤣
+
+/* 块注释中的特殊字符 !@#$%^&*()_+-=[]{}|':\",./<>? */
+/* 中文块注释：这是中文块注释测试 */
+/* Unicode 块注释: αβγδεζηθικλμνξοπρστυφχψω */
+
+// 注释与代码混合
+var a = 1 // 变量 a
+var b = 2 /* 变量 b */ var c = 3 // 变量 c
+
+// 长注释测试
+// 这是一个非常长的注释，用来测试词法分析器处理长注释的能力，确保不会出现缓冲区溢出或其他问题，同时验证注释内容不会影响后续的词法分析过程。
+
+/*
+这是一个非常长的块注释，
+包含多行内容，
+用来测试词法分析器处理长块注释的能力，
+确保不会出现缓冲区溢出或其他问题，
+同时验证块注释内容不会影响后续的词法分析过程。
+这里还包含一些特殊字符：!@#$%^&*()
+以及一些 Unicode 字符：中文测试αβγ
+*/
+
+// 注释中的 URL 和路径
+// https://example.com/path/to/resource
+// C:\Users\Name\Documents\file.txt
+// /usr/local/bin/yuan
+
+/* 
+块注释中的 URL 和路径：
+https://github.com/yuan-lang/yuan
+/home/user/projects/yuan/src/main.yu
+*/
+
+// 注释中的代码示例
+// 示例：var example = func(x: i32) -> i32 { return x * 2 }
+
+/*
+代码块示例：
+func fibonacci(n: i32) -> i32 {
+    if n <= 1 {
+        return n
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+*/
+
+/// 文档注释中的代码示例
+/// 
+/// ```yuan
+/// var result = add(1, 2)
+/// assert_eq!(result, 3)
+/// ```
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+// 注释的边界情况
+//
+// 空注释
+//   
+// 只有空格的注释
+
+/**/
+/* */
+/*
+
+
+*/
+
+// 注释与字符串的区别测试
+var not_comment1 = "// 这不是注释"
+var not_comment2 = "/* 这也不是注释 */"
+var not_comment3 = "/// 这同样不是注释"
+
+// 注释与运算符的区别
+var division = a / b // 除法运算符，不是注释开始
+var url = "http://example.com" // URL 中的 // 不是注释
+
+// 注释在不同上下文中
+func function_with_comments(
+    // 参数注释
+    param1: i32, // 第一个参数
+    param2: str  /* 第二个参数 */
+) -> i32 {
+    // 函数体注释
+    var local = param1 /* 局部变量 */
+    
+    // 控制流中的注释
+    if local > 0 {
+        // if 分支注释
+        return local * 2
+    } else {
+        /* else 分支注释 */
+        return 0
+    }
+    
+    // 这行代码永远不会执行
+}
+
+// 结构体中的注释
+struct CommentedStruct {
+    // 字段前的注释
+    field1: i32, // 字段后的注释
+    
+    /* 块注释字段 */
+    field2: str,
+    
+    /// 文档注释字段
+    field3: bool,
+}
+
+// 枚举中的注释
+enum CommentedEnum {
+    // 变体注释
+    Variant1, // 第一个变体
+    
+    /* 块注释变体 */
+    Variant2(i32),
+    
+    /// 文档注释变体
+    Variant3 { field: str },
+}
+
+// 实现块中的注释
+impl CommentedStruct {
+    // 方法注释
+    func method(&self) -> i32 {
+        // 方法体注释
+        return self.field1
+    }
+}
+
+// 模块级注释
+// 这些注释描述整个模块的功能
+
+/*
+模块文档：
+这个模块包含了注释测试的各种情况，
+用于验证词法分析器正确处理注释。
+*/
+
+/// 模块级文档注释
+/// 
+/// 这个模块演示了 Yuan 语言中各种注释的使用方法。
+
+// 文件结尾注释
+// 测试文件结尾的注释处理

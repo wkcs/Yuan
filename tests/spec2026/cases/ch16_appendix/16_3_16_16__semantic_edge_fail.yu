@@ -1,0 +1,13 @@
+/// @spec_ref: 16.3.16
+/// @point_id: 16_3_16_16
+/// @case_id: 16_3_16_16__semantic_edge_fail
+/// @expect: fail
+/// @boundary: semantic_edge
+/// @phase: sema
+/// @diag_codes: E2008,E3003
+/// @diag_keywords: unexpected token,assignment
+// negative semantic case: 16_3_16_16
+func main() -> i32 {
+    1 += 2
+    return 0
+}

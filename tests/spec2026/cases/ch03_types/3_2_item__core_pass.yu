@@ -1,0 +1,24 @@
+/// @spec_ref: 3.2
+/// @point_id: 3_2_item
+/// @case_id: 3_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 基本类型
+func main() -> i32 {
+    var i: i32 = 42
+    var u: u32 = 42u32
+    var f: f64 = 42.0
+    var b: bool = true
+    var c: char = 'A'
+    var s: str = "type-bundle"
+    @assert(i == 42, "3.2 signed int")
+    @assert(u == 42u32, "3.2 unsigned int")
+    @assert(f == 42.0, "3.2 float")
+    @assert(b, "3.2 bool")
+    _ = c
+    _ = s
+    return 0
+}

@@ -1,0 +1,16 @@
+/// @spec_ref: 16.5.4
+/// @point_id: 16_5_4_panic_message_panic
+/// @case_id: 16_5_4_panic_message_panic__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes: 
+/// @diag_keywords: 
+// 内置函数_`@panic(message)`_触发 panic
+func main() -> i32 {
+    if false {
+        @panic("unreachable panic in 16.5.4")
+    }
+    @assert(true, "16.5.4 panic builtin available")
+    return 0
+}
