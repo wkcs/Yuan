@@ -1,0 +1,20 @@
+const std = @import("std")
+
+func 新年快乐(year: i32) -> !str {
+    if (year < 1995) {
+        return SysError.ParseError {
+            message: std.fmt.format("无效的年份: {}", year)
+        }
+    }
+    std.fmt.format("{}，新年快乐", year)
+}
+
+func main() {
+    var s = 新年快乐(1)! -> err {
+        match err {
+            SysError.ParseError { message } => std.fmt.format("{}", message),
+            _ => std.fmt.format("{}", "Unknown error"),
+        }
+    }
+    std.io.println("{}", s)
+}

@@ -272,6 +272,7 @@ private:
     bool generateLoopStmt(class LoopStmt* stmt);
     bool generateForStmt(class ForStmt* stmt);
     bool generateMatchStmt(class MatchStmt* stmt);
+    llvm::Value* generateMatchStmtWithResult(class MatchStmt* stmt);
     bool generateBreakStmt(class BreakStmt* stmt);
     bool generateContinueStmt(class ContinueStmt* stmt);
     bool generateDeferStmt(class DeferStmt* stmt);

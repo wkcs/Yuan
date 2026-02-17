@@ -143,6 +143,9 @@ llvm::Value* CodeGen::generateBlockStmtWithResult(BlockStmt* stmt) {
                 if (lastValue && lastValue->getType()->isVoidTy()) {
                     lastValue = nullptr;
                 }
+            } else if (auto* matchStmt = dynamic_cast<MatchStmt*>(s)) {
+                // Handle MatchStmt with result
+                lastValue = generateMatchStmtWithResult(matchStmt);
             } else {
                 if (!generateStmt(s)) {
                     DeferStack.resize(scopeDeferDepth);
@@ -1467,6 +1470,189 @@ bool CodeGen::generateMatchStmt(MatchStmt* stmt) {
     }
 
     return true;
+}
+
+llvm::Value* CodeGen::generateMatchStmtWithResult(MatchStmt* stmt) {
+    if (!stmt) {
+        return nullptr;
+    }
+
+    Expr* scrutinee = stmt->getScrutinee();
+    if (!scrutinee) {
+        return nullptr;
+    }
+
+    Type* scrutineeType = scrutinee->getType();
+    if (!scrutineeType) {
+        return nullptr;
+    }
+
+    // Determine result type from the first arm's body
+    Type* resultType = nullptr;
+    for (const auto& arm : stmt->getArms()) {
+        if (auto* blockBody = dynamic_cast<BlockStmt*>(arm.Body)) {
+            const auto& stmts = blockBody->getStatements();
+            if (!stmts.empty()) {
+                if (auto* exprStmt = dynamic_cast<ExprStmt*>(stmts.back())) {
+                    resultType = exprStmt->getExpr()->getType();
+                    break;
+                }
+            }
+        } else if (auto* exprBody = dynamic_cast<ExprStmt*>(arm.Body)) {
+            resultType = exprBody->getExpr()->getType();
+            break;
+        }
+    }
+    if (!resultType) {
+        return nullptr;
+    }
+
+    llvm::Type* llvmScrutineeType = getLLVMType(scrutineeType);
+    llvm::Type* llvmResultType = getLLVMType(resultType);
+    if (!llvmScrutineeType || !llvmResultType) {
+        return nullptr;
+    }
+
+    llvm::Value* scrutineeValue = generateExpr(scrutinee);
+    if (!scrutineeValue) {
+        return nullptr;
+    }
+
+    llvm::Function* currentFunc = Builder->GetInsertBlock()->getParent();
+
+    // Store scrutinee to avoid multiple evaluations
+    llvm::AllocaInst* scrutineeAlloca = Builder->CreateAlloca(llvmScrutineeType, nullptr, "match.scrutinee");
+    Builder->CreateStore(scrutineeValue, scrutineeAlloca);
+
+    // Create result storage
+    llvm::AllocaInst* resultAlloca = Builder->CreateAlloca(llvmResultType, nullptr, "match.result");
+
+    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(*Context, "match.end", currentFunc);
+
+    struct ArmInstance {
+        Pattern* Pat;
+        Expr* Guard;
+        Stmt* Body;
+    };
+
+    std::vector<ArmInstance> instances;
+    for (const auto& arm : stmt->getArms()) {
+        if (!arm.Pat) {
+            continue;
+        }
+        if (auto* orPat = dynamic_cast<OrPattern*>(arm.Pat)) {
+            for (auto* alt : orPat->getPatterns()) {
+                instances.push_back({alt, arm.Guard, arm.Body});
+            }
+        } else {
+            instances.push_back({arm.Pat, arm.Guard, arm.Body});
+        }
+    }
+
+    llvm::BasicBlock* nextBB = Builder->GetInsertBlock();
+
+    for (size_t i = 0; i < instances.size(); ++i) {
+        Builder->SetInsertPoint(nextBB);
+
+        llvm::BasicBlock* bodyBB = llvm::BasicBlock::Create(*Context, "match.body", currentFunc);
+        llvm::BasicBlock* fallthroughBB = llvm::BasicBlock::Create(*Context, "match.next", currentFunc);
+
+        llvm::Value* currentValue = Builder->CreateLoad(llvmScrutineeType, scrutineeAlloca, "match.val");
+        llvm::Value* cond = generatePatternCondition(instances[i].Pat, currentValue, scrutineeType);
+        if (!cond) {
+            return nullptr;
+        }
+
+        if (instances[i].Guard) {
+            llvm::BasicBlock* guardBB = llvm::BasicBlock::Create(*Context, "match.guard", currentFunc);
+            Builder->CreateCondBr(cond, guardBB, fallthroughBB);
+
+            Builder->SetInsertPoint(guardBB);
+            llvm::Value* bindValue = Builder->CreateLoad(llvmScrutineeType, scrutineeAlloca, "match.val");
+            if (!bindPattern(instances[i].Pat, bindValue, scrutineeType)) {
+                return nullptr;
+            }
+            llvm::Value* guardValue = generateExpr(instances[i].Guard);
+            if (!guardValue) {
+                return nullptr;
+            }
+            Builder->CreateCondBr(guardValue, bodyBB, fallthroughBB);
+        } else {
+            Builder->CreateCondBr(cond, bodyBB, fallthroughBB);
+        }
+
+        // Body
+        Builder->SetInsertPoint(bodyBB);
+        if (!instances[i].Guard) {
+            llvm::Value* bindValue = Builder->CreateLoad(llvmScrutineeType, scrutineeAlloca, "match.val");
+            if (!bindPattern(instances[i].Pat, bindValue, scrutineeType)) {
+                return nullptr;
+            }
+        }
+
+        // Generate body and capture result if it's a block with a trailing expression
+        if (auto* blockBody = dynamic_cast<BlockStmt*>(instances[i].Body)) {
+            const auto& stmts = blockBody->getStatements();
+            for (size_t j = 0; j < stmts.size(); ++j) {
+                Stmt* s = stmts[j];
+                bool isLast = (j + 1 == stmts.size());
+                if (isLast) {
+                    if (auto* exprStmt = dynamic_cast<ExprStmt*>(s)) {
+                        llvm::Value* bodyValue = generateExpr(exprStmt->getExpr());
+                        if (bodyValue && bodyValue->getType()->isVoidTy()) {
+                            bodyValue = nullptr;
+                        }
+                        if (bodyValue) {
+                            Builder->CreateStore(bodyValue, resultAlloca);
+                        }
+                    } else {
+                        if (!generateStmt(s)) {
+                            return nullptr;
+                        }
+                    }
+                } else {
+                    if (!generateStmt(s)) {
+                        return nullptr;
+                    }
+                }
+                if (Builder->GetInsertBlock()->getTerminator()) {
+                    break;
+                }
+            }
+        } else if (auto* exprBody = dynamic_cast<ExprStmt*>(instances[i].Body)) {
+            llvm::Value* bodyValue = generateExpr(exprBody->getExpr());
+            if (bodyValue && !bodyValue->getType()->isVoidTy()) {
+                Builder->CreateStore(bodyValue, resultAlloca);
+            }
+        } else {
+            if (!generateStmt(instances[i].Body)) {
+                return nullptr;
+            }
+        }
+
+        if (!Builder->GetInsertBlock()->getTerminator()) {
+            Builder->CreateBr(endBB);
+        }
+
+        nextBB = fallthroughBB;
+    }
+
+    Builder->SetInsertPoint(nextBB);
+    if (!Builder->GetInsertBlock()->getTerminator()) {
+        Builder->CreateBr(endBB);
+    }
+
+    if (endBB->hasNPredecessorsOrMore(1)) {
+        Builder->SetInsertPoint(endBB);
+    } else {
+        endBB->eraseFromParent();
+        llvm::BasicBlock* unreachableBB = llvm::BasicBlock::Create(*Context, "unreachable", currentFunc);
+        Builder->SetInsertPoint(unreachableBB);
+        Builder->CreateUnreachable();
+        return nullptr;
+    }
+
+    return Builder->CreateLoad(llvmResultType, resultAlloca, "match.result.load");
 }
 
 // ============================================================================
