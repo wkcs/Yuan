@@ -122,14 +122,37 @@ llvm::Value* CodeGen::generateExpr(Expr* expr) {
             return generateStringLiteral(static_cast<StringLiteralExpr*>(expr));
 
         case ASTNode::Kind::NoneLiteralExpr: {
+            // None 字面量：在语义分析时类型为 ?void，但需要根据上下文确定实际类型
             Type* type = expr->getType();
-            if (!type || !type->isOptional()) {
+            if (!type) {
                 return nullptr;
             }
+            
+            // 如果类型是 Optional，使用它；否则查找上下文中期望的 Optional 类型
+            if (!type->isOptional()) {
+                // 尝试从父节点获取期望的类型
+                return nullptr;
+            }
+            
             auto* optType = static_cast<OptionalType*>(type);
+            Type* innerType = optType->getInnerType();
+            
+            // 对于 None，内部类型可能是 void（语义分析的默认值）
+            // 我们需要使用正确的内部类型来构建 Optional 值
             llvm::Type* llvmOptType = getLLVMType(type);
-            llvm::Type* llvmInnerType = getLLVMType(optType->getInnerType());
-            if (!llvmOptType || !llvmInnerType) {
+            if (!llvmOptType) {
+                return nullptr;
+            }
+            
+            // 如果内部类型是 void，使用 i8 作为占位符
+            llvm::Type* llvmInnerType = nullptr;
+            if (innerType->isVoid()) {
+                llvmInnerType = llvm::Type::getInt8Ty(*Context);
+            } else {
+                llvmInnerType = getLLVMType(innerType);
+            }
+            
+            if (!llvmInnerType) {
                 return nullptr;
             }
             llvmInnerType = normalizeFirstClassType(llvmInnerType);

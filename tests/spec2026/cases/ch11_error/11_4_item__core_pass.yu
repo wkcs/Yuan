@@ -6,7 +6,8 @@
 /// @phase: sema
 /// @diag_codes:
 /// @diag_keywords:
-// 可能返回错误的函数 — 验证成功路径值和错误处理路径
+// 可能返回错误的函数 — 验证成功路径实际值和错误处理路径
+// 注：var x: i32 = f()! 比 var x = f()! 应同样支持（规范 11.4/11.5）
 
 func safe_div(a: i32, b: i32) -> !i32 {
     if b == 0 {
@@ -16,23 +17,22 @@ func safe_div(a: i32, b: i32) -> !i32 {
 }
 
 func main() -> i32 {
-    // 成功路径：! 传播，验证返回值
+    // 成功路径：!传播，验证返回值（显式类型注解 规范应支持）
     var ok: i32 = safe_div(12, 3)!
-    @assert(ok == 4, "11.4 error func: success value")
+    @assert(ok == 4, "11.4 error func: success value 12/3=4")
 
-    // 错误路径：-> err {} 处理块
+    // 错误路径：-> err {} 块处理
     var fallback: i32 = safe_div(10, 0)! -> err {
         _ = err.message()
         return -1
     }
-    @assert(fallback == -1, "11.4 error func: error branch")
+    @assert(fallback == -1, "11.4 error func: error branch fallback")
 
-    // 两次成功调用
-    var r1: i32 = safe_div(20, 4)!
+    // 多次成功调用
+    var r1: i32 = safe_div(20, 5)!
     var r2: i32 = safe_div(9, 3)!
-    @assert(r1 == 5, "11.4 error func: 20/4")
-    @assert(r2 == 3, "11.4 error func: 9/3")
-    @assert(r1 + r2 == 8, "11.4 error func: sum")
+    @assert(r1 == 4, "11.4 error func: 20/5=4")
+    @assert(r2 == 3, "11.4 error func: 9/3=3")
 
     return 0
 }

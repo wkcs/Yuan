@@ -18,11 +18,11 @@ impl<T> Pair<T> {
         return Pair { first: a, second: b }
     }
 
-    func first(&self) -> T {
+    func get_first(&self) -> T {
         return self.first
     }
 
-    func second(&self) -> T {
+    func get_second(&self) -> T {
         return self.second
     }
 }
@@ -32,14 +32,19 @@ struct Box<T> {
 }
 
 func main() -> i32 {
-    // 泛型结构体：i32 实例
-    var p = Pair<i32>.new(3, 7)
-    @assert(p.first() == 3, "7.4 generic struct: first")
-    @assert(p.second() == 7, "7.4 generic struct: second")
-    @assert(p.first() + p.second() == 10, "7.4 generic struct: sum")
+    // 泛型结构体：直接字段初始化和访问
+    var p = Pair { first: 3, second: 7 }
+    @assert(p.first == 3, "7.4 generic struct: first field")
+    @assert(p.second == 7, "7.4 generic struct: second field")
+    @assert(p.first + p.second == 10, "7.4 generic struct: sum")
 
-    // 直接字段访问
-    var b = Box<i32> { value: 42 }
+    // impl 方法调用
+    var p2 = Pair<i32>.new(10, 20)
+    @assert(p2.get_first() == 10, "7.4 generic struct: get_first")
+    @assert(p2.get_second() == 20, "7.4 generic struct: get_second")
+
+    // Box<T> 直接字段访问
+    var b = Box { value: 42 }
     @assert(b.value == 42, "7.4 generic struct: Box value")
 
     return 0

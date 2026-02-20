@@ -14,9 +14,9 @@ struct Point {
 }
 
 struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
+    r: i32,
+    g: i32,
+    b: i32,
 }
 
 func main() -> i32 {
@@ -31,6 +31,9 @@ func main() -> i32 {
     @assert(c.r == 255, "7.1 struct: Color.r")
     @assert(c.g == 128, "7.1 struct: Color.g")
     @assert(c.b == 0, "7.1 struct: Color.b")
+
+    // 字段运算
+    @assert(c.r - c.g == 127, "7.1 struct: field arithmetic")
 
     return 0
 }

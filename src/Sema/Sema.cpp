@@ -3021,16 +3021,25 @@ Type* Sema::analyzeBinaryExpr(BinaryExpr* expr) {
         }
 
         // orelse 运算符：用于可选类型的默认值
+        // 支持链式调用：a orelse b orelse c orelse 0
+        // 其中 a, b, c 都是 ?i32，0 是 i32
         case BinaryExpr::Op::OrElse: {
             if (!lhsValueType->isOptional()) {
                 reportInvalidOperands(op);
                 return nullptr;
             }
             Type* innerType = static_cast<OptionalType*>(lhsValueType)->getInnerType();
-            if (!innerType->isEqual(rhsValueType)) {
+            
+            // RHS 可以是内部类型（用于链的末尾）或者另一个相同内部类型的 Optional（用于链式调用）
+            bool rhsIsInnerType = innerType->isEqual(rhsValueType);
+            bool rhsIsSameOptional = rhsValueType->isOptional() && 
+                                     static_cast<OptionalType*>(rhsValueType)->getInnerType()->isEqual(innerType);
+            
+            if (!rhsIsInnerType && !rhsIsSameOptional) {
                 reportInvalidOperands(op);
                 return nullptr;
             }
+            
             return innerType;
         }
 
@@ -6170,6 +6179,44 @@ bool Sema::analyzePattern(Pattern* pattern, Type* expectedType) {
 
         case ASTNode::Kind::EnumPattern: {
             auto* enumPat = static_cast<EnumPattern*>(pattern);
+            
+            // Optional 类型作为枚举处理（Some/None 变体）
+            if (expectedBase->isOptional()) {
+                auto* optType = static_cast<OptionalType*>(expectedBase);
+                Type* innerType = optType->getInnerType();
+                const std::string& variantName = enumPat->getVariantName();
+                
+                if (variantName == "None") {
+                    // None 没有负载
+                    if (enumPat->hasPayload()) {
+                        Diag.report(DiagID::err_type_mismatch, enumPat->getBeginLoc(), enumPat->getRange())
+                            << "payload(0)"
+                            << ("payload(" + std::to_string(enumPat->getPayloadCount()) + ")");
+                        return false;
+                    }
+                    return true;
+                } else if (variantName == "Some") {
+                    // Some 有一个负载，类型为 Optional 的内部类型
+                    if (!enumPat->hasPayload()) {
+                        Diag.report(DiagID::err_type_mismatch, enumPat->getBeginLoc(), enumPat->getRange())
+                            << "payload(1)"
+                            << "payload(0)";
+                        return false;
+                    }
+                    if (enumPat->getPayloadCount() != 1) {
+                        Diag.report(DiagID::err_type_mismatch, enumPat->getBeginLoc(), enumPat->getRange())
+                            << "payload(1)"
+                            << ("payload(" + std::to_string(enumPat->getPayloadCount()) + ")");
+                        return false;
+                    }
+                    return analyzePattern(enumPat->getPayload()[0], innerType);
+                } else {
+                    Diag.report(DiagID::err_undeclared_identifier, enumPat->getBeginLoc(), enumPat->getRange())
+                        << variantName;
+                    return false;
+                }
+            }
+            
             // 检查期望类型是否为枚举
             if (!expectedBase->isEnum()) {
                 Diag.report(DiagID::err_type_mismatch, enumPat->getBeginLoc(), enumPat->getRange())

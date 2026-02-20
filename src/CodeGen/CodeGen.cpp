@@ -1603,16 +1603,25 @@ llvm::Type* CodeGen::convertRangeType(const Type* type) {
 
 llvm::Type* CodeGen::convertOptionalType(const Type* type) {
     auto* optType = static_cast<const OptionalType*>(type);
-    llvm::Type* innerType = getLLVMType(optType->getInnerType());
-    if (!innerType) {
+    Type* innerType = optType->getInnerType();
+    
+    // ?void 使用 i8 作为占位符类型
+    llvm::Type* llvmInnerType = nullptr;
+    if (innerType->isVoid()) {
+        llvmInnerType = llvm::Type::getInt8Ty(*Context);
+    } else {
+        llvmInnerType = getLLVMType(innerType);
+    }
+    
+    if (!llvmInnerType) {
         return nullptr;
     }
-    innerType = normalizeFirstClassType(innerType);
+    llvmInnerType = normalizeFirstClassType(llvmInnerType);
 
     // Optional represented as { i1 hasValue, T value }
     return llvm::StructType::get(
         llvm::Type::getInt1Ty(*Context),
-        innerType
+        llvmInnerType
     );
 }
 

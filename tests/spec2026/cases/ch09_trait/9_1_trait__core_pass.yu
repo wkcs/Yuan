@@ -6,12 +6,12 @@
 /// @phase: sema
 /// @diag_codes:
 /// @diag_keywords:
-// Trait 定义 — 抽象方法 + 带默认实现方法，验证 dispatch 返回值
+// Trait 定义 — 抽象方法 + 带默认实现方法（规范 9.1 明确支持）
 
 trait Measure {
     func size(&self) -> i32
 
-    // 默认实现：doubled size
+    // 默认实现（规范 9.1 定义的能力）
     func doubled(&self) -> i32 {
         return self.size() * 2
     }
@@ -24,6 +24,7 @@ impl Measure for Small {
     func size(&self) -> i32 {
         return 5
     }
+    // doubled() 使用默认实现
 }
 
 impl Measure for Large {
@@ -37,19 +38,25 @@ impl Measure for Large {
     }
 }
 
+func total_size<T: Measure>(v: &T) -> i32 {
+    return v.size()
+}
+
 func main() -> i32 {
     var s = Small {}
     var l = Large {}
 
-    // 抽象方法调用
+    // 抽象方法
     @assert(s.size() == 5, "9.1 trait: Small.size")
     @assert(l.size() == 100, "9.1 trait: Large.size")
 
-    // 默认方法实现
-    @assert(s.doubled() == 10, "9.1 trait: Small.doubled (default)")
+    // 默认方法（规范支持，编译器需实现 E3041）
+    @assert(s.doubled() == 10, "9.1 trait: Small.doubled uses default impl")
+    @assert(l.doubled() == 300, "9.1 trait: Large.doubled overrides default")
 
-    // 覆盖默认方法
-    @assert(l.doubled() == 300, "9.1 trait: Large.doubled (override)")
+    // 泛型函数 trait 约束
+    @assert(total_size(&s) == 5, "9.1 trait: generic constraint")
+    @assert(total_size(&l) == 100, "9.1 trait: generic constraint Large")
 
     return 0
 }

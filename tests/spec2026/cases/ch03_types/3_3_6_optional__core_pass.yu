@@ -6,9 +6,9 @@
 /// @phase: sema
 /// @diag_codes:
 /// @diag_keywords:
-// Optional 类型（?T） — orelse、is_some/is_none、match Some/None
+// Optional 类型（?T） — orelse、match Some/None（规范 3.3.6 定义语法）
 
-func try_parse(n: i32) -> ?i32 {
+func try_positive(n: i32) -> ?i32 {
     if n < 0 {
         return None
     }
@@ -21,27 +21,27 @@ func main() -> i32 {
     var none_val: ?i32 = None
     var r1: i32 = some_val orelse 0
     var r2: i32 = none_val orelse 99
-    @assert(r1 == 42, "3.3.6 optional: some orelse")
-    @assert(r2 == 99, "3.3.6 optional: none orelse")
+    @assert(r1 == 42, "3.3.6 optional: some orelse keeps value")
+    @assert(r2 == 99, "3.3.6 optional: none orelse uses default")
 
-    // match Some/None
+    // match Some(v) / None 模式（规范 3.3.6 明确支持）
     var out1: i32 = match some_val {
         Some(v) => v + 1,
         None => -1,
     }
-    @assert(out1 == 43, "3.3.6 optional: match Some")
+    @assert(out1 == 43, "3.3.6 optional: match Some binding")
 
     var out2: i32 = match none_val {
         Some(v) => v,
         None => 0,
     }
-    @assert(out2 == 0, "3.3.6 optional: match None")
+    @assert(out2 == 0, "3.3.6 optional: match None branch")
 
-    // 函数返回 Optional
-    var p1 = try_parse(5)
-    var p2 = try_parse(-1)
-    var v1: i32 = p1 orelse 0
-    var v2: i32 = p2 orelse -99
+    // 函数返回 Optional + match 处理
+    var p1 = try_positive(5)
+    var p2 = try_positive(-1)
+    var v1: i32 = match p1 { Some(n) => n, None => 0 }
+    var v2: i32 = match p2 { Some(n) => n, None => -99 }
     @assert(v1 == 50, "3.3.6 optional: func Some result")
     @assert(v2 == -99, "3.3.6 optional: func None result")
 

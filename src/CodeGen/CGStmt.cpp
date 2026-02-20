@@ -1993,13 +1993,34 @@ bool CodeGen::bindPattern(Pattern* pattern, llvm::Value* value, Type* valueType)
                 baseType = static_cast<GenericInstanceType*>(baseType)->getBaseType();
             }
 
+            auto* enumPat = static_cast<EnumPattern*>(pattern);
+            const std::string& variantName = enumPat->getVariantName();
+            
+            // Optional 类型作为枚举处理（Some/None 变体）
+            // Optional 表示为：{ i1 hasValue, T value }
+            if (baseType->isOptional()) {
+                auto* optType = static_cast<OptionalType*>(baseType);
+                Type* innerType = optType->getInnerType();
+                
+                if (variantName == "None") {
+                    // None 没有负载，只需要检查 hasValue 标志
+                    return true;
+                } else if (variantName == "Some") {
+                    // Some 有一个负载，类型为 Optional 的内部类型
+                    // 从 Optional 结构体中提取 value 字段
+                    llvm::Value* valueField = Builder->CreateExtractValue(baseValue, 1, "opt.value");
+                    return bindPattern(enumPat->getPayload()[0], valueField, innerType);
+                } else {
+                    return false;
+                }
+            }
+
             if (!baseType->isEnum()) {
                 return false;
             }
 
             auto* enumType = static_cast<EnumType*>(baseType);
-            auto* enumPat = static_cast<EnumPattern*>(pattern);
-            const EnumType::Variant* variant = enumType->getVariant(enumPat->getVariantName());
+            const EnumType::Variant* variant = enumType->getVariant(variantName);
             if (!variant) {
                 return false;
             }
@@ -2352,13 +2373,36 @@ llvm::Value* CodeGen::generatePatternCondition(Pattern* pattern, llvm::Value* va
             if (baseType->isGenericInstance()) {
                 baseType = static_cast<GenericInstanceType*>(baseType)->getBaseType();
             }
+            
+            auto* enumPat = static_cast<EnumPattern*>(pattern);
+            const std::string& variantName = enumPat->getVariantName();
+            
+            // Optional 类型作为枚举处理（Some/None 变体）
+            // Optional 表示为：{ i1 hasValue, T value }
+            if (baseType->isOptional()) {
+                llvm::Value* hasValue = Builder->CreateExtractValue(baseValue, 0, "opt.has");
+                
+                if (variantName == "None") {
+                    // None 匹配：hasValue 为 false
+                    return Builder->CreateNot(hasValue, "opt.none");
+                } else if (variantName == "Some") {
+                    // Some 匹配：hasValue 为 true
+                    return Builder->CreateICmpNE(
+                        hasValue,
+                        llvm::ConstantInt::get(hasValue->getType(), 0),
+                        "opt.some"
+                    );
+                } else {
+                    return nullptr;
+                }
+            }
+            
             if (!baseType->isEnum()) {
                 return nullptr;
             }
 
             auto* enumType = static_cast<EnumType*>(baseType);
-            auto* enumPat = static_cast<EnumPattern*>(pattern);
-            const EnumType::Variant* variant = enumType->getVariant(enumPat->getVariantName());
+            const EnumType::Variant* variant = enumType->getVariant(variantName);
             if (!variant) {
                 return nullptr;
             }

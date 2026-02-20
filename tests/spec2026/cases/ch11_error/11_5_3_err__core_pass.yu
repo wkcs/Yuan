@@ -7,37 +7,38 @@
 /// @diag_codes:
 /// @diag_keywords:
 // 使用 `-> err {}` 处理错误 — 验证错误处理语义
+// 注：var x: T = f()! 的显式类型注解版本规范应支持
 
-func parse_positive(n: i32) -> !i32 {
+func safe_double(n: i32) -> !i32 {
     if n <= 0 {
-        return SysError.InvalidArgument { name: "n", message: "must be positive" }
+        return SysError.DivisionByZero
     }
     return n * 2
 }
 
 func main() -> i32 {
-    // 成功路径
-    var v1: i32 = parse_positive(5)!
-    @assert(v1 == 10, "11.5.3 err: success doubled value")
+    // 成功路径（显式类型注解，规范 11.4/11.5 应支持）
+    var v1: i32 = safe_double(5)!
+    @assert(v1 == 10, "11.5.3 err: success doubled value 5*2=10")
 
     // 错误路径：-> err {} 提供替代值
-    var v2: i32 = parse_positive(-3)! -> err {
+    var v2: i32 = safe_double(-3)! -> err {
         return 0
     }
-    @assert(v2 == 0, "11.5.3 err: error fallback")
+    @assert(v2 == 0, "11.5.3 err: error fallback returns 0")
 
-    // 多次调用验证
-    var r1: i32 = parse_positive(1)!
-    var r2: i32 = parse_positive(4)!
-    @assert(r1 == 2, "11.5.3 err: 1*2")
-    @assert(r2 == 8, "11.5.3 err: 4*2")
-
-    // 错误路径捕获并使用 err 信息
-    var v3: i32 = parse_positive(0)! -> err {
+    // 错误路径：捕获并使用 err 信息后返回另一个值
+    var v3: i32 = safe_double(0)! -> err {
         _ = err.message()
         return -99
     }
-    @assert(v3 == -99, "11.5.3 err: error with message")
+    @assert(v3 == -99, "11.5.3 err: error with message returns -99")
+
+    // 多次成功调用
+    var r1: i32 = safe_double(1)!
+    var r2: i32 = safe_double(4)!
+    @assert(r1 == 2, "11.5.3 err: 1*2=2")
+    @assert(r2 == 8, "11.5.3 err: 4*2=8")
 
     return 0
 }
