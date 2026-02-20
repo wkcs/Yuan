@@ -4,10 +4,12 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// loop 循环
+/// @diag_codes:
+/// @diag_keywords:
+// loop 循环 — 验证基本循环、break 退出、loop 返回值
+
 func main() -> i32 {
+    // 基本 loop + break
     var i: i32 = 0
     var acc: i32 = 0
     loop {
@@ -17,7 +19,19 @@ func main() -> i32 {
             break
         }
     }
-    @assert(i == 3, "5.5 loop break target")
-    @assert(acc == 6, "5.5 loop accumulation")
-    return acc
+    @assert(i == 3, "5.5 loop: break target")
+    @assert(acc == 6, "5.5 loop: accumulation 1+2+3")
+
+    // loop 返回值（break with expr）
+    var count: i32 = 0
+    var result: i32 = loop {
+        count += 1
+        if count == 5 {
+            break count * 2
+        }
+    }
+    @assert(result == 10, "5.5 loop: break-with-value")
+    @assert(count == 5, "5.5 loop: count after break-value")
+
+    return 0
 }

@@ -4,21 +4,45 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// 可变引用参数（统一使用 `&mut T`）
-func bump(x: &mut i32) {
-    *x += 3
+/// @diag_codes:
+/// @diag_keywords:
+// 可变引用参数（&mut T）— 验证实际修改调用者变量
+
+func increment(v: &mut i32) {
+    v += 1
 }
 
-func scale(x: &mut i32) {
-    *x *= 2
+func swap(a: &mut i32, b: &mut i32) {
+    var tmp: i32 = a
+    a = b
+    b = tmp
+}
+
+func double_all(arr: &mut [i32; 3]) {
+    arr[0] *= 2
+    arr[1] *= 2
+    arr[2] *= 2
 }
 
 func main() -> i32 {
-    var v: i32 = 2
-    bump(&mut v)
-    scale(&mut v)
-    @assert(v == 10, "6.2.2 mutable reference parameter")
-    return v
+    // &mut i32 参数修改变量
+    var x: i32 = 10
+    increment(&mut x)
+    @assert(x == 11, "6.2.2 &mut: increment")
+
+    // 两个 &mut 参数 swap
+    var a: i32 = 3
+    var b: i32 = 7
+    swap(&mut a, &mut b)
+    @assert(a == 7, "6.2.2 &mut: swap a")
+    @assert(b == 3, "6.2.2 &mut: swap b")
+
+    // &mut 数组参数
+    var arr: [i32; 3] = [1, 2, 3]
+    double_all(&mut arr)
+    @assert(arr[0] == 2, "6.2.2 &mut arr: [0]")
+    @assert(arr[1] == 4, "6.2.2 &mut arr: [1]")
+    @assert(arr[2] == 6, "6.2.2 &mut arr: [2]")
+
+    return 0
 }

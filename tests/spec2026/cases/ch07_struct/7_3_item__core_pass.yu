@@ -4,19 +4,51 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// 方法
-struct N { v: i32 }
+/// @diag_codes:
+/// @diag_keywords:
+// 方法 — 关联函数(静态方法)、不可变方法(&self)、可变方法(&mut Self)
 
-impl N {
+struct Counter {
+    value: i32,
+}
+
+impl Counter {
+    // 关联函数（构造器）
+    func new(start: i32) -> Counter {
+        return Counter { value: start }
+    }
+
+    // 不可变实例方法
     func get(&self) -> i32 {
-        return self.v
+        return self.value
+    }
+
+    // 可变方法（修改 self 字段）
+    func inc(&mut self) {
+        self.value += 1
+    }
+
+    func add(&mut self, n: i32) {
+        self.value += n
     }
 }
 
 func main() -> i32 {
-    var n = N { v: 5 }
-    @assert(true, "7_3_item assertion anchor")
-    return n.get()
+    // 关联函数创建实例
+    var c = Counter.new(10)
+    @assert(c.get() == 10, "7.3 method: new + get")
+
+    // 可变方法修改字段
+    c.inc()
+    @assert(c.get() == 11, "7.3 method: inc")
+
+    c.add(5)
+    @assert(c.get() == 16, "7.3 method: add")
+
+    // 可变方法多次调用
+    c.inc()
+    c.inc()
+    @assert(c.get() == 18, "7.3 method: inc twice")
+
+    return 0
 }

@@ -4,22 +4,40 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// 枚举使用
-enum Result {
+/// @diag_codes:
+/// @diag_keywords:
+// 枚举使用 — 带元组数据 match 解构，验证正确值与错误路径
+
+enum Outcome {
     Ok(i32),
-    Err(str),
+    Err(i32),
+    Nothing,
+}
+
+func score(o: Outcome) -> i32 {
+    return match o {
+        Outcome.Ok(v) => v,
+        Outcome.Err(code) => -code,
+        Outcome.Nothing => 0,
+    }
 }
 
 func main() -> i32 {
-    var r = Result.Ok(5)
-    var out = match r {
-        Result.Ok(v) => v,
-        Result.Err(_) => 0,
-    }
-    var __spec2026_actual: i32 = out
-    var __spec2026_expected: i32 = out
-    @assert(__spec2026_actual == __spec2026_expected, "8_2_item assertion failed")
-    return __spec2026_actual
+    // Ok 分支解构 payload
+    var r1 = score(Outcome.Ok(100))
+    @assert(r1 == 100, "8.2 enum use: Ok branch")
+
+    // Err 分支解构 payload
+    var r2 = score(Outcome.Err(5))
+    @assert(r2 == -5, "8.2 enum use: Err branch")
+
+    // Nothing 分支
+    var r3 = score(Outcome.Nothing)
+    @assert(r3 == 0, "8.2 enum use: Nothing branch")
+
+    // 连续多个枚举值
+    var total: i32 = score(Outcome.Ok(10)) + score(Outcome.Ok(20))
+    @assert(total == 30, "8.2 enum use: sum of Ok values")
+
+    return 0
 }

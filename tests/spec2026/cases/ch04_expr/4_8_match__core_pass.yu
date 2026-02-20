@@ -4,19 +4,58 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// match 表达式
-enum E { A, B }
+/// @diag_codes:
+/// @diag_keywords:
+// match 表达式 — 字面量模式、通配符、守卫条件、多 pattern
+
+enum Shape { Circle, Square, Triangle }
+
+func describe(s: Shape) -> i32 {
+    return match s {
+        Shape.Circle => 1,
+        Shape.Square => 2,
+        Shape.Triangle => 3,
+    }
+}
+
+func sign(n: i32) -> i32 {
+    return match n {
+        n if n > 0 => 1,
+        n if n < 0 => -1,
+        _ => 0,
+    }
+}
+
+func small_or_large(n: i32) -> i32 {
+    return match n {
+        1 | 2 | 3 => 10,
+        _ => 20,
+    }
+}
 
 func main() -> i32 {
-    var e = E.A
-    var out = match e {
-        E.A => 1,
-        E.B => 2,
+    // 枚举变体模式
+    @assert(describe(Shape.Circle) == 1, "4.8 match: Circle")
+    @assert(describe(Shape.Square) == 2, "4.8 match: Square")
+    @assert(describe(Shape.Triangle) == 3, "4.8 match: Triangle")
+
+    // 守卫条件
+    @assert(sign(5) == 1, "4.8 match guard: positive")
+    @assert(sign(-3) == -1, "4.8 match guard: negative")
+    @assert(sign(0) == 0, "4.8 match guard: zero")
+
+    // 多 pattern（1 | 2 | 3）
+    @assert(small_or_large(2) == 10, "4.8 match multi-pat: small")
+    @assert(small_or_large(9) == 20, "4.8 match multi-pat: large")
+
+    // 字面量直接 match
+    var v: i32 = 42
+    var out: i32 = match v {
+        0 => -1,
+        42 => 100,
+        _ => 0,
     }
-    var __spec2026_actual: i32 = out
-    var __spec2026_expected: i32 = out
-    @assert(__spec2026_actual == __spec2026_expected, "4_8_match assertion failed")
-    return __spec2026_actual
+    @assert(out == 100, "4.8 match: literal 42")
+
+    return 0
 }

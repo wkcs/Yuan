@@ -4,20 +4,35 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// 可能返回错误的函数
-func open(flag: bool) -> !i32 {
-    if flag {
-        return SysError.PermissionDenied { path: "a" }
+/// @diag_codes:
+/// @diag_keywords:
+// 可能返回错误的函数 — 验证成功路径值和错误处理路径
+
+func safe_div(a: i32, b: i32) -> !i32 {
+    if b == 0 {
+        return SysError.DivisionByZero
     }
-    return 1
+    return a / b
 }
 
 func main() -> i32 {
-    var x = open(false)!
-    var __spec2026_actual: i32 = x
-    var __spec2026_expected: i32 = x
-    @assert(__spec2026_actual == __spec2026_expected, "11_4_item assertion failed")
-    return __spec2026_actual
+    // 成功路径：! 传播，验证返回值
+    var ok: i32 = safe_div(12, 3)!
+    @assert(ok == 4, "11.4 error func: success value")
+
+    // 错误路径：-> err {} 处理块
+    var fallback: i32 = safe_div(10, 0)! -> err {
+        _ = err.message()
+        return -1
+    }
+    @assert(fallback == -1, "11.4 error func: error branch")
+
+    // 两次成功调用
+    var r1: i32 = safe_div(20, 4)!
+    var r2: i32 = safe_div(9, 3)!
+    @assert(r1 == 5, "11.4 error func: 20/4")
+    @assert(r2 == 3, "11.4 error func: 9/3")
+    @assert(r1 + r2 == 8, "11.4 error func: sum")
+
+    return 0
 }

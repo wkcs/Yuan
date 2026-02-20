@@ -4,26 +4,52 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// Trait 定义
-trait Show {
-    func show(&self) -> str
+/// @diag_codes:
+/// @diag_keywords:
+// Trait 定义 — 抽象方法 + 带默认实现方法，验证 dispatch 返回值
+
+trait Measure {
+    func size(&self) -> i32
+
+    // 默认实现：doubled size
+    func doubled(&self) -> i32 {
+        return self.size() * 2
+    }
 }
 
-struct U {}
+struct Small {}
+struct Large {}
 
-impl Show for U {
-    func show(&self) -> str {
-        return "u"
+impl Measure for Small {
+    func size(&self) -> i32 {
+        return 5
+    }
+}
+
+impl Measure for Large {
+    func size(&self) -> i32 {
+        return 100
+    }
+
+    // 覆盖默认方法
+    func doubled(&self) -> i32 {
+        return self.size() * 3
     }
 }
 
 func main() -> i32 {
-    var u = U {}
-    _ = u.show()
-    var __spec2026_actual: i32 = 0
-    var __spec2026_expected: i32 = 0
-    @assert(__spec2026_actual == __spec2026_expected, "9_1_trait assertion failed")
-    return __spec2026_actual
+    var s = Small {}
+    var l = Large {}
+
+    // 抽象方法调用
+    @assert(s.size() == 5, "9.1 trait: Small.size")
+    @assert(l.size() == 100, "9.1 trait: Large.size")
+
+    // 默认方法实现
+    @assert(s.doubled() == 10, "9.1 trait: Small.doubled (default)")
+
+    // 覆盖默认方法
+    @assert(l.doubled() == 300, "9.1 trait: Large.doubled (override)")
+
+    return 0
 }

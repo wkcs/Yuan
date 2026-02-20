@@ -4,24 +4,46 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// Optional 类型
-const Vec = @import("std").collections.Vec
+/// @diag_codes:
+/// @diag_keywords:
+// Optional 类型（?T） — orelse、is_some/is_none、match Some/None
+
+func try_parse(n: i32) -> ?i32 {
+    if n < 0 {
+        return None
+    }
+    return n * 10
+}
 
 func main() -> i32 {
-    var arr: [i32; 4] = [1, 2, 3, 4]
-    var sl: &[i32] = &arr[1..3]
-    var tup: (i32, bool) = (7, true)
-    var opt: ?i32 = None
-    var fallback: i32 = opt orelse 9
-    var v: Vec<i32> = Vec.new()
-    v.push(5)
-    v.push(6)
-    @assert(sl[0] == 2, "3.3 slice")
-    @assert(tup.0 == 7, "3.3 tuple")
-    @assert(fallback == 9, "3.3 optional")
-    @assert(v.len() == 2u64, "3.3 vec")
-    v.free()
+    // ?T 赋值与 orelse 默认值
+    var some_val: ?i32 = 42
+    var none_val: ?i32 = None
+    var r1: i32 = some_val orelse 0
+    var r2: i32 = none_val orelse 99
+    @assert(r1 == 42, "3.3.6 optional: some orelse")
+    @assert(r2 == 99, "3.3.6 optional: none orelse")
+
+    // match Some/None
+    var out1: i32 = match some_val {
+        Some(v) => v + 1,
+        None => -1,
+    }
+    @assert(out1 == 43, "3.3.6 optional: match Some")
+
+    var out2: i32 = match none_val {
+        Some(v) => v,
+        None => 0,
+    }
+    @assert(out2 == 0, "3.3.6 optional: match None")
+
+    // 函数返回 Optional
+    var p1 = try_parse(5)
+    var p2 = try_parse(-1)
+    var v1: i32 = p1 orelse 0
+    var v2: i32 = p2 orelse -99
+    @assert(v1 == 50, "3.3.6 optional: func Some result")
+    @assert(v2 == -99, "3.3.6 optional: func None result")
+
     return 0
 }

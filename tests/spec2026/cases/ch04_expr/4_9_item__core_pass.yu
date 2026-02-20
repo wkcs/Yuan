@@ -4,13 +4,31 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// 闭包表达式
+/// @diag_codes:
+/// @diag_keywords:
+// 闭包表达式 — 验证返回值、捕获外部变量、高阶函数
+
+func apply(value: i32, f: func(i32) -> i32) -> i32 {
+    return f(value)
+}
+
 func main() -> i32 {
-    var f = func(x: i32) -> i32 {
-        return x + 1
-    }
-    @assert(true, "4_9_item assertion anchor")
-    return f(2)
+    // 基本闭包返回值
+    var double = func(x: i32) -> i32 { return x * 2 }
+    @assert(double(5) == 10, "4.9 closure: basic return")
+
+    // 捕获外部变量
+    var base: i32 = 7
+    var add_base = func(x: i32) -> i32 { return x + base }
+    @assert(add_base(3) == 10, "4.9 closure: capture var")
+
+    // 高阶函数
+    var r: i32 = apply(4, func(x: i32) -> i32 { return x * x })
+    @assert(r == 16, "4.9 closure: higher-order")
+
+    // 闭包链式调用
+    var inc = func(x: i32) -> i32 { return x + 1 }
+    @assert(inc(inc(inc(0))) == 3, "4.9 closure: chained calls")
+
+    return 0
 }

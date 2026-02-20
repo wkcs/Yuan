@@ -4,19 +4,48 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// 枚举定义
-enum Color {
-    Red,
-    Blue,
+/// @diag_codes:
+/// @diag_keywords:
+// 枚举定义 — 简单枚举、带元组数据枚举、match 解构 payload
+
+enum Direction {
+    North,
+    South,
+    East,
+    West,
+}
+
+enum Expr {
+    Num(i32),
+    Neg(i32),
+}
+
+func dir_to_code(d: Direction) -> i32 {
+    return match d {
+        Direction.North => 0,
+        Direction.South => 1,
+        Direction.East  => 2,
+        Direction.West  => 3,
+    }
+}
+
+func eval(e: Expr) -> i32 {
+    return match e {
+        Expr.Num(n) => n,
+        Expr.Neg(n) => -n,
+    }
 }
 
 func main() -> i32 {
-    var c = Color.Red
-    _ = c
-    var __spec2026_actual: i32 = 0
-    var __spec2026_expected: i32 = 0
-    @assert(__spec2026_actual == __spec2026_expected, "8_1_item assertion failed")
-    return __spec2026_actual
+    // 简单枚举 match
+    @assert(dir_to_code(Direction.North) == 0, "8.1 enum: North")
+    @assert(dir_to_code(Direction.South) == 1, "8.1 enum: South")
+    @assert(dir_to_code(Direction.East) == 2, "8.1 enum: East")
+    @assert(dir_to_code(Direction.West) == 3, "8.1 enum: West")
+
+    // 带数据枚举 match 解构 payload
+    @assert(eval(Expr.Num(42)) == 42, "8.1 enum data: Num payload")
+    @assert(eval(Expr.Neg(10)) == -10, "8.1 enum data: Neg payload")
+
+    return 0
 }

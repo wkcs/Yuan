@@ -4,14 +4,34 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// if 表达式
+/// @diag_codes:
+/// @diag_keywords:
+// if 表达式 — 验证 if/elif/else 各分支返回正确值
+
+func classify(x: i32) -> i32 {
+    if x > 0 {
+        return 1
+    } elif x < 0 {
+        return -1
+    } else {
+        return 0
+    }
+}
+
 func main() -> i32 {
-    var x: i32 = 5
-    var y: i32 = if x > 3 { 1 } else { 0 }
-    var __spec2026_actual: i32 = y
-    var __spec2026_expected: i32 = y
-    @assert(__spec2026_actual == __spec2026_expected, "4_7_if assertion failed")
-    return __spec2026_actual
+    // if 表达式返回值
+    var x: i32 = 10
+    var r1: i32 = if x > 5 { 1 } else { 0 }
+    @assert(r1 == 1, "4.7 if: x>5 branch")
+
+    var y: i32 = 2
+    var r2: i32 = if y > 5 { 1 } else { 0 }
+    @assert(r2 == 0, "4.7 if: else branch")
+
+    // if/elif/else 三分支
+    @assert(classify(5) == 1, "4.7 if: positive")
+    @assert(classify(-3) == -1, "4.7 if: negative")
+    @assert(classify(0) == 0, "4.7 if: zero")
+
+    return 0
 }

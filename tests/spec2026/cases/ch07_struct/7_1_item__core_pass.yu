@@ -4,18 +4,33 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// 结构体定义
+/// @diag_codes:
+/// @diag_keywords:
+// 结构体定义 — 普通字段、字段访问、结构体实例化
+
 struct Point {
     x: i32,
     y: i32,
 }
 
+struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+
 func main() -> i32 {
-    var p = Point { x: 1, y: 2 }
-    var __spec2026_actual: i32 = p.x + p.y
-    var __spec2026_expected: i32 = p.x + p.y
-    @assert(__spec2026_actual == __spec2026_expected, "7_1_item assertion failed")
-    return __spec2026_actual
+    // 基本结构体字段访问
+    var p = Point { x: 3, y: 4 }
+    @assert(p.x == 3, "7.1 struct: field x")
+    @assert(p.y == 4, "7.1 struct: field y")
+    @assert(p.x + p.y == 7, "7.1 struct: field sum")
+
+    // 多字段结构体
+    var c = Color { r: 255, g: 128, b: 0 }
+    @assert(c.r == 255, "7.1 struct: Color.r")
+    @assert(c.g == 128, "7.1 struct: Color.g")
+    @assert(c.b == 0, "7.1 struct: Color.b")
+
+    return 0
 }

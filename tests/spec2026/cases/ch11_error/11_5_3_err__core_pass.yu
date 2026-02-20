@@ -4,20 +4,40 @@
 /// @expect: pass
 /// @boundary: core
 /// @phase: sema
-/// @diag_codes: 
-/// @diag_keywords: 
-// 使用 `-> err {}` 处理错误
-func d(a: i32, b: i32) -> !i32 {
-    if b == 0 {
-        return SysError.DivisionByZero
+/// @diag_codes:
+/// @diag_keywords:
+// 使用 `-> err {}` 处理错误 — 验证错误处理语义
+
+func parse_positive(n: i32) -> !i32 {
+    if n <= 0 {
+        return SysError.InvalidArgument { name: "n", message: "must be positive" }
     }
-    return a / b
+    return n * 2
 }
 
 func main() -> i32 {
-    var x = d(10, 2)!
-    var __spec2026_actual: i32 = x
-    var __spec2026_expected: i32 = x
-    @assert(__spec2026_actual == __spec2026_expected, "11_5_3_err assertion failed")
-    return __spec2026_actual
+    // 成功路径
+    var v1: i32 = parse_positive(5)!
+    @assert(v1 == 10, "11.5.3 err: success doubled value")
+
+    // 错误路径：-> err {} 提供替代值
+    var v2: i32 = parse_positive(-3)! -> err {
+        return 0
+    }
+    @assert(v2 == 0, "11.5.3 err: error fallback")
+
+    // 多次调用验证
+    var r1: i32 = parse_positive(1)!
+    var r2: i32 = parse_positive(4)!
+    @assert(r1 == 2, "11.5.3 err: 1*2")
+    @assert(r2 == 8, "11.5.3 err: 4*2")
+
+    // 错误路径捕获并使用 err 信息
+    var v3: i32 = parse_positive(0)! -> err {
+        _ = err.message()
+        return -99
+    }
+    @assert(v3 == -99, "11.5.3 err: error with message")
+
+    return 0
 }
