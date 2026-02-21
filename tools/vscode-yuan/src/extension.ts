@@ -9,23 +9,20 @@ import {
 let client: LanguageClient;
 
 export function activate(context: vscode.ExtensionContext) {
-    // Determine the path to the yuan-lsp executable
-    // Typically it will be in the system PATH or configured via settings
     const config = vscode.workspace.getConfiguration('yuan');
     const serverPath = config.get<string>('languageServerPath') || 'yuan-lsp';
 
     const serverOptions: ServerOptions = {
-        run: { command: serverPath },
+        run:   { command: serverPath },
         debug: { command: serverPath }
     };
 
     const clientOptions: LanguageClientOptions = {
-        // Register the server for yuan documents
         documentSelector: [{ scheme: 'file', language: 'yuan' }],
         synchronize: {
-            // Notify the server about file changes to '.clientrc files contained in the workspace
-            fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc')
-        }
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.yu')
+        },
+        outputChannelName: 'Yuan Language Server',
     };
 
     client = new LanguageClient(
@@ -35,8 +32,12 @@ export function activate(context: vscode.ExtensionContext) {
         clientOptions
     );
 
-    // Start the client
-    client.start();
+    client.start().catch((err: Error) => {
+        vscode.window.showErrorMessage(
+            `Yuan Language Server failed to start: ${err.message}. ` +
+            `Check that yuan-lsp is in your PATH or set yuan.languageServerPath in settings.`
+        );
+    });
 }
 
 export function deactivate(): Thenable<void> | undefined {

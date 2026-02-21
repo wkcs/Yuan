@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <memory>
 #include <iostream>
+#include <vector>
 
 using json = nlohmann::json;
 
@@ -37,11 +38,25 @@ private:
     };
     std::unordered_map<std::string, DocumentInfo> Documents;
 
+    // Result of running the frontend pipeline on a document.
+    struct FrontendResult {
+        SourceManager SM;
+        SourceManager::FileID FID = SourceManager::InvalidFileID;
+        std::unique_ptr<ASTContext> Ctx;
+        std::unique_ptr<DiagnosticEngine> DiagEngine;
+        StoredDiagnosticConsumer* DiagConsumer = nullptr; // owned by DiagEngine
+        std::vector<Decl*> Decls;
+        std::unique_ptr<Sema> SemaInst;
+    };
+
+    /// Run Lexer -> Parser -> Sema on the given document content.
+    FrontendResult runFrontend(const std::string& uri, const std::string& content);
+
     void handleMessage(const json& msg);
     void handleRequest(const std::string& method, const json& params, const json& id);
     void handleNotification(const std::string& method, const json& params);
 
-    // Handlers
+    // Request handlers
     void onInitialize(const json& params, const json& id);
     void onInitialized(const json& params);
     void onShutdown(const json& id);
@@ -49,6 +64,10 @@ private:
     void onTextDocumentDidOpen(const json& params);
     void onTextDocumentDidChange(const json& params);
     void onTextDocumentDidClose(const json& params);
+    void onHover(const json& params, const json& id);
+    void onCompletion(const json& params, const json& id);
+    void onDefinition(const json& params, const json& id);
+    void onDocumentSymbol(const json& params, const json& id);
 
     // Helpers
     void reply(const json& id, const json& result);
@@ -57,6 +76,11 @@ private:
 
     // Diagnostics
     void validateDocument(const std::string& uri);
+
+    // Convert LSP 0-indexed position to byte offset in content.
+    // Returns SIZE_MAX if out of range.
+    static size_t positionToOffset(const std::string& content,
+                                   unsigned line, unsigned character);
 };
 
 } // namespace lsp
