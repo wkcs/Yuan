@@ -2,223 +2,152 @@
 
 ## 1. 模块定位
 
-CodeGen 负责把经过 Sema 标注的 AST 降低为 LLVM IR，覆盖：
+CodeGen（代码生成器）是编译器的后端前端，负责将经过 Sema 验证并附带了语义类型（`SemanticType`）的抽象语法树（AST）降低为 LLVM IR。它覆盖了以下核心职责：
 
-- 类型到 LLVM 类型的映射
-- 声明/语句/表达式的 IR 发射
-- 泛型函数按实参单态化（specialization）
-- 错误类型 `!T`、`defer`、控制流、模式匹配的后端语义
-- 目标文件生成与可执行链接（经 Driver 调用）
+- 将 Yuan 的语义类型映射为 LLVM 的原生类型体系（`llvm::Type`）。
+- 发射各种声明、语句和表达式的 LLVM IR 指令。
+- 处理泛型函数，根据调用点的实参类型进行单态化（Specialization / Monomorphization）。
+- 实现特定语言特性的底层语义，例如带错误的返回类型 `!T`、`defer` 延迟执行栈、控制流（包含多层 `break/continue`）以及模式匹配（`match`）。
+- （最终由 Driver 调用）将生成的 LLVM Module 转换为目标文件（`.o`）或汇编（`.s`），并链接可执行文件。
 
 核心实现文件：
-
 - `include/yuan/CodeGen/CodeGen.h`
-- `src/CodeGen/CodeGen.cpp`
-- `src/CodeGen/CGDecl.cpp`
-- `src/CodeGen/CGStmt.cpp`
-- `src/CodeGen/CGExpr.cpp`
+- `src/CodeGen/CodeGen.cpp` (整体管线与类型转换)
+- `src/CodeGen/CGDecl.cpp` (声明级 IR 生成)
+- `src/CodeGen/CGStmt.cpp` (语句级 IR 生成)
+- `src/CodeGen/CGExpr.cpp` (表达式级 IR 生成)
 
 ## 2. 核心状态与数据结构
 
-`CodeGen` 持有以下关键状态：
+`CodeGen` 实例在运行期间持有并维护以下关键状态：
 
-- `LLVMContext` / `Module` / `IRBuilder`
-- `TypeCache`：`Type* -> llvm::Type*`，避免重复构造类型
-- `ValueMap`：`Decl* -> llvm::Value*`，用于变量/函数/参数取址与取值
-- `CurrentFunction` / `CurrentFuncDecl`
-- `LoopStack`：记录 `continue`、`break` 目标块和循环标签
-- `DeferStack`：记录当前函数已注册的延迟执行语句
-- `GenericSubstStack`：泛型实参替换上下文
+- **LLVM 核心对象**：`llvm::LLVMContext`、`llvm::Module`、`llvm::IRBuilder<>`。
+- **TypeCache**：记录 `Type* -> llvm::Type*` 的映射，避免重复的类型转换计算。
+- **ValueMap**：记录 `Decl* -> llvm::Value*` 的映射，用于在处理变量、函数、参数时快速获取其内存地址（`alloca` 产生的指针）或直接值。
+- **当前函数上下文**：`CurrentFunction` (`llvm::Function*`) 和 `CurrentFuncDecl` (`FuncDecl*`)。
+- **LoopStack (循环栈)**：管理当前所处的各层循环。记录 `continue` 和 `break` 对应的目标基本块（BasicBlock）以及循环标签，用于支持带标签的循环跳转。
+- **DeferStack (延迟执行栈)**：记录当前函数在执行路径上已经注册的 `defer` 语句块。当发生函数返回或跨块跳转时，CodeGen 会根据此栈正确“回滚”并展开（Unroll）延迟代码。
+- **GenericSubstStack (泛型替换栈)**：在进行泛型函数特化时，压入具体的类型替换映射表（泛型参数 -> 具体 `Type*`）。
 
-## 3. 代码生成入口
+## 3. 代码生成入口与总体流程
 
-Driver 在语义分析成功后，对每个顶层声明调用 `generateDecl`。
+在 Sema 分析成功通过后，Driver 会对每个顶层声明调用 `CodeGen::generateDecl`。
 
-生成流程（简化）：
+总体生成流程如下：
+1. **声明分派**：`generateDecl` 根据 AST 节点的类型（使用 `node->getKind()` 分支）将任务分派给具体的 `generateVarDecl`, `generateConstDecl`, `generateFuncDecl`, `generateStructDecl` 等方法。
+2. **函数体生成**：进入 `generateFuncDecl` 时，创建 `llvm::Function`，开辟 Entry 基本块。对函数体内的语句通过 `generateStmt` 进行递归下降生成。
+3. **表达式生成**：所有的计算和右值获取通过 `generateExpr` 递归发射 LLVM 指令。左值（变量地址等）则通过专门的 `generateLValueAddress` 获取。
+4. **IR 验证**：在整个 Module 生成结束后，Driver 会调用 LLVM 提供的 `verifyModule` 检查生成的 IR 是否符合静态单赋值（SSA）形式和类型规则。
 
-1. `generateDecl` 分派到 `generateVarDecl/generateConstDecl/generateFuncDecl/...`
-2. 函数体内由 `generateStmt` 递归下降
-3. 表达式由 `generateExpr` 递归发射
-4. 生成结束后由 Driver 执行 `verifyModule`
+**注意**：CodeGen 假定传入的 AST 是在语义上绝对正确的。如果 IR 发射阶段遇到了未定义的符号或类型不一致的情况，CodeGen 会通过断言失败或直接返回 `nullptr`，不会再进行软性的错误恢复。
 
-注意：CodeGen 假设语义已通过；若 IR 发射遇到类型不一致，通常直接返回失败。
+## 4. 符号命名修饰与 ABI (Name Mangling)
 
-## 4. 符号命名与 ABI（实现级）
+为了避免符号冲突并支持泛型特化，CodeGen 必须对符号进行统一的命名修饰（Name Mangling）：
 
-CodeGen 通过 `getFunctionSymbolName/getGlobalSymbolName` 做统一命名修饰，目标是：
+- **普通符号**：结合模块路径、声明位置以及类型签名。
+- **泛型特化**：根据传入的实际类型实参，在函数名后缀追加特化标识。
+- **外部链接**：通过 `@link_name` 注解支持与 C ABI 或其他外部库的符号对齐。
 
-- 避免同名冲突（模块路径 + 声明位置 + 类型签名）
-- 支持泛型函数特化后缀
-- 在链接时稳定定位符号
+（详细命名规则参见未来的 `docs/CodeGen/NameMangling.md`）
 
-补充文档：`docs/CodeGen/NameMangling.md`。
+## 5. 类型降低 (Type -> LLVM Type)
 
-## 5. 类型降低（Type -> LLVM Type）
+`getLLVMType` 是类型降低的入口，调度一系列 `convert*Type` 方法：
 
-`getLLVMType` 调度 `convert*Type` 系列函数：
+- **标量类型**：`bool` -> `i1`，`char` -> `i32` (或特定大小)，`int` / `float` -> 对应位宽的 LLVM 整型/浮点型，`void` -> `llvm::Type::getVoidTy()`。
+- **复合类型**：`array` / `struct` / `tuple` 映射为 `llvm::StructType` 或 `llvm::ArrayType`。
+- **引用/指针**：统一降低为 `llvm::PointerType` (在不透明指针 Opaque Pointers 时代通常表现为 `ptr`)。
+- **函数类型**：降低为 `llvm::FunctionType`。当函数作为一等公民（First-class value）传递时，退化为函数指针。
+- **特殊结构**：Optional (`?T`)、Range、VarArgs 等在后端都有对应的标准化结构体内存布局。
 
-- 标量：`bool/char/int/float/void`
-- 复合：`array/slice/tuple/struct/enum`
-- 引用/指针：统一降低为指针语义
-- 函数类型：`llvm::FunctionType`（必要时作为一等值会退化为函数指针）
-- 错误类型：`ErrorType(!T)` 降低为结构体布局
-- Optional/Range/VarArgs/Value 等运行时结构类型
+### 5.1 错误类型 (`!T`) 的内存布局
 
-### 5.1 错误类型布局
+对于可能失败的类型 `!T`，Yuan 在底层的内存布局表现为一个结构体（Struct）：
+- 字段 0 (`tag`)：一个布尔标志，`0` 表示成功 (Ok)，`1` 表示错误 (Err)。
+- 字段 1 (`ok_value`)：成功时的值负载槽位（如果 `T` 是 `void`，则此槽位可能为空或被优化）。
+- 字段 2 (`err_ptr`)：指向实际错误信息（如 `SysError`）的指针。
 
-当前 `!T` 使用结构体布局（逻辑上）：
+这个布局是 `generateReturnStmt`、`generateErrorPropagateExpr` (`expr!`) 和 `generateErrorHandleExpr` (`expr -> err { ... }`) 协同工作的基础。
 
-- `tag`：是否错误
-- `ok`：成功值槽位
-- `err_ptr`：错误负载指针
-
-`generateReturnStmt`、`generateErrorPropagateExpr`、`generateErrorHandleExpr` 都依赖这一布局。
-
-## 6. 声明生成
+## 6. 声明生成细节
 
 ### 6.1 变量与常量
+- **局部变量**：在函数入口处的 Entry 块发射 `alloca` 指令分配栈内存，接着发射 `store` 将初始值存入，并将得到的 `AllocaInst` 存入 `ValueMap` 中。
+- **全局变量/常量**：映射为 `llvm::GlobalVariable`。Sema 阶段通常已保证常量的初始化表达式可以折叠为常量。
 
-- 局部变量：函数入口 `alloca`，`store` 初始化，`ValueMap` 记录地址
-- 全局变量/常量：`llvm::GlobalVariable`
-- 常量初始化要求可折叠为 LLVM 常量；否则回退零初始化（语义层通常已拦截）
+### 6.2 函数定义与 `main` 的特殊包装
+在 `generateFuncDecl` 中：
+- 构建 LLVM 函数签名。如果原函数是 `canError`，返回类型会被自动改写为上述的 `!T` 结构体类型。
+- 创建形参对应的 `alloca` 并 `store` 形参值，以统一后续的按地址访问。
+- **隐式尾返回支持**：如果函数的最后一条语句是表达式语句，且当前所在分支没有显式的返回指令，CodeGen 会自动插入一个 `ret` 指令将其作为返回值返回。
+- 对于 `void` 函数，若缺少 `return`，在末尾自动补全 `ret void`。
 
-### 6.2 函数定义与 `main` 包装
+**`main` 函数的特殊处理**：
+- 用户编写的 `func main()` 实际上在 LLVM 中会被重命名为 `yuan_main`。
+- CodeGen 会自动生成一个标准的 C ABI 入口点 `int main(int argc, char** argv)`，该包装函数负责初始化运行时环境、调用 `yuan_main`，并将返回值适配为 `i32` 给操作系统。
+- 若 `main` 是 `async` 的，包装函数会通过运行时入口 `yuan_async_run(yuan_main)` 启动事件循环。
 
-`generateFuncDecl` 关键行为：
+### 6.3 泛型函数特化 (Specialization)
+- 在定义阶段，带有泛型参数且未被实例化的函数模板**不会**生成 LLVM IR。
+- 当在表达式中遇到对该泛型函数的调用时，CodeGen 根据实参推导出具体的类型，调用 `getOrCreateSpecializedFunction`。
+- 该过程压入 `GenericSubstStack`，随后重新走一遍 `generateFuncDecl`，在生成过程中自动将所有类型参数替换为对应的真实类型。
 
-- 按语义类型构造 LLVM 函数签名
-- 若函数可报错（`canError`），返回类型自动包装为 `!T`
-- 参数统一先 `alloca` 再 `store`，后续按地址访问
-- 支持隐式尾返回：函数最后一条为表达式语句或可转换的 `match` 时自动 `return`
-- 对 `void` 函数自动补 `ret void`
+## 7. 语句生成细节
 
-`main` 特殊规则：
+### 7.1 Block 与 `defer` 机制
+- 每进入一个局部块（Block），记录当前的 `scopeDeferDepth`（延迟栈深度）。
+- 块正常结束时，按 LIFO（后进先出）顺序弹出并生成该深度范围内的 defer 语句的执行代码。
+- 若在块内发生提前终止（如 `return`, `break`, `continue`），在发射跳转指令前，必须先将 defer 栈安全“展开”，确保资源释放正确执行。
 
-- 用户 `func main()` 被重命名为 `yuan_main`
-- 自动生成 C ABI `int main(int argc, char** argv)` 包装函数
-- 包装函数调用 `yuan_main` 并将返回值折算为 `i32`
-- `async main` 通过 `yuan_async_run` 运行时入口执行
+### 7.2 控制流：`return`, `break`, `continue`
+- `while`, `loop`, `for` 语句会入栈 `LoopStack`，记录 `ContinueBlock`（下一轮迭代的目标）和 `BreakBlock`（跳出循环的目标）。
+- 当遇到 `break` 或 `continue`，且带有标签时，CodeGen 会从内向外查找对应的循环层级。在实际跳转（`br` 指令）之前，会插入所需展开的 defer 代码逻辑。
 
-### 6.3 泛型函数物化
+### 7.3 `match` 模式匹配
+- 发射被匹配的表达式的值（Scrutinee）。
+- 针对每个分支（Arm），串联出一系列的条件判断（如果是枚举则判断 Tag，如果是字面量则进行 `icmp`/`fcmp`），形成 BasicBlock 链。
+- 若条件满足，生成模式变量的绑定（如从 Enum 负载中提取数据并 `alloca`），随后执行 Body。最终所有成功分支汇聚到一个公共的 EndBlock。
 
-- 非特化上下文下，含泛型参数的函数体可跳过生成
-- 调用点通过实参推导映射后触发 `getOrCreateSpecializedFunction`
-- 特化时压栈 `GenericSubstStack`，对参数/返回值/内部类型做替换
+## 8. 表达式生成细节
 
-## 7. 语句生成
+### 8.1 左值地址生成 (`generateLValueAddress`)
+负责定位赋值或借用操作的目标内存地址。支持：
+- 标识符（从 `ValueMap` 中查询指针）。
+- 结构体/元组的成员访问（通过 `getelementptr` 指令）。
+- 数组或切片的索引访问（同样使用 `getelementptr`，并可能在此处插入越界检查）。
+- 指针解引用（直接返回指针值自身作为地址）。
 
-### 7.1 Block 与 `defer`
+### 8.2 调用表达式 (`generateCallExpr`)
+支持多种调用模式：
+- 普通直接调用和外部符号（C ABI）调用。
+- 隐式 `self` 的成员方法调用（在生成参数列表时，把左值地址或按值对象作为第一个参数压入）。
+- 模块级别的成员函数调用。
+- **内置魔法方法**：针对 `len()`、`iter()` 或是 `SysError.message()` 等标准库基础设施，CodeGen 会直接硬编码展开为特定的指令流（例如提取切片的长度字段），而不是作为真正的函数调用处理。
 
-- 进入块时记录 `scopeDeferDepth`
-- 块结束时按 LIFO 执行新增 defer
-- 终止块（`return/break/...`）提前退出，且保持 defer 栈正确回滚
+### 8.3 错误处理表达式 (`expr!` 与 `-> err`)
+- **`expr!` (错误传播)**：
+  - 提取 `!T` 结构体中的 `tag`。
+  - 生成 `if` 控制流。若为 `Ok`，提取 `ok_value` 供外层表达式使用。
+  - 若为 `Err`，并且当前函数本身也是 `canError`，则直接构造外层的 `!T` 结构体并通过 `ret` 指令向上返回；否则（例如在 `main` 内部但未使用 `try`），可能插入 `trap` 直接崩溃。
+- **`expr -> err { ... }` (错误捕获)**：
+  - 若为 `Err`，提取 `err_ptr`，在局部作用域内为 `err` 变量分配内存并赋值，随后跳转并执行错误处理闭包。
 
-### 7.2 Return
+## 9. 运行时耦合点 (Runtime Bridge)
 
-- `return` 之前执行当前函数 defer 栈
-- 普通函数：直接 `ret` 值/`ret void`
-- 错误返回函数：构造 `!T` 返回结构（成功路径/错误路径）
+CodeGen 严重依赖 `runtime/` 目录下的 C++ 实现提供核心能力。在生成 IR 时，它会主动声明并调用以下外部运行时符号：
+- **异步调度**：`yuan_async_run`, `yuan_await`。
+- **堆内存分配**：`malloc`, `free`（供内置类型如动态字符串或装箱对象使用）。
+- **字符串与 I/O**：特定的 `std` 级别内置函数底层实现。
 
-### 7.3 循环与跳转
+这些外部引用在链接阶段（Driver 层面）会通过将 `yuan_runtime.a`（或对应共享库）送入链接器来得到满足。
 
-`while/loop/for` 都会入栈 `LoopStack`，记录：
+## 10. 排错与调试建议
 
-- `ContinueBlock`
-- `BreakBlock`
-- 可选标签
-- 进入循环时的 defer 深度
-
-`break/continue`：
-
-- 支持标签解析（从内向外匹配）
-- 跳转前执行需要展开的 defer（从当前深度展开到目标循环入口深度）
-
-### 7.4 Match 语句
-
-- 先生成被匹配值
-- 为每个 arm 构造条件与绑定
-- 通过基本块链和终结块拼接控制流
-
-## 8. 表达式生成
-
-### 8.1 LValue 地址生成
-
-`generateLValueAddress` 支持：
-
-- 标识符
-- 成员访问
-- 索引
-- 解引用
-
-赋值时优先拿“原对象地址”，避免对临时值写入。
-
-### 8.2 调用表达式（重点）
-
-`generateCallExpr` 支持：
-
-- 普通函数调用
-- 成员方法调用（含隐式 `self` 注入）
-- 模块成员函数调用
-- 外部符号调用（`link_name` / 模块成员 `LinkName`）
-- 枚举变体构造调用
-- 可变参数与 spread 实参
-- 泛型调用点映射推导 + 特化
-
-并处理若干内建成员语义：
-
-- `len()`：字符串/切片/数组
-- `iter()`：可迭代对象
-- `SysError.message()/full_trace()` 的专门分支
-
-### 8.3 错误处理表达式
-
-- `expr!`：
-  - 解包 `!T`
-  - `Ok` 分支取成功值
-  - `Err` 分支在可传播函数中直接 `ret`，否则 `trap`
-- `expr -> err { ... }`：
-  - 分支化处理成功/失败路径
-  - 错误分支绑定错误变量并执行 handler
-
-### 8.4 其他表达式
-
-包括：
-
-- 二元/一元运算
-- `as` 转换（整数/浮点/指针互转与聚合回退路径）
-- `if`/`match` 表达式
-- 闭包表达式（当前以函数对象形式生成）
-- 数组/元组/结构体字面量
-- 索引与切片
-- 内置调用 `@...`
-
-## 9. 与运行时的耦合点
-
-CodeGen 依赖若干运行时符号：
-
-- 异步：`yuan_async_run`
-- 内存：必要时 `malloc`
-- 以及 runtime 库提供的 ABI 支持
-
-链接时由 Driver 将 `yuan_runtime` 注入链接命令。
-
-## 10. 失败模式与排查建议
-
-常见失败点：
-
-- `verifyModule` 失败：通常是类型不一致或基本块终止不完整
-- 调用生成失败：callee 未解析、泛型映射不完整、外部符号签名冲突
-- 错误类型发射失败：`!T` 结构布局与使用不一致
-
-建议：
-
-1. 先使用 `-fsyntax-only` 确认 Sema 干净
-2. 使用 `-S` 观察 `.ll`，定位失败前最后生成的函数
-3. 对比 `Decl` 的 `SemanticType` 与 `getLLVMType` 结果
-
-## 11. 当前实现边界
-
-- TypeChecker 独立模块仍是占位，类型检查集中在 `Sema.cpp`
-- 某些高级优化（如逃逸分析、借用分析）尚未引入
-- 泛型策略为“按需单态化”，并非全程序预先实例化
+如果编译在 CodeGen 阶段崩溃或产生非法 IR，常见原因包括：
+- `verifyModule` 失败：这意味着生成的指令违反了 LLVM 强类型系统的规定（比如 `store` 的值类型和指针类型不匹配），或是基本块（BasicBlock）缺少了终结指令（如 `br` 或 `ret`）。
+- **调试步骤**：
+  1. 使用 `./yuanc -fsyntax-only` 确保 Sema 没有隐藏的级联错误。
+  2. 使用 `./yuanc -S` 尝试输出 LLVM IR文本。即使生成失败，LLVM 往往也会输出引发崩溃前的部分 IR 函数，通过检查最后一个生成的函数即可锁定问题所在。
+  3. 检查特定 AST 节点的 `SemanticType` 与 CodeGen 调用 `getLLVMType` 所产生的结果是否完全对应。
 

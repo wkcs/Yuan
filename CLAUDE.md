@@ -2,65 +2,84 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 项目概览
+## 项目概览与架构
 
-Yuan 是一门基于 LLVM 的静态类型编译型语言，当前仓库包含：
+Yuan 是一门基于 LLVM 的静态类型编译型语言。其架构遵循传统的编译器管线：
 
-- 编译器前端：Lexer / Parser / Sema
-- 后端代码生成：CodeGen -> LLVM IR -> 目标文件/可执行文件
-- 运行时：文件系统、线程、时间、HTTP、流式输出等
-- 标准库与测试：`stdlib/`、`tests/`
+1. **前端 (Frontend)**:
+   - `Lexer`: 将源码解析为 Token 流。
+   - `Parser`: 构建抽象语法树 (AST)。
+   - `Sema` (语义分析): 构建符号表、解析类型、执行类型检查以及处理 Trait/Impl 验证。这是前端最复杂的部分。
+2. **后端 (Backend)**:
+   - `CodeGen`: 将经过验证的 AST 降低 (Lower) 为 LLVM IR。
+   - **Object/Link**: 将 IR 编译为目标文件并链接为可执行程序。
+3. **运行时与标准库**:
+   - `runtime/`: C++ 实现的底层接口，包括操作系统交互、文件 I/O、线程、时间、HTTP (基于 libcurl) 以及 GUI 适配器。
+   - `stdlib/`: 使用 Yuan 语言编写的标准库 (`.yu` 文件)。
 
-## 常用命令
+### 关键代码库结构
+
+- `include/yuan/<Module>/`: 公开的 C++ 头文件 (如 `AST`, `Sema`, `CodeGen`, `Driver`)。
+- `src/<Module>/`: 编译器的 C++ 核心实现。
+- `tools/yuanc/`: 命令行编译器的主入口 (`main.cpp` 负责编排编译管线)。
+- `tools/yuan-lsp/`: 语言服务器协议 (LSP) 的实现，用于提供 IDE 支持。
+- `tools/vscode-yuan/`: Yuan 的 VSCode 插件客户端。
+- `tests/`: 广泛的测试套件，使用 GoogleTest (C++ 单元测试) 和 lit 风格的语言行为测试。
+
+## 开发工作流
+
+### 构建命令
 
 ```bash
-# Debug 构建
+# 配置 Debug 构建环境
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 
-# 编译
+# 编译项目 (包含编译器、运行时、工具和测试)
 cmake --build build -j
+```
 
-# 运行全部测试
-ctest --test-dir build --output-on-failure
+### 运行编译器
 
-# 运行单个语法/语义检查
+编译器可执行文件生成在 `build/tools/yuanc/yuanc`。以下命令对调试语言特性非常有用：
+
+```bash
+# 仅运行语法和语义检查 (在 CodeGen 之前停止)
 ./build/tools/yuanc/yuanc -fsyntax-only examples/snake_demo.yu
 
-# 输出 Token / AST / Pretty
+# 检查编译的各个中间阶段
 ./build/tools/yuanc/yuanc --emit=tokens examples/snake_demo.yu
 ./build/tools/yuanc/yuanc --emit=ast examples/snake_demo.yu
 ./build/tools/yuanc/yuanc --emit=pretty examples/snake_demo.yu
+
+# 输出 LLVM IR
+./build/tools/yuanc/yuanc -S examples/snake_demo.yu
 ```
 
-## CMake 选项
+### 测试
 
-- `YUAN_BUILD_TESTS`：默认 `ON`，构建测试
-- `YUAN_BUILD_DOCS`：默认 `OFF`，构建文档
+测试由 CTest 管理。
 
-## 编译流程
+```bash
+# 运行完整的测试套件
+ctest --test-dir build --output-on-failure
 
-`源文件(.yu) -> Lexer -> Parser -> Sema -> CodeGen -> LLVM IR -> Object/Link`
+# 运行特定的测试套件或测试用例 (使用正则表达式过滤)
+ctest --test-dir build -R "SemaTest" --output-on-failure
+```
 
-## 目录约定
+### VSCode 插件开发
 
-- 头文件：`include/yuan/<模块>/`
-- 实现：`src/<模块>/`
-- 运行时：`runtime/`
-- 标准库：`stdlib/`
-- 测试：`tests/`
+```bash
+cd tools/vscode-yuan
+npm install
+npm run compile
+npx vsce package # 用于打包生成 .vsix 安装文件
+```
 
-## 近期实现重点（与文档同步）
+## 贡献指南与约定
 
-- `runtime/yuan_os.cpp`：基于 libcurl 的 HTTP GET/POST 扩展接口，支持 headers、timeout、stream。
-- OpenAI 兼容流式输出：SSE `data:` 行解析，支持 `delta.content` / `message.content` / `text` 的提取与回退。
-- `tests/yuan/stdlib/test_std_net_openai_chat.yu`：标准库 HTTP 的 OpenAI 兼容聊天示例。
-
-## 代码风格
-
-- C++ 使用 C++17。
-- 保持现有命名风格与目录组织。
-- 注释优先解释“为什么”，避免冗余描述。
-
-## 语言与沟通
-
-- 文档与协作默认使用中文。
+- **语言**: 文档、代码注释以及项目协作默认使用 **中文**。
+- **C++ 标准**: 采用 C++17。
+- **AST 节点**: 使用内部的 RTTI 系统 (`node->getKind()` 结合 `static_cast`，或 `Decl::classof()`)，不要使用 `dynamic_cast` 或 `llvm::dyn_cast` (后者仅保留给 LLVM IR 类型使用)。
+- **文档维护**: 若修改了语义规则、类型规则或 IR 降低规则，必须同步更新 `docs/` 和 `docs/spec/` 中的相应文档。
+- **测试要求**: 任何行为变更必须附带对 `tests/yuan/` 或 `tests/unit/` 中测试用例的更新。
