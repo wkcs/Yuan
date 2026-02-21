@@ -7,6 +7,7 @@
 #ifndef YUAN_SEMA_TYPE_H
 #define YUAN_SEMA_TYPE_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <memory>
