@@ -2,6 +2,7 @@
 
 add_executable(sema_tests
     TypeTest.cpp
+    TypeCheckerTest.cpp
     SymbolTableTest.cpp
     SymbolTablePropertyTest.cpp
     ModuleManagerTest.cpp

@@ -8,9 +8,9 @@ const io = std.io
 const println = std.io.println
 type String = std.string.String
 
-const DEFAULT_BASE_URL = "https://integrate.api.nvidia.com"
-const DEFAULT_MODEL = "moonshotai/kimi-k2.5"
-const DEFAULT_API_KEY = "nvapi-xxx"
+const DEFAULT_BASE_URL = "http://localhost:8317"
+const DEFAULT_MODEL = "Qwen3.5-397B-A17B"
+const DEFAULT_API_KEY = "sk-xxx"
 
 func byte_at(s: str, idx: usize) -> u8 {
     var p: *u8 = (s.ptr as usize + idx) as *u8

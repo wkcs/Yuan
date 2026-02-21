@@ -12,6 +12,7 @@
 #include "yuan/AST/Type.h"
 #include "yuan/AST/Pattern.h"
 #include "yuan/Sema/Type.h"
+#include "yuan/Sema/TypeChecker.h"
 #include "yuan/Basic/Diagnostic.h"
 #include "yuan/Basic/SourceManager.h"
 #include "yuan/Builtin/BuiltinRegistry.h"
@@ -26,15 +27,18 @@ namespace yuan {
 // ============================================================================
 
 Sema::Sema(ASTContext& ctx, DiagnosticEngine& diag)
-    : Ctx(ctx), Diag(diag), Symbols(ctx) {
+    : Ctx(ctx),
+      Diag(diag),
+      Symbols(ctx),
+      TypeCheckerImpl(std::make_unique<TypeChecker>(Symbols, Diag)) {
     // 符号表会自动注册内置类型
 
     // 初始化模块管理器
-    // 需要获取 SourceManager,通过 ASTContext
+    // 通过 ASTContext 获取 SourceManager
     SourceManager& sourceMgr = ctx.getSourceManager();
     ModuleMgr = std::make_unique<ModuleManager>(sourceMgr, diag, ctx, *this);
 
-    // 注册内置 Trait（Display/Debug）
+    // 注册内置特征（Display/Debug）
     registerBuiltinTraits();
 }
 
@@ -1881,7 +1885,7 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
         return false;
     }
 
-    // Handle generic params (explicit or inferred from target type)
+    // 处理泛型参数（显式提供或从目标类型推导）
     std::vector<GenericParam> genericParams = decl->getGenericParams();
     if (genericParams.empty()) {
         std::set<std::string> seen;
@@ -4683,7 +4687,7 @@ Type* Sema::analyzeCastExpr(CastExpr* expr) {
     }
 
     if (!validCast) {
-        // non-pointer-width integer -> pointer aligns with spec's type-mismatch bucket
+        // 非指针宽度整数到指针的转换按规范归类为类型不匹配
         if (exprType->isInteger() && targetType->isPointer()) {
             Diag.report(DiagID::err_type_mismatch, expr->getBeginLoc(), expr->getRange())
                 << targetType->toString()
@@ -5566,7 +5570,7 @@ Type* Sema::analyzeErrorPropagateExpr(ErrorPropagateExpr* expr) {
         return nullptr;
     }
 
-    // `expr!` requires current function to be error-returning (`-> !T`).
+    // `expr!` 要求当前函数可返回错误（`-> !T`）。
     Scope* funcScope = Symbols.getCurrentScope();
     while (funcScope && funcScope->getKind() != Scope::Kind::Function) {
         funcScope = funcScope->getParent();
@@ -5667,258 +5671,23 @@ Type* Sema::analyzeErrorHandleExpr(ErrorHandleExpr* expr) {
 // ============================================================================
 
 bool Sema::checkTypeCompatible(Type* expected, Type* actual, SourceLocation loc) {
-    return checkTypeCompatible(expected, actual, SourceRange(loc));
+    return TypeCheckerImpl && TypeCheckerImpl->checkTypeCompatible(expected, actual, loc);
 }
 
 bool Sema::checkTypeCompatible(Type* expected, Type* actual, SourceRange range) {
-    if (!expected || !actual) {
-        return false;
-    }
-
-    auto unwrapAliases = [](Type* type) -> Type* {
-        Type* current = type;
-        while (current && current->isTypeAlias()) {
-            current = static_cast<TypeAlias*>(current)->getAliasedType();
-        }
-        return current;
-    };
-
-    expected = unwrapAliases(expected);
-    actual = unwrapAliases(actual);
-    if (!expected || !actual) {
-        return false;
-    }
-
-    // 完全相同的类型
-    if (expected->isEqual(actual)) {
-        return true;
-    }
-
-    // 整数类型的隐式宽化兼容（避免基础数值类型检查过严）。
-    // 仅允许从窄位宽到宽位宽的提升；相同位宽不同符号位仍视为不兼容。
-    if (expected->isInteger() && actual->isInteger()) {
-        auto* expectedInt = static_cast<IntegerType*>(expected);
-        auto* actualInt = static_cast<IntegerType*>(actual);
-        if (expectedInt->getBitWidth() > actualInt->getBitWidth()) {
-            return true;
-        }
-    }
-
-    // 期望引用类型时，允许传入兼容的值类型（用于方法调用的隐式借用）。
-    if (expected->isReference() && !actual->isReference()) {
-        auto* expectedRef = static_cast<ReferenceType*>(expected);
-        Type* pointee = unwrapAliases(expectedRef->getPointeeType());
-        if (pointee && pointee->isEqual(actual)) {
-            return true;
-        }
-    }
-
-    // 泛型实例兼容：允许未推导出的类型参数在赋值上下文由期望类型约束
-    if (expected->isGenericInstance() && actual->isGenericInstance()) {
-        auto* expectedInst = static_cast<GenericInstanceType*>(expected);
-        auto* actualInst = static_cast<GenericInstanceType*>(actual);
-        if (expectedInst->getBaseType()->isEqual(actualInst->getBaseType()) &&
-            expectedInst->getTypeArgCount() == actualInst->getTypeArgCount()) {
-            for (size_t i = 0; i < expectedInst->getTypeArgCount(); ++i) {
-                Type* expectedArg = expectedInst->getTypeArg(i);
-                Type* actualArg = actualInst->getTypeArg(i);
-                if (actualArg && (actualArg->isGeneric() || actualArg->isTypeVar())) {
-                    continue;
-                }
-                if (!checkTypeCompatible(expectedArg, actualArg, range)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-
-    // 自动解引用：在需要值类型的位置允许传入引用类型。
-    if (!expected->isReference() && actual->isReference()) {
-        Type* pointee = static_cast<ReferenceType*>(actual)->getPointeeType();
-        return checkTypeCompatible(expected, pointee, range);
-    }
-
-    // Optional 类型可以接受 None
-    if (expected->isOptional() && actual->isOptional()) {
-        auto* expectedOpt = static_cast<OptionalType*>(expected);
-        auto* actualOpt = static_cast<OptionalType*>(actual);
-        // 如果 actual 是 ?void（None 的类型），则兼容
-        if (actualOpt->getInnerType()->isVoid()) {
-            return true;
-        }
-        // 检查内部类型是否兼容
-        return checkTypeCompatible(expectedOpt->getInnerType(), actualOpt->getInnerType(), range);
-    }
-
-    // 可以将非可选类型赋值给可选类型
-    if (expected->isOptional()) {
-        Type* innerType = static_cast<OptionalType*>(expected)->getInnerType();
-        if (innerType->isEqual(actual)) {
-            return true;
-        }
-    }
-
-    // 引用类型的兼容性
-    if (expected->isReference() && actual->isReference()) {
-        auto* expectedRef = static_cast<ReferenceType*>(expected);
-        auto* actualRef = static_cast<ReferenceType*>(actual);
-        // 可变引用可以赋值给不可变引用
-        if (!expectedRef->isMutable() && actualRef->isMutable()) {
-            return expectedRef->getPointeeType()->isEqual(actualRef->getPointeeType());
-        }
-    }
-
-    std::string expectedText = expected->toString();
-    std::string actualText = actual->toString();
-    if (expected->isTuple() || actual->isTuple()) {
-        expectedText = "tuple " + expectedText;
-        actualText = "tuple " + actualText;
-    }
-    Diag.report(DiagID::err_type_mismatch, range.getBegin(), range)
-        << expectedText
-        << actualText;
-    return false;
+    return TypeCheckerImpl && TypeCheckerImpl->checkTypeCompatible(expected, actual, range);
 }
 
 bool Sema::checkAssignable(Expr* target, SourceLocation loc) {
-    if (!target) {
-        return false;
-    }
-
-    // 检查表达式是否为左值
-    if (!target->isLValue()) {
-        Diag.report(DiagID::err_type_mismatch, loc, target->getRange())
-            << "assignment target"
-            << "<expression>";
-        return false;
-    }
-
-    // 可变参数索引不可赋值
-    if (auto* indexExpr = dynamic_cast<IndexExpr*>(target)) {
-        Type* baseType = indexExpr->getBase()->getType();
-        if (baseType && baseType->isVarArgs()) {
-            Diag.report(DiagID::err_cannot_assign_to_immutable, loc, target->getRange())
-                << "<varargs element>";
-            return false;
-        }
-    }
-
-    return true;
+    return TypeCheckerImpl && TypeCheckerImpl->checkAssignable(target, loc);
 }
 
 bool Sema::checkMutable(Expr* target, SourceLocation loc) {
-    if (!target) {
-        return false;
-    }
-
-    // 检查标识符表达式
-    if (auto* identExpr = dynamic_cast<IdentifierExpr*>(target)) {
-        Symbol* symbol = Symbols.lookup(identExpr->getName());
-        if (symbol && !symbol->isMutable()) {
-            // 区分常量和不可变变量
-            if (symbol->getKind() == SymbolKind::Constant) {
-                Diag.report(DiagID::err_cannot_assign_to_const, loc, target->getRange())
-                    << identExpr->getName();
-            } else {
-                Diag.report(DiagID::err_cannot_assign_to_immutable, loc, target->getRange())
-                    << identExpr->getName();
-            }
-            return false;
-        }
-    }
-
-    // 检查成员表达式
-    if (auto* memberExpr = dynamic_cast<MemberExpr*>(target)) {
-        // 递归检查基础表达式的可变性
-        return checkMutable(memberExpr->getBase(), loc);
-    }
-
-    // 检查索引表达式
-    if (auto* indexExpr = dynamic_cast<IndexExpr*>(target)) {
-        // 递归检查基础表达式的可变性
-        return checkMutable(indexExpr->getBase(), loc);
-    }
-
-    // 检查解引用表达式
-    if (auto* unaryExpr = dynamic_cast<UnaryExpr*>(target)) {
-        if (unaryExpr->getOp() == UnaryExpr::Op::Deref) {
-            Type* operandType = unaryExpr->getOperand()->getType();
-            if (operandType) {
-                if (operandType->isReference()) {
-                    if (!static_cast<ReferenceType*>(operandType)->isMutable()) {
-                        Diag.report(DiagID::err_cannot_assign_to_immutable, loc, target->getRange())
-                            << "<immutable reference>";
-                        return false;
-                    }
-                } else if (operandType->isPointer()) {
-                    if (!static_cast<PointerType*>(operandType)->isMutable()) {
-                        Diag.report(DiagID::err_cannot_assign_to_immutable, loc, target->getRange())
-                            << "<immutable pointer>";
-                        return false;
-                    }
-                }
-            }
-        }
-    }
-
-    return true;
+    return TypeCheckerImpl && TypeCheckerImpl->checkMutable(target, loc);
 }
 
 Type* Sema::getCommonType(Type* t1, Type* t2) {
-    if (!t1 || !t2) {
-        return nullptr;
-    }
-
-    // 如果类型相同，返回该类型
-    if (t1->isEqual(t2)) {
-        return t1;
-    }
-
-    // 数值类型的公共类型
-    if (t1->isNumeric() && t2->isNumeric()) {
-        // 如果一个是浮点一个是整数，返回浮点
-        if (t1->isFloat() && t2->isInteger()) {
-            return t1;
-        }
-        if (t2->isFloat() && t1->isInteger()) {
-            return t2;
-        }
-
-        // 两个浮点类型，返回较大的
-        if (t1->isFloat() && t2->isFloat()) {
-            auto* f1 = static_cast<FloatType*>(t1);
-            auto* f2 = static_cast<FloatType*>(t2);
-            return f1->getBitWidth() >= f2->getBitWidth() ? t1 : t2;
-        }
-
-        // 两个整数类型，返回较大的
-        if (t1->isInteger() && t2->isInteger()) {
-            auto* i1 = static_cast<IntegerType*>(t1);
-            auto* i2 = static_cast<IntegerType*>(t2);
-            // 如果符号不同，需要更大的类型
-            if (i1->isSigned() != i2->isSigned()) {
-                return nullptr; // 不兼容
-            }
-            return i1->getBitWidth() >= i2->getBitWidth() ? t1 : t2;
-        }
-    }
-
-    // Optional 类型的公共类型
-    if (t1->isOptional() && !t2->isOptional()) {
-        Type* inner = static_cast<OptionalType*>(t1)->getInnerType();
-        if (inner->isEqual(t2)) {
-            return t1;
-        }
-    }
-    if (t2->isOptional() && !t1->isOptional()) {
-        Type* inner = static_cast<OptionalType*>(t2)->getInnerType();
-        if (inner->isEqual(t1)) {
-            return t2;
-        }
-    }
-
-    return nullptr;
+    return TypeCheckerImpl ? TypeCheckerImpl->getCommonType(t1, t2) : nullptr;
 }
 
 // ============================================================================
@@ -5930,7 +5699,7 @@ bool Sema::analyzePattern(Pattern* pattern, Type* expectedType) {
         return false;
     }
 
-    // Match patterns against the value type, not the reference/pointer wrapper.
+    // 模式匹配基于值类型，而不是引用/指针外层包装类型。
     Type* matchType = expectedType;
     if (matchType) {
         if (matchType->isReference()) {
@@ -5959,7 +5728,7 @@ bool Sema::analyzePattern(Pattern* pattern, Type* expectedType) {
                 auto* enumType = static_cast<EnumType*>(expectedBase);
                 const EnumType::Variant* variant = enumType->getVariant(identPat->getName());
                 if (variant && variant->Data.empty()) {
-                    // Treat as enum variant pattern in enum-typed context.
+                    // 在枚举类型上下文中按枚举变体模式处理。
                     return true;
                 }
             }
@@ -5967,14 +5736,14 @@ bool Sema::analyzePattern(Pattern* pattern, Type* expectedType) {
             auto* symbol = new Symbol(SymbolKind::Variable, identPat->getName(), matchType, identPat->getBeginLoc(), Visibility::Private);
             symbol->setMutable(identPat->isMutable());
             
-            // 创建 VarDecl 并关联到符号和模式
-            // 注意：我们创建一个 VarDecl 但不将其添加到 ASTContext 的顶层声明中
+            // 创建变量声明并关联到符号和模式
+            // 注意：我们创建一个变量声明，但不将其添加到 ASTContext 的顶层声明中
             // 它是属于 ForStmt 或 MatchStmt 的局部声明
             auto* varDecl = new VarDecl(
                 identPat->getRange(),
                 identPat->getName(),
                 identPat->getType(),
-                nullptr, // 无初始化表达式（由模式绑定初始化）
+                nullptr, // 无初始化表达式（由模式绑定提供）
                 identPat->isMutable(),
                 Visibility::Private,
                 nullptr
@@ -5987,14 +5756,14 @@ bool Sema::analyzePattern(Pattern* pattern, Type* expectedType) {
 
             if (!Symbols.addSymbol(symbol)) {
                 delete symbol;
-                // 注意：varDecl 由 symbol 管理（如果 symbol 被删除），或者如果 symbol 不管理 decl，
-                // 则需要在这里手动删除 varDecl。
-                // 在当前的实现中，Symbol 并不拥有 Decl 的所有权（Decl 通常由 ASTContext 拥有），
-                // 但这里我们 new 出来的 VarDecl 如果不被 ASTContext 跟踪，可能会泄露。
-                // 理想情况下应该通过 ASTContext::createVarDecl 来创建，但目前没有这个接口。
+                // 注意：该变量声明由 symbol 管理（如果 symbol 被删除），或者如果 symbol 不管理 decl，
+                // 则需要在这里手动删除该变量声明。
+                // 在当前实现中，Symbol 并不拥有 Decl 的所有权（Decl 通常由 ASTContext 拥有），
+                // 但这里 new 出来的变量声明如果不被 ASTContext 跟踪，可能会泄露。
+                // 理想情况下应通过 ASTContext 的工厂方法创建，但目前没有对应接口。
                 // 暂时假设 Decl 的生命周期由 ASTContext 管理（如果注册的话）或者在这里泄露（如果在此处失败）。
-                // 为了简单起见，这里我们不手动 delete varDecl，因为它可能已经被部分引用。
-                // 实际项目中应该有统一的 AST 节点内存管理。
+                // 为了简化处理，这里不手动 delete 该变量声明，因为它可能已被部分引用。
+                // 实际项目中应有统一的 AST 节点内存管理策略。
                 
                 Diag.report(DiagID::err_redefinition, identPat->getBeginLoc(), identPat->getRange())
                     << identPat->getName();
@@ -7484,146 +7253,7 @@ Type* Sema::resolveGenericType(GenericTypeNode* node) {
 // ============================================================================
 
 bool Sema::evaluateConstExpr(Expr* expr, int64_t& result) {
-    if (!expr) {
-        return false;
-    }
-
-    switch (expr->getKind()) {
-        case ASTNode::Kind::IntegerLiteralExpr: {
-            auto* intLit = static_cast<IntegerLiteralExpr*>(expr);
-            result = intLit->getValue();
-            return true;
-        }
-
-        case ASTNode::Kind::BoolLiteralExpr: {
-            auto* boolLit = static_cast<BoolLiteralExpr*>(expr);
-            result = boolLit->getValue() ? 1 : 0;
-            return true;
-        }
-
-        case ASTNode::Kind::UnaryExpr: {
-            auto* unary = static_cast<UnaryExpr*>(expr);
-            int64_t operandValue;
-            if (!evaluateConstExpr(unary->getOperand(), operandValue)) {
-                return false;
-            }
-
-            switch (unary->getOp()) {
-                case UnaryExpr::Op::Neg:
-                    result = -operandValue;
-                    return true;
-                case UnaryExpr::Op::Not:
-                    result = !operandValue;
-                    return true;
-                case UnaryExpr::Op::BitNot:
-                    result = ~operandValue;
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        case ASTNode::Kind::BinaryExpr: {
-            auto* binary = static_cast<BinaryExpr*>(expr);
-            int64_t leftValue, rightValue;
-
-            if (!evaluateConstExpr(binary->getLHS(), leftValue)) {
-                return false;
-            }
-            if (!evaluateConstExpr(binary->getRHS(), rightValue)) {
-                return false;
-            }
-
-            switch (binary->getOp()) {
-                case BinaryExpr::Op::Add:
-                    result = leftValue + rightValue;
-                    return true;
-                case BinaryExpr::Op::Sub:
-                    result = leftValue - rightValue;
-                    return true;
-                case BinaryExpr::Op::Mul:
-                    result = leftValue * rightValue;
-                    return true;
-                case BinaryExpr::Op::Div:
-                    if (rightValue == 0) {
-                        reportError(DiagID::err_unexpected_token, binary->getRHS()->getBeginLoc());
-                        return false;
-                    }
-                    result = leftValue / rightValue;
-                    return true;
-                case BinaryExpr::Op::Mod:
-                    if (rightValue == 0) {
-                        reportError(DiagID::err_unexpected_token, binary->getRHS()->getBeginLoc());
-                        return false;
-                    }
-                    result = leftValue % rightValue;
-                    return true;
-                case BinaryExpr::Op::BitAnd:
-                    result = leftValue & rightValue;
-                    return true;
-                case BinaryExpr::Op::BitOr:
-                    result = leftValue | rightValue;
-                    return true;
-                case BinaryExpr::Op::BitXor:
-                    result = leftValue ^ rightValue;
-                    return true;
-                case BinaryExpr::Op::Shl:
-                    result = leftValue << rightValue;
-                    return true;
-                case BinaryExpr::Op::Shr:
-                    result = leftValue >> rightValue;
-                    return true;
-                case BinaryExpr::Op::Eq:
-                    result = leftValue == rightValue ? 1 : 0;
-                    return true;
-                case BinaryExpr::Op::Ne:
-                    result = leftValue != rightValue ? 1 : 0;
-                    return true;
-                case BinaryExpr::Op::Lt:
-                    result = leftValue < rightValue ? 1 : 0;
-                    return true;
-                case BinaryExpr::Op::Le:
-                    result = leftValue <= rightValue ? 1 : 0;
-                    return true;
-                case BinaryExpr::Op::Gt:
-                    result = leftValue > rightValue ? 1 : 0;
-                    return true;
-                case BinaryExpr::Op::Ge:
-                    result = leftValue >= rightValue ? 1 : 0;
-                    return true;
-                case BinaryExpr::Op::And:
-                    result = leftValue && rightValue ? 1 : 0;
-                    return true;
-                case BinaryExpr::Op::Or:
-                    result = leftValue || rightValue ? 1 : 0;
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        case ASTNode::Kind::IdentifierExpr: {
-            // 查找常量定义
-            auto* ident = static_cast<IdentifierExpr*>(expr);
-            Symbol* sym = Symbols.lookup(ident->getName());
-            if (!sym || sym->getKind() != SymbolKind::Constant) {
-                return false;
-            }
-
-            // 获取常量声明
-            Decl* decl = sym->getDecl();
-            if (!decl || decl->getKind() != ASTNode::Kind::ConstDecl) {
-                return false;
-            }
-
-            auto* constDecl = static_cast<ConstDecl*>(decl);
-            return evaluateConstExpr(constDecl->getInit(), result);
-        }
-
-        default:
-            // 其他表达式类型不支持常量求值
-            return false;
-    }
+    return TypeCheckerImpl && TypeCheckerImpl->evaluateConstExpr(expr, result);
 }
 
 } // namespace yuan

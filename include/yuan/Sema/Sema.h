@@ -23,6 +23,7 @@ namespace yuan {
 class ASTContext;
 class DiagnosticEngine;
 class SourceManager;
+class TypeChecker;
 class Type;
 class EnumType;
 class Decl;
@@ -219,6 +220,7 @@ private:
     ASTContext& Ctx;                ///< AST 上下文
     DiagnosticEngine& Diag;         ///< 诊断引擎
     SymbolTable Symbols;            ///< 符号表
+    std::unique_ptr<TypeChecker> TypeCheckerImpl; ///< 类型检查器
     std::unique_ptr<ModuleManager> ModuleMgr;  ///< 模块管理器
     std::vector<std::string> ImportChain;      ///< 导入链（用于检测循环导入）
     std::unordered_map<const Type*, std::unordered_set<std::string>> ImplTraitMap;
