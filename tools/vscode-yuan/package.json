@@ -10,8 +10,25 @@
     "url": "https://github.com/yuan-lang/yuan.git",
     "directory": "tools/vscode-yuan"
   },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:yuan"
+  ],
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.109.0"
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile"
+  },
+  "overrides": {
+    "undici": "5.28.4",
+    "cheerio": "1.0.0-rc.12"
   },
   "categories": [
     "Programming Languages"
@@ -22,6 +39,17 @@
     "language"
   ],
   "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Yuan Language Server",
+      "properties": {
+        "yuan.languageServerPath": {
+          "type": "string",
+          "default": "yuan-lsp",
+          "description": "Path to the yuan-lsp executable. If not in PATH, provide the absolute path."
+        }
+      }
+    },
     "languages": [
       {
         "id": "yuan",
@@ -48,5 +76,17 @@
         "path": "./snippets/yuan.code-snippets"
       }
     ]
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "@types/vscode": "^1.109.0",
+    "@vscode/vsce": "^3.7.1",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
+    "webpack": "^5.105.2",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
   }
 }

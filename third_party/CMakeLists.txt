@@ -120,3 +120,9 @@ endif()
 
 string(JOIN " " _YUAN_RUNTIME_LINK_FLAGS ${_YUAN_RUNTIME_LINK_FLAG_ITEMS})
 set(YUAN_RUNTIME_LINK_FLAGS "${_YUAN_RUNTIME_LINK_FLAGS}" CACHE INTERNAL "Runtime link flags")
+
+# nlohmann_json (Header-only)
+add_library(yuan_third_party_json INTERFACE)
+target_include_directories(yuan_third_party_json INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nlohmann_json/include>
+)
