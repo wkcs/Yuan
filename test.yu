@@ -1,0 +1,9 @@
+const std = @import("std")
+const println = std.io.println
+
+func main() {
+    const add = func<T> (a: T, b: T) -> T { a + b }
+    println("1 + 2 = {}", add(1, 2))
+    var num: ?i32 = None
+    println(@typeof(num))
+}

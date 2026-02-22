@@ -2240,11 +2240,13 @@ llvm::Value* CodeGen::generateCallExpr(CallExpr* expr) {
             while (callBaseType && callBaseType->isPointer()) {
                 callBaseType = static_cast<PointerType*>(callBaseType)->getPointeeType();
             }
-            if (callBaseType && callBaseType->isGenericInstance()) {
-                callBaseType = static_cast<GenericInstanceType*>(callBaseType)->getBaseType();
-            }
             if (callBaseType && (!resolvedFunc->hasBody() || !resolvedFunc->getSemanticType())) {
-                if (FuncDecl* implMethod = Ctx.getImplMethod(callBaseType, memberExpr->getMember())) {
+                FuncDecl* implMethod = Ctx.getImplMethod(callBaseType, memberExpr->getMember());
+                if (!implMethod && callBaseType->isGenericInstance()) {
+                    auto* genInst = static_cast<GenericInstanceType*>(callBaseType);
+                    implMethod = Ctx.getImplMethod(genInst->getBaseType(), memberExpr->getMember());
+                }
+                if (implMethod) {
                     funcDecl = implMethod;
                 }
             }
@@ -2275,20 +2277,69 @@ llvm::Value* CodeGen::generateCallExpr(CallExpr* expr) {
     }
 
     // Enum variant constructor calls (Enum.Variant(...) or Variant(...))
-    auto buildEnumValue = [&](EnumType* enumType,
+    auto buildEnumValue = [&](Type* enumSemanticType,
+                              EnumType* enumBaseType,
                               const EnumType::Variant* variant,
                               const std::vector<Expr*>& args) -> llvm::Value* {
-        if (!enumType || !variant) {
+        if (!enumSemanticType || !enumBaseType || !variant) {
             return nullptr;
         }
 
-        llvm::Type* enumLLVMType = getLLVMType(enumType);
+        llvm::Type* enumLLVMType = getLLVMType(enumSemanticType);
         if (!enumLLVMType || !enumLLVMType->isStructTy()) {
             return nullptr;
         }
+        auto* enumStructTy = llvm::dyn_cast<llvm::StructType>(enumLLVMType);
+        if (!enumStructTy) {
+            return nullptr;
+        }
+
+        GenericSubst enumMapping;
+        if (enumSemanticType->isGenericInstance()) {
+            auto* enumInst = static_cast<GenericInstanceType*>(enumSemanticType);
+            Type* enumBase = enumInst->getBaseType();
+            if (enumBase == enumBaseType) {
+                auto it = EnumGenericParams.find(enumBaseType);
+                if (it == EnumGenericParams.end()) {
+                    for (const auto& entry : EnumGenericParams) {
+                        if (entry.first && entry.first->getName() == enumBaseType->getName()) {
+                            it = EnumGenericParams.find(entry.first);
+                            break;
+                        }
+                    }
+                }
+                if (it != EnumGenericParams.end() && it->second.size() == enumInst->getTypeArgCount()) {
+                    for (size_t i = 0; i < it->second.size(); ++i) {
+                        enumMapping[it->second[i]] = enumInst->getTypeArg(i);
+                    }
+                }
+            }
+        }
+
+        struct ScopedSubstPush {
+            std::vector<GenericSubst>& Stack;
+            bool Active = false;
+            ScopedSubstPush(std::vector<GenericSubst>& stack, GenericSubst mapping)
+                : Stack(stack) {
+                if (!mapping.empty()) {
+                    Stack.push_back(std::move(mapping));
+                    Active = true;
+                }
+            }
+            ~ScopedSubstPush() {
+                if (Active) {
+                    Stack.pop_back();
+                }
+            }
+        };
+        ScopedSubstPush enumSubst(GenericSubstStack, std::move(enumMapping));
 
         llvm::Type* i8PtrTy = llvm::PointerType::get(llvm::Type::getInt8Ty(*Context), 0);
-        llvm::Value* enumValue = llvm::UndefValue::get(enumLLVMType);
+        if (enumStructTy->isOpaque()) {
+            enumStructTy->setBody({llvm::Type::getInt32Ty(*Context), i8PtrTy});
+        }
+
+        llvm::Value* enumValue = llvm::UndefValue::get(enumStructTy);
         llvm::Value* tagVal = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context),
                                                      static_cast<uint64_t>(variant->Tag));
         enumValue = Builder->CreateInsertValue(enumValue, tagVal, 0, "enum.tag");
@@ -2399,16 +2450,18 @@ llvm::Value* CodeGen::generateCallExpr(CallExpr* expr) {
     if (auto* identCallee = dynamic_cast<IdentifierExpr*>(callee)) {
         if (Decl* resolved = identCallee->getResolvedDecl()) {
             if (resolved->getKind() == ASTNode::Kind::EnumVariantDecl) {
-                Type* enumType = identCallee->getType();
-                if (enumType && enumType->isGenericInstance()) {
-                    enumType = static_cast<GenericInstanceType*>(enumType)->getBaseType();
+                Type* enumSemanticType = expr->getType() ? expr->getType() : identCallee->getType();
+                Type* enumBaseType = enumSemanticType;
+                if (enumBaseType && enumBaseType->isGenericInstance()) {
+                    enumBaseType = static_cast<GenericInstanceType*>(enumBaseType)->getBaseType();
                 }
-                if (enumType && enumType->isEnum()) {
-                    const auto* variant = static_cast<EnumType*>(enumType)->getVariant(identCallee->getName());
+                if (enumBaseType && enumBaseType->isEnum()) {
+                    auto* enumBase = static_cast<EnumType*>(enumBaseType);
+                    const auto* variant = enumBase->getVariant(identCallee->getName());
                     if (hasSpreadArg) {
                         return nullptr;
                     }
-                    return buildEnumValue(static_cast<EnumType*>(enumType), variant, plainArgs);
+                    return buildEnumValue(enumSemanticType, enumBase, variant, plainArgs);
                 }
             }
         }
@@ -2424,16 +2477,18 @@ llvm::Value* CodeGen::generateCallExpr(CallExpr* expr) {
             }
         }
         if (baseIsType) {
-            Type* enumType = memberExpr->getBase()->getType();
-            if (enumType && enumType->isGenericInstance()) {
-                enumType = static_cast<GenericInstanceType*>(enumType)->getBaseType();
+            Type* enumSemanticType = expr->getType() ? expr->getType() : memberExpr->getBase()->getType();
+            Type* enumBaseType = enumSemanticType;
+            if (enumBaseType && enumBaseType->isGenericInstance()) {
+                enumBaseType = static_cast<GenericInstanceType*>(enumBaseType)->getBaseType();
             }
-            if (enumType && enumType->isEnum()) {
-                const auto* variant = static_cast<EnumType*>(enumType)->getVariant(memberExpr->getMember());
+            if (enumBaseType && enumBaseType->isEnum()) {
+                auto* enumBase = static_cast<EnumType*>(enumBaseType);
+                const auto* variant = enumBase->getVariant(memberExpr->getMember());
                 if (hasSpreadArg) {
                     return nullptr;
                 }
-                return buildEnumValue(static_cast<EnumType*>(enumType), variant, plainArgs);
+                return buildEnumValue(enumSemanticType, enumBase, variant, plainArgs);
             }
         }
     }

@@ -16,6 +16,7 @@
 #include "yuan/Basic/Diagnostic.h"
 #include "yuan/Basic/SourceManager.h"
 #include "yuan/Builtin/BuiltinRegistry.h"
+#include <cstdint>
 #include <functional>
 #include <set>
 #include <iostream>
@@ -1762,6 +1763,14 @@ bool Sema::analyzeTraitDecl(TraitDecl* decl) {
 
     // 进入 Trait 作用域
     Symbols.enterScope(Scope::Kind::Trait);
+    bool enteredTraitGenerics = false;
+    if (decl->isGeneric()) {
+        if (!enterGenericParamScope(decl->getGenericParams())) {
+            Symbols.exitScope();
+            return false;
+        }
+        enteredTraitGenerics = true;
+    }
 
     bool success = true;
 
@@ -1797,6 +1806,15 @@ bool Sema::analyzeTraitDecl(TraitDecl* decl) {
 
     // 分析方法声明
     for (FuncDecl* method : decl->getMethods()) {
+        bool enteredMethodGenerics = false;
+        if (method->isGeneric()) {
+            if (!enterGenericParamScope(method->getGenericParams())) {
+                success = false;
+                continue;
+            }
+            enteredMethodGenerics = true;
+        }
+
         // Trait 方法不能有函数体（除非是默认实现）
         if (method->hasBody()) {
             Diag.report(DiagID::err_default_trait_method_not_supported,
@@ -1807,6 +1825,7 @@ bool Sema::analyzeTraitDecl(TraitDecl* decl) {
 
         // 解析方法参数类型
         std::vector<Type*> paramTypes;
+        bool methodTypeOK = true;
         for (ParamDecl* param : method->getParams()) {
             Type* paramType = nullptr;
 
@@ -1830,11 +1849,13 @@ bool Sema::analyzeTraitDecl(TraitDecl* decl) {
                 if (!param->getType()) {
                     reportError(DiagID::err_expected_type, param->getBeginLoc());
                     success = false;
+                    methodTypeOK = false;
                     continue;
                 }
                 paramType = resolveType(param->getType());
                 if (!paramType) {
                     success = false;
+                    methodTypeOK = false;
                     continue;
                 }
             }
@@ -1848,8 +1869,15 @@ bool Sema::analyzeTraitDecl(TraitDecl* decl) {
             returnType = resolveType(method->getReturnType());
             if (!returnType) {
                 success = false;
-                continue;
+                methodTypeOK = false;
             }
+        }
+
+        if (!methodTypeOK) {
+            if (enteredMethodGenerics) {
+                exitGenericParamScope();
+            }
+            continue;
         }
 
         // 创建方法类型
@@ -1860,7 +1888,7 @@ bool Sema::analyzeTraitDecl(TraitDecl* decl) {
         const std::vector<Type*>& paramTypesFromFunc = methodFuncType->getParamTypes();
 
         // 设置参数的语义类型
-        for (size_t i = 0; i < method->getParams().size(); ++i) {
+        for (size_t i = 0; i < method->getParams().size() && i < paramTypesFromFunc.size(); ++i) {
             method->getParams()[i]->setSemanticType(paramTypesFromFunc[i]);
         }
         // 创建方法符号并添加到 Trait 作用域
@@ -1872,6 +1900,14 @@ bool Sema::analyzeTraitDecl(TraitDecl* decl) {
             delete methodSymbol;
             success = false;
         }
+
+        if (enteredMethodGenerics) {
+            exitGenericParamScope();
+        }
+    }
+
+    if (enteredTraitGenerics) {
+        exitGenericParamScope();
     }
 
     // 退出 Trait 作用域
@@ -1968,6 +2004,9 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
         };
 
         collect(decl->getTargetType());
+        if (decl->isTraitImpl() && decl->getTraitRefType()) {
+            collect(decl->getTraitRefType());
+        }
         if (!genericParams.empty()) {
             decl->setGenericParams(genericParams);
         }
@@ -1993,6 +2032,7 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
 
     TraitDecl* traitDecl = nullptr;
     Type* traitType = nullptr;
+    Type* traitPattern = nullptr;
 
     // 如果是 Trait 实现，查找 Trait 声明
     if (decl->isTraitImpl()) {
@@ -2016,13 +2056,63 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
 
         traitDecl = static_cast<TraitDecl*>(traitSymbol->getDecl());
         traitType = traitSymbol->getType();
+        traitPattern = traitType;
+
+        if (traitDecl && !traitDecl->isGeneric() && decl->hasTraitTypeArgs()) {
+            Diag.report(DiagID::err_generic_param_count_mismatch, decl->getBeginLoc(), decl->getRange())
+                << 0u
+                << static_cast<unsigned>(decl->getTraitTypeArgs().size());
+            if (enteredGeneric) {
+                exitGenericParamScope();
+            }
+            return false;
+        }
+
+        if (traitDecl && traitDecl->isGeneric()) {
+            const auto& traitParams = traitDecl->getGenericParams();
+            std::vector<Type*> traitArgs;
+            traitArgs.reserve(traitParams.size());
+
+            const auto& explicitTraitArgs = decl->getTraitTypeArgs();
+            if (!explicitTraitArgs.empty()) {
+                if (explicitTraitArgs.size() != traitParams.size()) {
+                    Diag.report(DiagID::err_generic_param_count_mismatch, decl->getBeginLoc(), decl->getRange())
+                        << static_cast<unsigned>(traitParams.size())
+                        << static_cast<unsigned>(explicitTraitArgs.size());
+                    if (enteredGeneric) {
+                        exitGenericParamScope();
+                    }
+                    return false;
+                }
+                for (size_t i = 0; i < explicitTraitArgs.size(); ++i) {
+                    Type* argType = resolveType(explicitTraitArgs[i]);
+                    if (!argType) {
+                        if (enteredGeneric) {
+                            exitGenericParamScope();
+                        }
+                        return false;
+                    }
+                    traitArgs.push_back(argType);
+                }
+            } else {
+                Diag.report(DiagID::err_generic_param_count_mismatch, decl->getBeginLoc(), decl->getRange())
+                    << static_cast<unsigned>(traitParams.size())
+                    << 0u;
+                if (enteredGeneric) {
+                    exitGenericParamScope();
+                }
+                return false;
+            }
+
+            traitPattern = Ctx.getGenericInstanceType(traitType, std::move(traitArgs));
+        }
 
         // 记录 impl 映射，供 trait 约束检查使用
-        const Type* mapKey = targetType;
+        ImplTraitMap[targetType].insert(traitDecl->getName());
         if (targetType->isGenericInstance()) {
-            mapKey = static_cast<GenericInstanceType*>(targetType)->getBaseType();
+            const Type* baseKey = static_cast<GenericInstanceType*>(targetType)->getBaseType();
+            ImplTraitMap[baseKey].insert(traitDecl->getName());
         }
-        ImplTraitMap[mapKey].insert(traitDecl->getName());
     }
 
     // 进入 Impl 作用域
@@ -2039,6 +2129,10 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
             success = false;
         }
     }
+
+    // 注册 impl 候选（供 trait bound 与方法选择统一使用）
+    size_t implCandidateIndex = ImplCandidates.size();
+    ImplCandidates.push_back({decl, traitDecl, targetType, traitPattern, genericParams});
 
     // 分析关联类型实现（如果是 Trait 实现）
     if (traitDecl) {
@@ -2075,6 +2169,15 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
 
     // 分析方法实现
     for (FuncDecl* method : decl->getMethods()) {
+        bool enteredMethodGenerics = false;
+        if (method->isGeneric()) {
+            if (!enterGenericParamScope(method->getGenericParams())) {
+                success = false;
+                continue;
+            }
+            enteredMethodGenerics = true;
+        }
+
         // 如果是 Trait 实现，检查方法是否在 Trait 中声明
         if (traitDecl) {
             FuncDecl* traitMethod = traitDecl->findMethod(method->getName());
@@ -2082,12 +2185,16 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
                 Diag.report(DiagID::err_function_not_found, method->getBeginLoc(), method->getRange())
                     << method->getName();
                 success = false;
+                if (enteredMethodGenerics) {
+                    exitGenericParamScope();
+                }
                 continue;
             }
         }
 
         // 解析方法参数类型
         std::vector<Type*> paramTypes;
+        bool methodTypeOK = true;
         for (ParamDecl* param : method->getParams()) {
             Type* paramType = nullptr;
 
@@ -2111,11 +2218,13 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
                 if (!param->getType()) {
                     reportError(DiagID::err_expected_type, param->getBeginLoc());
                     success = false;
+                    methodTypeOK = false;
                     continue;
                 }
                 paramType = resolveType(param->getType());
                 if (!paramType) {
                     success = false;
+                    methodTypeOK = false;
                     continue;
                 }
             }
@@ -2129,8 +2238,15 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
             returnType = resolveType(method->getReturnType());
             if (!returnType) {
                 success = false;
-                continue;
+                methodTypeOK = false;
             }
+        }
+
+        if (!methodTypeOK) {
+            if (enteredMethodGenerics) {
+                exitGenericParamScope();
+            }
+            continue;
         }
 
         // 创建方法类型
@@ -2140,7 +2256,7 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
         const std::vector<Type*>& paramTypesFromFunc = methodFuncType->getParamTypes();
 
         // 设置参数的语义类型
-        for (size_t i = 0; i < method->getParams().size(); ++i) {
+        for (size_t i = 0; i < method->getParams().size() && i < paramTypesFromFunc.size(); ++i) {
             method->getParams()[i]->setSemanticType(paramTypesFromFunc[i]);
         }
 
@@ -2152,6 +2268,9 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
         if (!Symbols.addSymbol(methodSymbol)) {
             delete methodSymbol;
             success = false;
+            if (enteredMethodGenerics) {
+                exitGenericParamScope();
+            }
             continue;
         }
 
@@ -2188,6 +2307,10 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
             // 退出方法作用域
             Symbols.exitScope();
         }
+
+        if (enteredMethodGenerics) {
+            exitGenericParamScope();
+        }
     }
 
     // 如果是 Trait 实现，检查实现的完整性
@@ -2215,6 +2338,12 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
     Symbols.exitScope();
     if (enteredGeneric) {
         exitGenericParamScope();
+    }
+
+    if (!success &&
+        implCandidateIndex < ImplCandidates.size() &&
+        ImplCandidates[implCandidateIndex].Decl == decl) {
+        ImplCandidates.erase(ImplCandidates.begin() + implCandidateIndex);
     }
 
     return success;
@@ -2556,12 +2685,17 @@ bool Sema::analyzeForStmt(ForStmt* stmt) {
             return nullptr;
         }
 
-        FuncDecl* nextMethod = Ctx.getImplMethod(iteratorBaseType, "next");
+        std::unordered_map<std::string, Type*> nextMapping;
+        FuncDecl* nextMethod = resolveImplMethod(iteratorBaseType, "next",
+                                                 &nextMapping, nullptr, true);
         if (!nextMethod) {
             return nullptr;
         }
 
         Type* nextType = nextMethod->getSemanticType();
+        if (nextType && !nextMapping.empty()) {
+            nextType = substituteType(nextType, nextMapping);
+        }
         if (!nextType || !nextType->isFunction()) {
             return nullptr;
         }
@@ -2585,12 +2719,17 @@ bool Sema::analyzeForStmt(ForStmt* stmt) {
             return nullptr;
         }
 
-        FuncDecl* iterMethod = Ctx.getImplMethod(iterableBaseType, "iter");
+        std::unordered_map<std::string, Type*> iterMapping;
+        FuncDecl* iterMethod = resolveImplMethod(iterableBaseType, "iter",
+                                                 &iterMapping, nullptr, true);
         if (!iterMethod) {
             return nullptr;
         }
 
         Type* iterType = iterMethod->getSemanticType();
+        if (iterType && !iterMapping.empty()) {
+            iterType = substituteType(iterType, iterMapping);
+        }
         if (!iterType || !iterType->isFunction()) {
             return nullptr;
         }
@@ -2887,8 +3026,45 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr) {
     // 设置解析后的声明
     expr->setResolvedDecl(symbol->getDecl());
 
+    auto instantiateVisibleGenerics = [&](Type* baseType, Decl* decl) -> Type* {
+        if (!baseType || !decl) {
+            return baseType;
+        }
+
+        const std::vector<GenericParam>* params = nullptr;
+        switch (decl->getKind()) {
+            case ASTNode::Kind::StructDecl:
+                params = &static_cast<StructDecl*>(decl)->getGenericParams();
+                break;
+            case ASTNode::Kind::EnumDecl:
+                params = &static_cast<EnumDecl*>(decl)->getGenericParams();
+                break;
+            case ASTNode::Kind::TraitDecl:
+                params = &static_cast<TraitDecl*>(decl)->getGenericParams();
+                break;
+            default:
+                return baseType;
+        }
+
+        if (!params || params->empty()) {
+            return baseType;
+        }
+
+        std::vector<Type*> typeArgs;
+        typeArgs.reserve(params->size());
+        for (const auto& param : *params) {
+            Symbol* argSym = Symbols.lookup(param.Name);
+            if (!argSym || argSym->getKind() != SymbolKind::GenericParam || !argSym->getType()) {
+                return baseType;
+            }
+            typeArgs.push_back(argSym->getType());
+        }
+
+        return Ctx.getGenericInstanceType(baseType, std::move(typeArgs));
+    };
+
     // 返回符号的类型
-    return symbol->getType();
+    return instantiateVisibleGenerics(symbol->getType(), symbol->getDecl());
 }
 
 Type* Sema::analyzeBinaryExpr(BinaryExpr* expr) {
@@ -3486,17 +3662,19 @@ Type* Sema::analyzeCallExpr(CallExpr* expr) {
             if (callBaseType && callBaseType->isPointer()) {
                 callBaseType = unwrapAliases(static_cast<PointerType*>(callBaseType)->getPointeeType());
             }
-            if (callBaseType && callBaseType->isGenericInstance()) {
-                callBaseType =
-                    unwrapAliases(static_cast<GenericInstanceType*>(callBaseType)->getBaseType());
-            }
 
             if (callBaseType) {
-                if (FuncDecl* forcedMethod = Ctx.getImplMethod(callBaseType, memberCallee->getMember())) {
+                std::unordered_map<std::string, Type*> methodMapping;
+                if (FuncDecl* forcedMethod = resolveImplMethod(callBaseType, memberCallee->getMember(),
+                                                               &methodMapping, nullptr, true)) {
                     memberCallee->setResolvedDecl(forcedMethod);
                     methodDecl = forcedMethod;
                     calleeDecl = forcedMethod;
-                    calleeType = forcedMethod->getSemanticType();
+                    Type* forcedType = forcedMethod->getSemanticType();
+                    if (forcedType && !methodMapping.empty()) {
+                        forcedType = substituteType(forcedType, methodMapping);
+                    }
+                    calleeType = forcedType;
                 }
             }
         }
@@ -3627,6 +3805,99 @@ Type* Sema::analyzeCallExpr(CallExpr* expr) {
 
         return true;
     };
+
+    auto ensureGenericInferenceComplete =
+        [&](Type* type, const std::unordered_map<std::string, Type*>& mapping) -> bool {
+            std::unordered_set<std::string> required;
+            auto collectRequired = [&](auto&& self, Type* current) -> void {
+                if (!current) {
+                    return;
+                }
+                while (current->isTypeAlias()) {
+                    current = static_cast<TypeAlias*>(current)->getAliasedType();
+                    if (!current) {
+                        return;
+                    }
+                }
+
+                if (current->isGeneric()) {
+                    required.insert(static_cast<GenericType*>(current)->getName());
+                    return;
+                }
+                if (current->isTypeVar()) {
+                    auto* tv = static_cast<TypeVariable*>(current);
+                    if (tv->isResolved() && tv->getResolvedType()) {
+                        self(self, tv->getResolvedType());
+                    }
+                    return;
+                }
+                if (current->isGenericInstance()) {
+                    auto* inst = static_cast<GenericInstanceType*>(current);
+                    self(self, inst->getBaseType());
+                    for (Type* arg : inst->getTypeArgs()) {
+                        self(self, arg);
+                    }
+                    return;
+                }
+                if (current->isReference()) {
+                    self(self, static_cast<ReferenceType*>(current)->getPointeeType());
+                    return;
+                }
+                if (current->isPointer()) {
+                    self(self, static_cast<PointerType*>(current)->getPointeeType());
+                    return;
+                }
+                if (current->isOptional()) {
+                    self(self, static_cast<OptionalType*>(current)->getInnerType());
+                    return;
+                }
+                if (current->isArray()) {
+                    self(self, static_cast<ArrayType*>(current)->getElementType());
+                    return;
+                }
+                if (current->isSlice()) {
+                    self(self, static_cast<SliceType*>(current)->getElementType());
+                    return;
+                }
+                if (current->isVarArgs()) {
+                    self(self, static_cast<VarArgsType*>(current)->getElementType());
+                    return;
+                }
+                if (current->isTuple()) {
+                    auto* tuple = static_cast<TupleType*>(current);
+                    for (size_t ti = 0; ti < tuple->getElementCount(); ++ti) {
+                        self(self, tuple->getElement(ti));
+                    }
+                    return;
+                }
+                if (current->isFunction()) {
+                    auto* fn = static_cast<FunctionType*>(current);
+                    for (size_t pi = 0; pi < fn->getParamCount(); ++pi) {
+                        self(self, fn->getParam(pi));
+                    }
+                    self(self, fn->getReturnType());
+                    return;
+                }
+                if (current->isError()) {
+                    self(self, static_cast<ErrorType*>(current)->getSuccessType());
+                    return;
+                }
+                if (current->isRange()) {
+                    self(self, static_cast<RangeType*>(current)->getElementType());
+                    return;
+                }
+            };
+
+            collectRequired(collectRequired, type);
+            for (const std::string& name : required) {
+                auto it = mapping.find(name);
+                if (it == mapping.end() || !it->second) {
+                    Diag.report(DiagID::err_expected_type, expr->getBeginLoc(), expr->getRange());
+                    return false;
+                }
+            }
+            return true;
+        };
 
     auto sameValueTypeIgnoringAliases = [&](Type* lhs, Type* rhs) -> bool {
         auto unwrapAliases = [](Type* type) -> Type* {
@@ -3770,6 +4041,17 @@ Type* Sema::analyzeCallExpr(CallExpr* expr) {
             if (!checkGenericBounds(params, mapping)) {
                 return nullptr;
             }
+        }
+
+        bool requireCompleteInference = false;
+        if (calleeDecl && calleeDecl->isGeneric()) {
+            requireCompleteInference = true;
+        }
+        if (methodDecl && methodDecl->isGeneric()) {
+            requireCompleteInference = true;
+        }
+        if (requireCompleteInference && !ensureGenericInferenceComplete(funcType, mapping)) {
+            return nullptr;
         }
 
         Type* substituted = substituteType(funcType, mapping);
@@ -3946,10 +4228,6 @@ Type* Sema::analyzeCallExpr(CallExpr* expr) {
                                 base = static_cast<PointerType*>(base)->getPointeeType();
                                 continue;
                             }
-                            if (base->isGenericInstance()) {
-                                base = static_cast<GenericInstanceType*>(base)->getBaseType();
-                                continue;
-                            }
                             break;
                         }
                         return base;
@@ -4010,8 +4288,25 @@ Type* Sema::analyzeCallExpr(CallExpr* expr) {
                     if (hasGenericParam(hasGenericParam, argType)) {
                         continue;
                     }
-                    if (baseType && (baseType->isStruct() || baseType->isEnum())) {
-                        if (!Ctx.getDisplayImpl(baseType) && !Ctx.getDebugImpl(baseType)) {
+                    Type* traitCheckType = baseType;
+                    Type* aggregateBase = traitCheckType;
+                    if (aggregateBase && aggregateBase->isGenericInstance()) {
+                        aggregateBase = static_cast<GenericInstanceType*>(aggregateBase)->getBaseType();
+                    }
+
+                    if (aggregateBase && (aggregateBase->isStruct() || aggregateBase->isEnum())) {
+                        TraitDecl* displayTraitDecl = nullptr;
+                        TraitDecl* debugTraitDecl = nullptr;
+                        if (Symbol* displaySym = Symbols.lookup("Display")) {
+                            displayTraitDecl = dynamic_cast<TraitDecl*>(displaySym->getDecl());
+                        }
+                        if (Symbol* debugSym = Symbols.lookup("Debug")) {
+                            debugTraitDecl = dynamic_cast<TraitDecl*>(debugSym->getDecl());
+                        }
+
+                        bool hasDisplay = displayTraitDecl && checkTraitBound(traitCheckType, displayTraitDecl);
+                        bool hasDebug = debugTraitDecl && checkTraitBound(traitCheckType, debugTraitDecl);
+                        if (!hasDisplay && !hasDebug) {
                             Diag.report(DiagID::err_trait_not_implemented,
                                         argExpr->getBeginLoc(),
                                         argExpr->getRange())
@@ -4351,9 +4646,24 @@ Type* Sema::analyzeMemberExpr(MemberExpr* expr) {
         auto* structType = static_cast<StructType*>(baseType);
         const StructType::Field* field = structType->getField(expr->getMember());
         if (!field) {
-            if (FuncDecl* method = Ctx.getImplMethod(baseType, expr->getMember())) {
+            Type* receiverType = genericInst ? static_cast<Type*>(genericInst) : baseType;
+            std::unordered_map<std::string, Type*> methodMapping;
+            FuncDecl* method = resolveImplMethod(receiverType, expr->getMember(),
+                                                 &methodMapping, nullptr, true);
+            if (!method && receiverType && !receiverType->isGenericInstance() &&
+                !receiverType->isGeneric()) {
+                method = Ctx.getImplMethod(receiverType, expr->getMember());
+            }
+            if (method) {
                 expr->setResolvedDecl(method);
-                return method->getSemanticType();
+                Type* methodType = method->getSemanticType();
+                if (!methodType) {
+                    return nullptr;
+                }
+                if (!methodMapping.empty()) {
+                    methodType = substituteType(methodType, methodMapping);
+                }
+                return methodType;
             }
 
             Diag.report(DiagID::err_field_not_found, expr->getBeginLoc(), expr->getRange())
@@ -4431,9 +4741,24 @@ Type* Sema::analyzeMemberExpr(MemberExpr* expr) {
                     return Ctx.getU32Type();
                 }
             }
-            if (FuncDecl* method = Ctx.getImplMethod(baseType, expr->getMember())) {
+            Type* receiverType = genericInst ? static_cast<Type*>(genericInst) : baseType;
+            std::unordered_map<std::string, Type*> methodMapping;
+            FuncDecl* method = resolveImplMethod(receiverType, expr->getMember(),
+                                                 &methodMapping, nullptr, true);
+            if (!method && receiverType && !receiverType->isGenericInstance() &&
+                !receiverType->isGeneric()) {
+                method = Ctx.getImplMethod(receiverType, expr->getMember());
+            }
+            if (method) {
                 expr->setResolvedDecl(method);
-                return method->getSemanticType();
+                Type* methodType = method->getSemanticType();
+                if (!methodType) {
+                    return nullptr;
+                }
+                if (!methodMapping.empty()) {
+                    methodType = substituteType(methodType, methodMapping);
+                }
+                return methodType;
             }
 
             Diag.report(DiagID::err_field_not_found, expr->getBeginLoc(), expr->getRange())
@@ -5020,6 +5345,21 @@ Type* Sema::analyzeClosureExpr(ClosureExpr* expr) {
         return nullptr;
     }
 
+    bool enteredClosureGenerics = false;
+    if (expr->isGeneric()) {
+        if (!enterGenericParamScope(expr->getGenericParams())) {
+            return nullptr;
+        }
+        enteredClosureGenerics = true;
+    }
+
+    auto cleanupAndFail = [&]() -> Type* {
+        if (enteredClosureGenerics) {
+            exitGenericParamScope();
+        }
+        return nullptr;
+    };
+
     // 进入闭包作用域
     Symbols.enterScope(Scope::Kind::Function);
     // 闭包体中的 return 不应引用外层函数上下文。
@@ -5036,7 +5376,7 @@ Type* Sema::analyzeClosureExpr(ClosureExpr* expr) {
             paramType = resolveType(param->getType());
             if (!paramType) {
                 Symbols.exitScope();
-                return nullptr;
+                return cleanupAndFail();
             }
         } else {
             // 没有类型注解，需要从上下文推断
@@ -5055,7 +5395,7 @@ Type* Sema::analyzeClosureExpr(ClosureExpr* expr) {
         if (!Symbols.addSymbol(paramSymbol)) {
             delete paramSymbol;
             Symbols.exitScope();
-            return nullptr;
+            return cleanupAndFail();
         }
     }
 
@@ -5102,13 +5442,13 @@ Type* Sema::analyzeClosureExpr(ClosureExpr* expr) {
 
         if (!bodyOk) {
             Symbols.exitScope();
-            return nullptr;
+            return cleanupAndFail();
         }
     } else {
         bodyType = analyzeExpr(expr->getBody());
         if (!bodyType) {
             Symbols.exitScope();
-            return nullptr;
+            return cleanupAndFail();
         }
     }
 
@@ -5118,12 +5458,12 @@ Type* Sema::analyzeClosureExpr(ClosureExpr* expr) {
         returnType = resolveType(expr->getReturnType());
         if (!returnType) {
             Symbols.exitScope();
-            return nullptr;
+            return cleanupAndFail();
         }
         // 检查闭包体类型与返回类型是否兼容
         if (!checkTypeCompatible(returnType, bodyType, expr->getBody()->getRange())) {
             Symbols.exitScope();
-            return nullptr;
+            return cleanupAndFail();
         }
     } else {
         // 从闭包体推断返回类型
@@ -5132,6 +5472,10 @@ Type* Sema::analyzeClosureExpr(ClosureExpr* expr) {
 
     // 退出闭包作用域
     Symbols.exitScope();
+
+    if (enteredClosureGenerics) {
+        exitGenericParamScope();
+    }
 
     // 创建函数类型
     return Ctx.getFunctionType(std::move(paramTypes), returnType, false);
@@ -6367,21 +6711,38 @@ bool Sema::checkTraitImpl(ImplDecl* impl) {
         return true; // 固有实现不需要检查
     }
 
-    // 查找 Trait 声明
     Symbol* traitSymbol = Symbols.lookup(impl->getTraitName());
     if (!traitSymbol || traitSymbol->getKind() != SymbolKind::Trait) {
-        return false; // 错误已在 analyzeImplDecl 中报告
+        return false;
     }
 
-    TraitDecl* traitDecl = static_cast<TraitDecl*>(traitSymbol->getDecl());
+    auto* traitDecl = static_cast<TraitDecl*>(traitSymbol->getDecl());
     bool success = true;
 
-    // 检查所有必需的方法是否都已实现
+    std::unordered_map<std::string, Type*> traitSubst;
+    if (traitDecl && traitDecl->isGeneric()) {
+        const auto& params = traitDecl->getGenericParams();
+        const auto& args = impl->getTraitTypeArgs();
+        if (params.size() != args.size()) {
+            Diag.report(DiagID::err_generic_param_count_mismatch, impl->getBeginLoc(), impl->getRange())
+                << static_cast<unsigned>(params.size())
+                << static_cast<unsigned>(args.size());
+            success = false;
+        } else {
+            for (size_t i = 0; i < params.size(); ++i) {
+                Type* argType = resolveType(args[i]);
+                if (!argType) {
+                    success = false;
+                    continue;
+                }
+                traitSubst[params[i].Name] = argType;
+            }
+        }
+    }
+
     for (FuncDecl* traitMethod : traitDecl->getMethods()) {
         FuncDecl* implMethod = impl->findMethod(traitMethod->getName());
-
         if (!implMethod) {
-            // 如果 Trait 方法有默认实现，则不是必需的
             if (!traitMethod->hasBody()) {
                 Diag.report(DiagID::err_missing_trait_method, impl->getBeginLoc(), impl->getRange())
                     << traitMethod->getName();
@@ -6393,13 +6754,13 @@ bool Sema::checkTraitImpl(ImplDecl* impl) {
             continue;
         }
 
-        // 检查方法签名是否匹配
-        if (!checkMethodSignatureMatch(traitMethod, implMethod, impl->getTargetType())) {
+        if (!checkMethodSignatureMatch(
+                traitMethod, implMethod, impl,
+                traitSubst.empty() ? nullptr : &traitSubst)) {
             success = false;
         }
     }
 
-    // 检查所有必需的关联类型是否都已实现
     for (TypeAliasDecl* traitAssocType : traitDecl->getAssociatedTypes()) {
         bool found = false;
         for (TypeAliasDecl* implAssocType : impl->getAssociatedTypes()) {
@@ -6418,7 +6779,6 @@ bool Sema::checkTraitImpl(ImplDecl* impl) {
         }
     }
 
-    // 检查是否有多余的方法实现
     for (FuncDecl* implMethod : impl->getMethods()) {
         FuncDecl* traitMethod = traitDecl->findMethod(implMethod->getName());
         if (!traitMethod) {
@@ -6431,10 +6791,28 @@ bool Sema::checkTraitImpl(ImplDecl* impl) {
     return success;
 }
 
-bool Sema::checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod, TypeNode* targetTypeNode) {
-    // 解析目标类型
-    Type* targetType = resolveType(targetTypeNode);
+bool Sema::checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod,
+                                     ImplDecl* impl,
+                                     const std::unordered_map<std::string, Type*>* traitSubst) {
+    if (!traitMethod || !implMethod || !impl) {
+        return false;
+    }
+
+    Type* targetType = impl->getSemanticTargetType();
+    if (!targetType && impl->getTargetType()) {
+        targetType = resolveType(impl->getTargetType());
+    }
     if (!targetType) {
+        return false;
+    }
+
+    auto* traitFn = traitMethod->getSemanticType() && traitMethod->getSemanticType()->isFunction()
+                        ? static_cast<FunctionType*>(traitMethod->getSemanticType())
+                        : nullptr;
+    auto* implFn = implMethod->getSemanticType() && implMethod->getSemanticType()->isFunction()
+                       ? static_cast<FunctionType*>(implMethod->getSemanticType())
+                       : nullptr;
+    if (!traitFn || !implFn) {
         return false;
     }
 
@@ -6455,7 +6833,106 @@ bool Sema::checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod
         return "param";
     };
 
-    // 检查参数数量
+    auto replaceTraitSelf = [&](auto&& self, Type* ty) -> Type* {
+        if (!ty) {
+            return nullptr;
+        }
+        if (ty->isTrait()) {
+            auto* traitTy = static_cast<TraitType*>(ty);
+            if (traitTy->getName() == impl->getTraitName()) {
+                return targetType;
+            }
+            return ty;
+        }
+        if (ty->isReference()) {
+            auto* refTy = static_cast<ReferenceType*>(ty);
+            Type* replaced = self(self, refTy->getPointeeType());
+            return replaced ? Ctx.getReferenceType(replaced, refTy->isMutable()) : nullptr;
+        }
+        if (ty->isPointer()) {
+            auto* ptrTy = static_cast<PointerType*>(ty);
+            Type* replaced = self(self, ptrTy->getPointeeType());
+            return replaced ? Ctx.getPointerType(replaced, ptrTy->isMutable()) : nullptr;
+        }
+        if (ty->isOptional()) {
+            auto* optTy = static_cast<OptionalType*>(ty);
+            Type* replaced = self(self, optTy->getInnerType());
+            return replaced ? Ctx.getOptionalType(replaced) : nullptr;
+        }
+        if (ty->isArray()) {
+            auto* arrTy = static_cast<ArrayType*>(ty);
+            Type* replaced = self(self, arrTy->getElementType());
+            return replaced ? Ctx.getArrayType(replaced, arrTy->getSize()) : nullptr;
+        }
+        if (ty->isSlice()) {
+            auto* sliceTy = static_cast<SliceType*>(ty);
+            Type* replaced = self(self, sliceTy->getElementType());
+            return replaced ? Ctx.getSliceType(replaced, sliceTy->isMutable()) : nullptr;
+        }
+        if (ty->isTuple()) {
+            auto* tupleTy = static_cast<TupleType*>(ty);
+            std::vector<Type*> elems;
+            elems.reserve(tupleTy->getElementCount());
+            for (size_t i = 0; i < tupleTy->getElementCount(); ++i) {
+                Type* replaced = self(self, tupleTy->getElement(i));
+                if (!replaced) {
+                    return nullptr;
+                }
+                elems.push_back(replaced);
+            }
+            return Ctx.getTupleType(std::move(elems));
+        }
+        if (ty->isFunction()) {
+            auto* fnTy = static_cast<FunctionType*>(ty);
+            std::vector<Type*> params;
+            params.reserve(fnTy->getParamCount());
+            for (Type* paramTy : fnTy->getParamTypes()) {
+                Type* replaced = self(self, paramTy);
+                if (!replaced) {
+                    return nullptr;
+                }
+                params.push_back(replaced);
+            }
+            Type* retTy = self(self, fnTy->getReturnType());
+            if (!retTy) {
+                return nullptr;
+            }
+            return Ctx.getFunctionType(std::move(params), retTy, fnTy->canError(), fnTy->isVariadic());
+        }
+        if (ty->isError()) {
+            auto* errTy = static_cast<ErrorType*>(ty);
+            Type* replaced = self(self, errTy->getSuccessType());
+            return replaced ? Ctx.getErrorType(replaced) : nullptr;
+        }
+        if (ty->isRange()) {
+            auto* rangeTy = static_cast<RangeType*>(ty);
+            Type* replaced = self(self, rangeTy->getElementType());
+            return replaced ? Ctx.getRangeType(replaced, rangeTy->isInclusive()) : nullptr;
+        }
+        if (ty->isGenericInstance()) {
+            auto* inst = static_cast<GenericInstanceType*>(ty);
+            std::vector<Type*> args;
+            args.reserve(inst->getTypeArgCount());
+            for (Type* argTy : inst->getTypeArgs()) {
+                Type* replaced = self(self, argTy);
+                if (!replaced) {
+                    return nullptr;
+                }
+                args.push_back(replaced);
+            }
+            return Ctx.getGenericInstanceType(inst->getBaseType(), std::move(args));
+        }
+        return ty;
+    };
+
+    auto prepareExpected = [&](Type* traitTy) -> Type* {
+        Type* expected = traitTy;
+        if (traitSubst && !traitSubst->empty()) {
+            expected = substituteType(expected, *traitSubst);
+        }
+        return replaceTraitSelf(replaceTraitSelf, expected);
+    };
+
     if (traitMethod->getParams().size() != implMethod->getParams().size()) {
         Diag.report(DiagID::err_wrong_argument_count, implMethod->getBeginLoc(), implMethod->getRange())
             << static_cast<unsigned>(traitMethod->getParams().size())
@@ -6466,15 +6943,10 @@ bool Sema::checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod
         return false;
     }
 
-    // 检查每个参数的类型
     for (size_t i = 0; i < traitMethod->getParams().size(); ++i) {
         ParamDecl* traitParam = traitMethod->getParams()[i];
         ParamDecl* implParam = implMethod->getParams()[i];
 
-        Type* expectedType = nullptr;
-        Type* actualType = nullptr;
-
-        // 处理 self 参数
         if (traitParam->isSelf() && implParam->isSelf()) {
             if (traitParam->getParamKind() != implParam->getParamKind()) {
                 Diag.report(DiagID::err_type_mismatch, implParam->getBeginLoc(), implParam->getRange())
@@ -6485,7 +6957,7 @@ bool Sema::checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod
                     << traitMethod->getName();
                 success = false;
             }
-            continue; // self 参数类型匹配由参数类型决定
+            continue;
         } else if (traitParam->isSelf() || implParam->isSelf()) {
             Diag.report(DiagID::err_type_mismatch, implParam->getBeginLoc(), implParam->getRange())
                 << paramKindName(traitParam->getParamKind())
@@ -6497,20 +6969,12 @@ bool Sema::checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod
             continue;
         }
 
-        // 解析参数类型
-        expectedType = resolveType(traitParam->getType());
-        actualType = resolveType(implParam->getType());
-
-        if (!expectedType || !actualType) {
-            success = false;
-            continue;
-        }
-
-        // 检查类型是否匹配
-        if (!expectedType->isEqual(actualType)) {
+        Type* expectedType = i < traitFn->getParamCount() ? prepareExpected(traitFn->getParam(i)) : nullptr;
+        Type* actualType = i < implFn->getParamCount() ? implFn->getParam(i) : nullptr;
+        if (!expectedType || !actualType || !expectedType->isEqual(actualType)) {
             Diag.report(DiagID::err_type_mismatch, implParam->getBeginLoc(), implParam->getRange())
-                << expectedType->toString()
-                << actualType->toString();
+                << (expectedType ? expectedType->toString() : "<?>")
+                << (actualType ? actualType->toString() : "<?>");
             Diag.report(DiagID::note_declared_here, traitParam->getBeginLoc(),
                         DiagnosticLevel::Note)
                 << traitMethod->getName();
@@ -6518,35 +6982,18 @@ bool Sema::checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod
         }
     }
 
-    // 检查返回类型
-    Type* expectedReturnType = Ctx.getVoidType();
-    Type* actualReturnType = Ctx.getVoidType();
-
-    if (traitMethod->getReturnType()) {
-        expectedReturnType = resolveType(traitMethod->getReturnType());
-        if (!expectedReturnType) {
-            success = false;
-        }
-    }
-
-    if (implMethod->getReturnType()) {
-        actualReturnType = resolveType(implMethod->getReturnType());
-        if (!actualReturnType) {
-            success = false;
-        }
-    }
-
-    if (expectedReturnType && actualReturnType && !expectedReturnType->isEqual(actualReturnType)) {
+    Type* expectedReturnType = prepareExpected(traitFn->getReturnType());
+    Type* actualReturnType = implFn->getReturnType();
+    if (!expectedReturnType || !actualReturnType || !expectedReturnType->isEqual(actualReturnType)) {
         Diag.report(DiagID::err_return_type_mismatch, implMethod->getBeginLoc(), implMethod->getRange())
-            << expectedReturnType->toString()
-            << actualReturnType->toString();
+            << (expectedReturnType ? expectedReturnType->toString() : "<?>")
+            << (actualReturnType ? actualReturnType->toString() : "<?>");
         Diag.report(DiagID::note_declared_here, traitMethod->getBeginLoc(),
                     DiagnosticLevel::Note)
             << traitMethod->getName();
         success = false;
     }
 
-    // 检查错误返回标志
     if (traitMethod->canError() != implMethod->canError()) {
         Diag.report(DiagID::err_return_type_mismatch, implMethod->getBeginLoc(), implMethod->getRange())
             << (traitMethod->canError() ? "error" : "non-error")
@@ -6560,70 +7007,346 @@ bool Sema::checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod
     return success;
 }
 
+bool Sema::checkGenericBoundsSatisfied(
+    const std::vector<GenericParam>& params,
+    const std::unordered_map<std::string, Type*>& mapping) const {
+    for (const auto& param : params) {
+        if (param.Bounds.empty()) {
+            continue;
+        }
+
+        auto it = mapping.find(param.Name);
+        if (it == mapping.end() || !it->second) {
+            return false;
+        }
+
+        Type* actualType = it->second;
+        while (actualType && actualType->isReference()) {
+            actualType = static_cast<ReferenceType*>(actualType)->getPointeeType();
+        }
+        while (actualType && actualType->isPointer()) {
+            actualType = static_cast<PointerType*>(actualType)->getPointeeType();
+        }
+        while (actualType && actualType->isTypeAlias()) {
+            actualType = static_cast<TypeAlias*>(actualType)->getAliasedType();
+        }
+
+        for (const std::string& bound : param.Bounds) {
+            Symbol* traitSymbol = Symbols.lookup(bound);
+            if (!traitSymbol || traitSymbol->getKind() != SymbolKind::Trait) {
+                return false;
+            }
+
+            auto* traitDecl = dynamic_cast<TraitDecl*>(traitSymbol->getDecl());
+            if (!traitDecl || !const_cast<Sema*>(this)->checkTraitBound(actualType, traitDecl)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool Sema::resolveImplCandidate(Type* actualType,
+                                TraitDecl* trait,
+                                std::unordered_map<std::string, Type*>& mapping,
+                                ImplDecl** matchedImpl) {
+    if (!actualType) {
+        return false;
+    }
+
+    auto normalize = [](Type* type) -> Type* {
+        Type* current = type;
+        while (current && current->isTypeAlias()) {
+            current = static_cast<TypeAlias*>(current)->getAliasedType();
+        }
+        while (current && current->isReference()) {
+            current = static_cast<ReferenceType*>(current)->getPointeeType();
+        }
+        while (current && current->isPointer()) {
+            current = static_cast<PointerType*>(current)->getPointeeType();
+        }
+        return current;
+    };
+
+    Type* normalizedActual = normalize(actualType);
+    if (!normalizedActual) {
+        return false;
+    }
+
+    for (auto it = ImplCandidates.rbegin(); it != ImplCandidates.rend(); ++it) {
+        const ImplCandidate& candidate = *it;
+        if (!candidate.Decl || !candidate.TargetPattern) {
+            continue;
+        }
+
+        if (trait) {
+            if (!candidate.Trait) {
+                continue;
+            }
+            if (candidate.Trait != trait &&
+                candidate.Trait->getName() != trait->getName()) {
+                continue;
+            }
+        } else if (candidate.Trait) {
+            continue;
+        }
+
+        std::unordered_map<std::string, Type*> localMapping;
+        if (!unifyGenericTypes(candidate.TargetPattern, normalizedActual, localMapping)) {
+            continue;
+        }
+        if (!checkGenericBoundsSatisfied(candidate.GenericParams, localMapping)) {
+            continue;
+        }
+
+        mapping = std::move(localMapping);
+        if (matchedImpl) {
+            *matchedImpl = candidate.Decl;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+FuncDecl* Sema::resolveImplMethod(Type* actualType,
+                                  const std::string& methodName,
+                                  std::unordered_map<std::string, Type*>* mapping,
+                                  ImplDecl** matchedImpl,
+                                  bool includeTraitImpl) {
+    if (!actualType) {
+        return nullptr;
+    }
+
+    auto normalize = [](Type* ty) -> Type* {
+        Type* current = ty;
+        while (current && current->isTypeAlias()) {
+            current = static_cast<TypeAlias*>(current)->getAliasedType();
+        }
+        while (current && current->isReference()) {
+            current = static_cast<ReferenceType*>(current)->getPointeeType();
+        }
+        while (current && current->isPointer()) {
+            current = static_cast<PointerType*>(current)->getPointeeType();
+        }
+        return current;
+    };
+    Type* normalizedActual = normalize(actualType);
+    if (!normalizedActual) {
+        return nullptr;
+    }
+
+    auto collectPatternGenerics = [&](auto&& self, Type* pattern,
+                                      std::unordered_map<std::string, Type*>& out) -> void {
+        if (!pattern) {
+            return;
+        }
+        while (pattern->isTypeAlias()) {
+            pattern = static_cast<TypeAlias*>(pattern)->getAliasedType();
+            if (!pattern) {
+                return;
+            }
+        }
+
+        if (pattern->isGeneric()) {
+            auto* genericTy = static_cast<GenericType*>(pattern);
+            out.emplace(genericTy->getName(), pattern);
+            return;
+        }
+        if (pattern->isGenericInstance()) {
+            auto* inst = static_cast<GenericInstanceType*>(pattern);
+            self(self, inst->getBaseType(), out);
+            for (Type* arg : inst->getTypeArgs()) {
+                self(self, arg, out);
+            }
+            return;
+        }
+        if (pattern->isReference()) {
+            self(self, static_cast<ReferenceType*>(pattern)->getPointeeType(), out);
+            return;
+        }
+        if (pattern->isPointer()) {
+            self(self, static_cast<PointerType*>(pattern)->getPointeeType(), out);
+            return;
+        }
+        if (pattern->isOptional()) {
+            self(self, static_cast<OptionalType*>(pattern)->getInnerType(), out);
+            return;
+        }
+        if (pattern->isArray()) {
+            self(self, static_cast<ArrayType*>(pattern)->getElementType(), out);
+            return;
+        }
+        if (pattern->isSlice()) {
+            self(self, static_cast<SliceType*>(pattern)->getElementType(), out);
+            return;
+        }
+        if (pattern->isTuple()) {
+            auto* tupleTy = static_cast<TupleType*>(pattern);
+            for (size_t i = 0; i < tupleTy->getElementCount(); ++i) {
+                self(self, tupleTy->getElement(i), out);
+            }
+            return;
+        }
+        if (pattern->isFunction()) {
+            auto* fnTy = static_cast<FunctionType*>(pattern);
+            for (size_t i = 0; i < fnTy->getParamCount(); ++i) {
+                self(self, fnTy->getParam(i), out);
+            }
+            self(self, fnTy->getReturnType(), out);
+            return;
+        }
+        if (pattern->isError()) {
+            self(self, static_cast<ErrorType*>(pattern)->getSuccessType(), out);
+            return;
+        }
+        if (pattern->isRange()) {
+            self(self, static_cast<RangeType*>(pattern)->getElementType(), out);
+            return;
+        }
+    };
+
+    auto tryResolve = [&](bool traitImpl) -> FuncDecl* {
+        for (auto it = ImplCandidates.rbegin(); it != ImplCandidates.rend(); ++it) {
+            const ImplCandidate& candidate = *it;
+            if (!candidate.Decl || !candidate.TargetPattern) {
+                continue;
+            }
+            if ((candidate.Trait != nullptr) != traitImpl) {
+                continue;
+            }
+
+            std::unordered_map<std::string, Type*> localMapping;
+            if (!unifyGenericTypes(candidate.TargetPattern, normalizedActual, localMapping)) {
+                Type* candidateTarget = candidate.TargetPattern;
+                while (candidateTarget && candidateTarget->isTypeAlias()) {
+                    candidateTarget = static_cast<TypeAlias*>(candidateTarget)->getAliasedType();
+                }
+
+                bool relaxedMatch = false;
+                if (candidateTarget && candidateTarget->isGenericInstance() &&
+                    !normalizedActual->isGenericInstance()) {
+                    auto* patInst = static_cast<GenericInstanceType*>(candidateTarget);
+                    Type* patBase = patInst->getBaseType();
+                    while (patBase && patBase->isTypeAlias()) {
+                        patBase = static_cast<TypeAlias*>(patBase)->getAliasedType();
+                    }
+                    if (patBase && patBase->isEqual(normalizedActual)) {
+                        collectPatternGenerics(collectPatternGenerics, candidate.TargetPattern, localMapping);
+                        relaxedMatch = true;
+                    }
+                }
+                if (!relaxedMatch) {
+                    continue;
+                }
+            }
+            if (!checkGenericBoundsSatisfied(candidate.GenericParams, localMapping)) {
+                continue;
+            }
+
+            FuncDecl* method = candidate.Decl->findMethod(methodName);
+            if (!method) {
+                continue;
+            }
+
+            if (mapping) {
+                *mapping = std::move(localMapping);
+            }
+            if (matchedImpl) {
+                *matchedImpl = candidate.Decl;
+            }
+            return method;
+        }
+        return nullptr;
+    };
+
+    if (FuncDecl* method = tryResolve(false)) {
+        return method;
+    }
+    if (includeTraitImpl) {
+        return tryResolve(true);
+    }
+    return nullptr;
+}
+
 bool Sema::checkTraitBound(Type* type, TraitDecl* trait) {
     if (!type || !trait) {
         return false;
     }
 
-    // 1. 获取 trait 名称
     const std::string& traitName = trait->getName();
 
-    // 2. 在符号表中查找 trait 符号
-    Symbol* traitSymbol = Symbols.lookup(traitName);
-    if (!traitSymbol || traitSymbol->getKind() != SymbolKind::Trait) {
+    auto normalize = [](Type* ty) -> Type* {
+        Type* current = ty;
+        while (current && current->isTypeAlias()) {
+            current = static_cast<TypeAlias*>(current)->getAliasedType();
+        }
+        while (current && current->isReference()) {
+            current = static_cast<ReferenceType*>(current)->getPointeeType();
+        }
+        while (current && current->isPointer()) {
+            current = static_cast<PointerType*>(current)->getPointeeType();
+        }
+        return current;
+    };
+
+    Type* normalized = normalize(type);
+    if (!normalized) {
         return false;
     }
 
-    // 3. 根据类型种类检查是否实现了该 trait
-    std::string typeName;
-
-    if (type->isStruct()) {
-        auto* structType = static_cast<StructType*>(type);
-        typeName = structType->getName();
-    } else if (type->isEnum()) {
-        auto* enumType = static_cast<EnumType*>(type);
-        typeName = enumType->getName();
-    } else if (type->isGenericInstance()) {
-        // 泛型实例类型，获取基础类型名称
-        auto* genInst = static_cast<GenericInstanceType*>(type);
-        Type* baseType = genInst->getBaseType();
-        if (baseType->isStruct()) {
-            typeName = static_cast<StructType*>(baseType)->getName();
-        } else if (baseType->isEnum()) {
-            typeName = static_cast<EnumType*>(baseType)->getName();
-        } else {
-            return false;
+    struct RecursionGuard {
+        std::unordered_set<uintptr_t>& Set;
+        uintptr_t Key;
+        bool Active = false;
+        RecursionGuard(std::unordered_set<uintptr_t>& set, uintptr_t key)
+            : Set(set), Key(key) {
+            auto [it, inserted] = Set.insert(Key);
+            Active = inserted;
+            (void)it;
         }
-    } else if (type->isGeneric()) {
-        // 泛型参数类型，检查其约束
-        auto* genericType = static_cast<GenericType*>(type);
-        const auto& constraints = genericType->getConstraints();
+        ~RecursionGuard() {
+            if (Active) {
+                Set.erase(Key);
+            }
+        }
+    };
+    static thread_local std::unordered_set<uintptr_t> InProgress;
+    uintptr_t recursionKey = reinterpret_cast<uintptr_t>(normalized) ^
+                             (reinterpret_cast<uintptr_t>(trait) << 1);
+    RecursionGuard guard(InProgress, recursionKey);
+    if (!guard.Active) {
+        return false;
+    }
 
-        // 检查 trait 是否在约束列表中
-        for (TraitType* constraint : constraints) {
-            if (constraint->getName() == traitName) {
+    if (normalized->isGeneric()) {
+        auto* genericType = static_cast<GenericType*>(normalized);
+        for (TraitType* constraint : genericType->getConstraints()) {
+            if (constraint && constraint->getName() == traitName) {
                 return true;
             }
         }
-        return false;
-    } else {
-        // 其他类型暂不支持 trait
-        return false;
     }
 
-    // 4. 查找类型的 impl 块
-    const Type* lookupType = type;
-    if (type->isGenericInstance()) {
-        auto* genInst = static_cast<GenericInstanceType*>(type);
-        lookupType = genInst->getBaseType();
+    std::unordered_map<std::string, Type*> mapping;
+    if (resolveImplCandidate(normalized, trait, mapping, nullptr)) {
+        return true;
     }
 
-    auto it = ImplTraitMap.find(lookupType);
-    if (it == ImplTraitMap.end()) {
-        return false;
+    auto it = ImplTraitMap.find(normalized);
+    if (it != ImplTraitMap.end() && it->second.find(traitName) != it->second.end()) {
+        return true;
+    }
+    if (normalized->isGenericInstance()) {
+        auto* genInst = static_cast<GenericInstanceType*>(normalized);
+        const Type* baseType = genInst->getBaseType();
+        auto bit = ImplTraitMap.find(baseType);
+        if (bit != ImplTraitMap.end() && bit->second.find(traitName) != bit->second.end()) {
+            return true;
+        }
     }
 
-    return it->second.find(traitName) != it->second.end();
+    return false;
 }
 
 // ============================================================================

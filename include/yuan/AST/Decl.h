@@ -769,10 +769,12 @@ public:
     /// \param range 源码范围
     /// \param targetType 目标类型
     /// \param traitName 实现的 Trait 名称（可为空，表示固有实现）
+    /// \param traitRefType Trait 引用类型（可为空）
     /// \param methods 方法列表
     ImplDecl(SourceRange range,
              TypeNode* targetType,
              const std::string& traitName,
+             TypeNode* traitRefType,
              std::vector<FuncDecl*> methods);
 
     /// \brief 获取目标类型
@@ -786,6 +788,12 @@ public:
 
     /// \brief 获取实现的 Trait 名称
     const std::string& getTraitName() const { return TraitName; }
+
+    /// \brief 获取实现的 Trait 引用类型（例如 From<i32>）
+    TypeNode* getTraitRefType() const { return TraitRefType; }
+
+    /// \brief 设置 Trait 引用类型
+    void setTraitRefType(TypeNode* node) { TraitRefType = node; }
 
     /// \brief 获取方法列表
     const std::vector<FuncDecl*>& getMethods() const { return Methods; }
@@ -816,6 +824,19 @@ public:
         return AssociatedTypes;
     }
 
+    /// \brief 设置 Trait 类型实参（impl Trait<Args> for Type）
+    void setTraitTypeArgs(std::vector<TypeNode*> args) {
+        TraitTypeArgs = std::move(args);
+    }
+
+    /// \brief 获取 Trait 类型实参
+    const std::vector<TypeNode*>& getTraitTypeArgs() const {
+        return TraitTypeArgs;
+    }
+
+    /// \brief 是否有 Trait 类型实参
+    bool hasTraitTypeArgs() const { return !TraitTypeArgs.empty(); }
+
     /// \brief 根据名称查找方法
     FuncDecl* findMethod(const std::string& name) const;
 
@@ -828,6 +849,8 @@ private:
     TypeNode* TargetType;                       ///< 目标类型
     Type* SemanticTargetType = nullptr;        ///< 语义目标类型
     std::string TraitName;                      ///< 实现的 Trait 名称
+    TypeNode* TraitRefType = nullptr;           ///< Trait 引用类型
+    std::vector<TypeNode*> TraitTypeArgs;       ///< Trait 类型实参
     std::vector<FuncDecl*> Methods;             ///< 方法列表
     std::vector<GenericParam> GenericParams;    ///< 泛型参数
     std::vector<TypeAliasDecl*> AssociatedTypes; ///< 关联类型实现

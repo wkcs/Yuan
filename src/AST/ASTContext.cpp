@@ -7,6 +7,120 @@
 
 namespace yuan {
 
+namespace {
+
+static const Type* stripAliases(const Type* type) {
+    const Type* current = type;
+    while (current && current->isTypeAlias()) {
+        current = static_cast<const TypeAlias*>(current)->getAliasedType();
+    }
+    return current;
+}
+
+static bool matchTypePattern(const Type* pattern, const Type* actual) {
+    pattern = stripAliases(pattern);
+    actual = stripAliases(actual);
+    if (!pattern || !actual) {
+        return false;
+    }
+
+    if (pattern->isGeneric() || pattern->isTypeVar()) {
+        return true;
+    }
+
+    if (pattern->isReference()) {
+        auto* patRef = static_cast<const ReferenceType*>(pattern);
+        if (actual->isReference()) {
+            auto* actRef = static_cast<const ReferenceType*>(actual);
+            if (patRef->isMutable() != actRef->isMutable()) {
+                return false;
+            }
+            return matchTypePattern(patRef->getPointeeType(), actRef->getPointeeType());
+        }
+        return matchTypePattern(patRef->getPointeeType(), actual);
+    }
+    if (pattern->isPointer()) {
+        auto* patPtr = static_cast<const PointerType*>(pattern);
+        if (!actual->isPointer()) {
+            return false;
+        }
+        auto* actPtr = static_cast<const PointerType*>(actual);
+        if (patPtr->isMutable() != actPtr->isMutable()) {
+            return false;
+        }
+        return matchTypePattern(patPtr->getPointeeType(), actPtr->getPointeeType());
+    }
+    if (pattern->isOptional()) {
+        if (!actual->isOptional()) {
+            return false;
+        }
+        return matchTypePattern(
+            static_cast<const OptionalType*>(pattern)->getInnerType(),
+            static_cast<const OptionalType*>(actual)->getInnerType());
+    }
+    if (pattern->isArray()) {
+        auto* patArr = static_cast<const ArrayType*>(pattern);
+        if (!actual->isArray()) {
+            return false;
+        }
+        auto* actArr = static_cast<const ArrayType*>(actual);
+        if (patArr->getArraySize() != actArr->getArraySize()) {
+            return false;
+        }
+        return matchTypePattern(patArr->getElementType(), actArr->getElementType());
+    }
+    if (pattern->isSlice()) {
+        auto* patSlice = static_cast<const SliceType*>(pattern);
+        if (!actual->isSlice()) {
+            return false;
+        }
+        auto* actSlice = static_cast<const SliceType*>(actual);
+        if (patSlice->isMutable() != actSlice->isMutable()) {
+            return false;
+        }
+        return matchTypePattern(patSlice->getElementType(), actSlice->getElementType());
+    }
+    if (pattern->isTuple()) {
+        auto* patTuple = static_cast<const TupleType*>(pattern);
+        if (!actual->isTuple()) {
+            return false;
+        }
+        auto* actTuple = static_cast<const TupleType*>(actual);
+        if (patTuple->getElementCount() != actTuple->getElementCount()) {
+            return false;
+        }
+        for (size_t i = 0; i < patTuple->getElementCount(); ++i) {
+            if (!matchTypePattern(patTuple->getElement(i), actTuple->getElement(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (pattern->isGenericInstance()) {
+        if (!actual->isGenericInstance()) {
+            return false;
+        }
+        auto* patInst = static_cast<const GenericInstanceType*>(pattern);
+        auto* actInst = static_cast<const GenericInstanceType*>(actual);
+        if (!matchTypePattern(patInst->getBaseType(), actInst->getBaseType())) {
+            return false;
+        }
+        if (patInst->getTypeArgCount() != actInst->getTypeArgCount()) {
+            return false;
+        }
+        for (size_t i = 0; i < patInst->getTypeArgCount(); ++i) {
+            if (!matchTypePattern(patInst->getTypeArg(i), actInst->getTypeArg(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    return pattern->isEqual(const_cast<Type*>(actual));
+}
+
+} // namespace
+
 ASTContext::ASTContext(SourceManager& sm)
     : SM(sm) {
     // 预留一些空间以减少重新分配
@@ -140,23 +254,12 @@ FuncDecl* ASTContext::getDisplayImpl(Type* type) const {
         return it->second;
     }
 
-    if (type->isGenericInstance()) {
-        auto* gen = static_cast<GenericInstanceType*>(type);
-        Type* base = gen->getBaseType();
-        it = DisplayImpls.find(base);
-        if (it != DisplayImpls.end()) {
-            return it->second;
-        }
-    }
-
-    // Fallback: match any generic impl with the same base type.
     for (const auto& entry : DisplayImpls) {
         const Type* keyType = entry.first;
-        if (!keyType || !keyType->isGenericInstance()) {
+        if (!keyType || keyType == type) {
             continue;
         }
-        auto* gen = static_cast<const GenericInstanceType*>(keyType);
-        if (gen->getBaseType() == type) {
+        if (matchTypePattern(keyType, type)) {
             return entry.second;
         }
     }
@@ -174,22 +277,12 @@ FuncDecl* ASTContext::getDebugImpl(Type* type) const {
         return it->second;
     }
 
-    if (type->isGenericInstance()) {
-        auto* gen = static_cast<GenericInstanceType*>(type);
-        Type* base = gen->getBaseType();
-        it = DebugImpls.find(base);
-        if (it != DebugImpls.end()) {
-            return it->second;
-        }
-    }
-
     for (const auto& entry : DebugImpls) {
         const Type* keyType = entry.first;
-        if (!keyType || !keyType->isGenericInstance()) {
+        if (!keyType || keyType == type) {
             continue;
         }
-        auto* gen = static_cast<const GenericInstanceType*>(keyType);
-        if (gen->getBaseType() == type) {
+        if (matchTypePattern(keyType, type)) {
             return entry.second;
         }
     }
@@ -206,28 +299,27 @@ void ASTContext::registerImplMethod(Type* type, FuncDecl* method) {
 
 FuncDecl* ASTContext::getImplMethod(Type* type, const std::string& name) const {
     auto it = ImplMethods.find(type);
-    if (it == ImplMethods.end()) {
-        // Try generic instance methods whose base type matches
-        for (const auto& entry : ImplMethods) {
-            const Type* keyType = entry.first;
-            if (!keyType || !keyType->isGenericInstance()) {
-                continue;
-            }
-            auto* gen = static_cast<const GenericInstanceType*>(keyType);
-            if (gen->getBaseType() != type) {
-                continue;
-            }
-            const auto& methods = entry.second;
-            auto mit = methods.find(name);
-            if (mit != methods.end()) {
-                return mit->second;
-            }
+    if (it != ImplMethods.end()) {
+        const auto& methods = it->second;
+        auto mit = methods.find(name);
+        if (mit != methods.end()) {
+            return mit->second;
         }
-        return nullptr;
     }
-    const auto& methods = it->second;
-    auto mit = methods.find(name);
-    return mit == methods.end() ? nullptr : mit->second;
+
+    for (const auto& entry : ImplMethods) {
+        const Type* keyType = entry.first;
+        if (!keyType || keyType == type || !matchTypePattern(keyType, type)) {
+            continue;
+        }
+        const auto& methods = entry.second;
+        auto mit = methods.find(name);
+        if (mit != methods.end()) {
+            return mit->second;
+        }
+    }
+
+    return nullptr;
 }
 
 TupleType* ASTContext::getTupleType(std::vector<Type*> elements) {
@@ -370,11 +462,12 @@ TraitType* ASTContext::getTraitType(std::string name) {
 }
 
 GenericType* ASTContext::getGenericType(std::string name, std::vector<TraitType*> constraints) {
-    auto it = GenericTypes.find(name);
+    GenericTypeKey key{name, constraints};
+    auto it = GenericTypes.find(key);
     if (it == GenericTypes.end()) {
         auto type = std::make_unique<GenericType>(name, std::move(constraints));
         GenericType* ptr = type.get();
-        GenericTypes[name] = std::move(type);
+        GenericTypes[std::move(key)] = std::move(type);
         return ptr;
     }
     return it->second.get();

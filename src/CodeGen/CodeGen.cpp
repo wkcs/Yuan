@@ -196,6 +196,21 @@ static std::vector<std::string> inferStructGenericParams(const StructType* struc
     return params;
 }
 
+static std::vector<std::string> inferEnumGenericParams(const EnumType* enumType) {
+    std::vector<std::string> params;
+    if (!enumType) {
+        return params;
+    }
+
+    std::unordered_set<std::string> seen;
+    for (const auto& variant : enumType->getVariants()) {
+        for (Type* payloadTy : variant.Data) {
+            collectGenericNames(payloadTy, params, seen);
+        }
+    }
+    return params;
+}
+
 static llvm::Type* normalizeFirstClassType(llvm::Type* type) {
     if (!type) {
         return nullptr;
@@ -488,23 +503,26 @@ std::string CodeGen::buildSpecializationSuffix(const FuncDecl* decl, const Gener
 
     std::vector<std::string> keys;
     keys.reserve(mapping.size());
+    std::unordered_set<std::string> included;
     if (decl && decl->isGeneric()) {
         for (const auto& param : decl->getGenericParams()) {
-            if (mapping.find(param.Name) != mapping.end()) {
+            if (mapping.find(param.Name) != mapping.end() &&
+                included.insert(param.Name).second) {
                 keys.push_back(param.Name);
             }
         }
     }
 
+    std::vector<std::string> extraKeys;
+    extraKeys.reserve(mapping.size());
     for (const auto& entry : mapping) {
-        if (std::find(keys.begin(), keys.end(), entry.first) == keys.end()) {
-            keys.push_back(entry.first);
+        if (included.insert(entry.first).second) {
+            extraKeys.push_back(entry.first);
         }
     }
 
-    if (!(decl && decl->isGeneric())) {
-        std::sort(keys.begin(), keys.end());
-    }
+    std::sort(extraKeys.begin(), extraKeys.end());
+    keys.insert(keys.end(), extraKeys.begin(), extraKeys.end());
 
     std::string suffix = "_S";
     suffix += std::to_string(keys.size());
@@ -632,6 +650,43 @@ Type* CodeGen::substituteType(Type* type) const {
             paramsPtr = &it->second;
         } else {
             inferredParams = inferStructGenericParams(structTy);
+            if (!inferredParams.empty()) {
+                paramsPtr = &inferredParams;
+            }
+        }
+
+        if (paramsPtr && !paramsPtr->empty()) {
+            std::vector<Type*> typeArgs;
+            typeArgs.reserve(paramsPtr->size());
+            for (const auto& paramName : *paramsPtr) {
+                auto mit = mapping.find(paramName);
+                if (mit == mapping.end() || !mit->second) {
+                    return type;
+                }
+                typeArgs.push_back(substituteType(mit->second));
+            }
+            return Ctx.getGenericInstanceType(const_cast<Type*>(type), std::move(typeArgs));
+        }
+    }
+
+    if (type->isEnum()) {
+        auto* enumTy = static_cast<EnumType*>(type);
+        auto it = EnumGenericParams.find(enumTy);
+        if (it == EnumGenericParams.end()) {
+            for (const auto& entry : EnumGenericParams) {
+                if (entry.first && entry.first->getName() == enumTy->getName()) {
+                    it = EnumGenericParams.find(entry.first);
+                    break;
+                }
+            }
+        }
+
+        std::vector<std::string> inferredParams;
+        const std::vector<std::string>* paramsPtr = nullptr;
+        if (it != EnumGenericParams.end() && !it->second.empty()) {
+            paramsPtr = &it->second;
+        } else {
+            inferredParams = inferEnumGenericParams(enumTy);
             if (!inferredParams.empty()) {
                 paramsPtr = &inferredParams;
             }
@@ -1286,6 +1341,67 @@ llvm::Type* CodeGen::getLLVMType(const Type* type) {
                         }
 
                         llvmType = llvmStruct;
+                        break;
+                    }
+                }
+            }
+            if (baseType && baseType->isEnum()) {
+                auto* baseEnum = static_cast<const EnumType*>(baseType);
+                auto it = EnumGenericParams.find(baseEnum);
+                if (it == EnumGenericParams.end()) {
+                    for (const auto& entry : EnumGenericParams) {
+                        if (entry.first && entry.first->getName() == baseEnum->getName()) {
+                            it = EnumGenericParams.find(entry.first);
+                            break;
+                        }
+                    }
+                }
+                if (it == EnumGenericParams.end()) {
+                    std::vector<std::string> inferred = inferEnumGenericParams(baseEnum);
+                    if (!inferred.empty()) {
+                        auto key = const_cast<EnumType*>(baseEnum);
+                        EnumGenericParams[key] = std::move(inferred);
+                        it = EnumGenericParams.find(key);
+                    }
+                }
+                if (it != EnumGenericParams.end() && !it->second.empty()) {
+                    const auto& params = it->second;
+                    if (params.size() == genInst->getTypeArgCount()) {
+                        std::string instName = "_YE_";
+                        instName += mangleIdentifier(baseEnum->getName());
+                        for (size_t i = 0; i < params.size(); ++i) {
+                            instName += "__";
+                            instName += mangleIdentifier(params[i]);
+                            instName += "_";
+                            instName += mangleTypeForSymbol(genInst->getTypeArg(i));
+                        }
+
+                        llvm::StructType* llvmEnum = llvm::StructType::getTypeByName(*Context, instName);
+                        if (!llvmEnum) {
+                            llvmEnum = llvm::StructType::create(*Context, instName);
+                        }
+
+                        if (llvmEnum->isOpaque()) {
+                            GenericSubst mapping;
+                            for (size_t i = 0; i < params.size(); ++i) {
+                                mapping[params[i]] = genInst->getTypeArg(i);
+                            }
+
+                            GenericSubstStack.push_back(mapping);
+                            // Force payload type substitution/materialization under specialization mapping.
+                            for (const auto& variant : baseEnum->getVariants()) {
+                                for (Type* payloadTy : variant.Data) {
+                                    (void)getLLVMType(payloadTy);
+                                }
+                            }
+                            GenericSubstStack.pop_back();
+
+                            llvmEnum->setBody({
+                                llvm::Type::getInt32Ty(*Context),
+                                llvm::PointerType::get(llvm::Type::getInt8Ty(*Context), 0)});
+                        }
+
+                        llvmType = llvmEnum;
                         break;
                     }
                 }

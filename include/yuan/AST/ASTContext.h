@@ -252,7 +252,27 @@ private:
     std::unordered_map<std::string, std::unique_ptr<StructType>> StructTypes;
     std::unordered_map<std::string, std::unique_ptr<EnumType>> EnumTypes;
     std::unordered_map<std::string, std::unique_ptr<TraitType>> TraitTypes;
-    std::unordered_map<std::string, std::unique_ptr<GenericType>> GenericTypes;
+
+    struct GenericTypeKey {
+        std::string name;
+        std::vector<TraitType*> constraints;
+
+        bool operator==(const GenericTypeKey& other) const {
+            return name == other.name && constraints == other.constraints;
+        }
+    };
+
+    struct GenericTypeKeyHash {
+        size_t operator()(const GenericTypeKey& key) const {
+            size_t hash = std::hash<std::string>()(key.name);
+            for (TraitType* constraint : key.constraints) {
+                hash ^= std::hash<TraitType*>()(constraint) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+            }
+            return hash;
+        }
+    };
+
+    std::unordered_map<GenericTypeKey, std::unique_ptr<GenericType>, GenericTypeKeyHash> GenericTypes;
 
     // 泛型实例类型缓存
     struct GenericInstanceTypeKey {

@@ -887,6 +887,15 @@ bool CodeGen::generateEnumDecl(EnumDecl* decl) {
     // The LLVM representation (tagged union) is handled by getLLVMType
 
     if (Type* enumType = decl->getSemanticType()) {
+        if (enumType->isEnum() && decl->isGeneric()) {
+            auto* enumTy = static_cast<EnumType*>(enumType);
+            std::vector<std::string> params;
+            params.reserve(decl->getGenericParams().size());
+            for (const auto& param : decl->getGenericParams()) {
+                params.push_back(param.Name);
+            }
+            EnumGenericParams[enumTy] = std::move(params);
+        }
         (void)getLLVMType(enumType);
     }
 

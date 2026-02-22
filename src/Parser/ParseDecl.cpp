@@ -693,6 +693,16 @@ ParseResult<Decl> Parser::parseStructDecl(Visibility vis) {
     // 解析可选的 where 子句
     auto whereConstraints = parseWhereClause();
     applyWhereConstraints(genericParams, whereConstraints);
+    if (genericParams.empty() && !whereConstraints.empty()) {
+        for (const auto& constraint : whereConstraints) {
+            genericParams.emplace_back(constraint.first, constraint.second, startLoc);
+        }
+    }
+    if (genericParams.empty() && !whereConstraints.empty()) {
+        for (const auto& constraint : whereConstraints) {
+            genericParams.emplace_back(constraint.first, constraint.second, startLoc);
+        }
+    }
 
     // 解析字段列表
     if (!expectAndConsume(TokenKind::LBrace)) {
@@ -998,6 +1008,11 @@ ParseResult<Decl> Parser::parseTraitDecl(Visibility vis) {
     // 解析可选的 where 子句
     auto whereConstraints = parseWhereClause();
     applyWhereConstraints(genericParams, whereConstraints);
+    if (genericParams.empty() && !whereConstraints.empty()) {
+        for (const auto& constraint : whereConstraints) {
+            genericParams.emplace_back(constraint.first, constraint.second, startLoc);
+        }
+    }
 
     // 解析方法列表
     if (!expectAndConsume(TokenKind::LBrace)) {
@@ -1077,6 +1092,8 @@ ParseResult<Decl> Parser::parseImplDecl() {
     // 解析类型或 Trait 名
     // 需要向前看来确定是 "impl Type" 还是 "impl Trait for Type"
     std::string traitName;
+    TypeNode* traitRefType = nullptr;
+    std::vector<TypeNode*> traitTypeArgs;
     TypeNode* targetType = nullptr;
 
     auto firstTypeResult = parseType();
@@ -1087,10 +1104,12 @@ ParseResult<Decl> Parser::parseImplDecl() {
     if (match(TokenKind::KW_for)) {
         // impl Trait for Type
         // 第一个类型是 Trait 名
+        traitRefType = firstTypeResult.get();
         if (auto* identType = dynamic_cast<IdentifierTypeNode*>(firstTypeResult.get())) {
             traitName = identType->getName();
         } else if (auto* genericType = dynamic_cast<GenericTypeNode*>(firstTypeResult.get())) {
             traitName = genericType->getBaseName();
+            traitTypeArgs = genericType->getTypeArgs();
         } else {
             reportError(DiagID::err_expected_identifier);
             return ParseResult<Decl>::error();
@@ -1110,6 +1129,11 @@ ParseResult<Decl> Parser::parseImplDecl() {
     // 解析可选的 where 子句
     auto whereConstraints = parseWhereClause();
     applyWhereConstraints(genericParams, whereConstraints);
+    if (genericParams.empty() && !whereConstraints.empty()) {
+        for (const auto& constraint : whereConstraints) {
+            genericParams.emplace_back(constraint.first, constraint.second, startLoc);
+        }
+    }
 
     // 解析方法列表
     if (!expectAndConsume(TokenKind::LBrace)) {
@@ -1151,10 +1175,14 @@ ParseResult<Decl> Parser::parseImplDecl() {
     SourceRange range(startLoc, endLoc);
     
     auto* implDecl = Ctx.create<ImplDecl>(
-        range, targetType, traitName, std::move(methods));
+        range, targetType, traitName, traitRefType, std::move(methods));
     
     if (!genericParams.empty()) {
         implDecl->setGenericParams(std::move(genericParams));
+    }
+
+    if (!traitTypeArgs.empty()) {
+        implDecl->setTraitTypeArgs(std::move(traitTypeArgs));
     }
     
     if (!associatedTypes.empty()) {

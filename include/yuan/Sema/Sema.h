@@ -224,6 +224,14 @@ private:
     std::unique_ptr<ModuleManager> ModuleMgr;  ///< 模块管理器
     std::vector<std::string> ImportChain;      ///< 导入链（用于检测循环导入）
     std::unordered_map<const Type*, std::unordered_set<std::string>> ImplTraitMap;
+    struct ImplCandidate {
+        ImplDecl* Decl = nullptr;
+        TraitDecl* Trait = nullptr;           ///< nullptr 表示固有 impl
+        Type* TargetPattern = nullptr;        ///< impl 目标类型模式（可含泛型参数）
+        Type* TraitPattern = nullptr;         ///< trait 引用类型模式（可含泛型参数）
+        std::vector<GenericParam> GenericParams;
+    };
+    std::vector<ImplCandidate> ImplCandidates;
     
     // ========================================================================
     // 类型解析辅助方法
@@ -466,15 +474,35 @@ private:
     /// \brief 检查方法签名是否匹配
     /// \param traitMethod Trait 中的方法声明
     /// \param implMethod Impl 中的方法实现
-    /// \param targetTypeNode 目标类型节点
+    /// \param impl Impl 声明
+    /// \param traitSubst trait 泛型参数替换映射（可为空）
     /// \return 签名匹配返回 true
-    bool checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod, TypeNode* targetTypeNode);
+    bool checkMethodSignatureMatch(FuncDecl* traitMethod, FuncDecl* implMethod,
+                                   ImplDecl* impl,
+                                   const std::unordered_map<std::string, Type*>* traitSubst = nullptr);
     
     /// \brief 检查类型是否满足 Trait 约束
     /// \param type 类型
     /// \param trait Trait 声明
     /// \return 满足约束返回 true
     bool checkTraitBound(Type* type, TraitDecl* trait);
+
+    /// \brief 选择与类型匹配的 impl 候选并返回泛型替换
+    bool resolveImplCandidate(Type* actualType,
+                              TraitDecl* trait,
+                              std::unordered_map<std::string, Type*>& mapping,
+                              ImplDecl** matchedImpl = nullptr);
+
+    /// \brief 解析类型的方法实现（支持固有 impl 和 trait impl）
+    FuncDecl* resolveImplMethod(Type* actualType,
+                                const std::string& methodName,
+                                std::unordered_map<std::string, Type*>* mapping = nullptr,
+                                ImplDecl** matchedImpl = nullptr,
+                                bool includeTraitImpl = true);
+
+    /// \brief 检查映射后的泛型参数是否满足约束
+    bool checkGenericBoundsSatisfied(const std::vector<GenericParam>& params,
+                                     const std::unordered_map<std::string, Type*>& mapping) const;
     
     // ========================================================================
     // 错误处理检查

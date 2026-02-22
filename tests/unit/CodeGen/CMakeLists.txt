@@ -113,3 +113,18 @@ endif()
 
 gtest_discover_tests(TargetCodeGenTest DISCOVERY_TIMEOUT ${YUAN_GTEST_DISCOVERY_TIMEOUT})
 
+add_executable(GenericMonomorphTest
+    GenericMonomorphTest.cpp
+)
+
+target_link_libraries(GenericMonomorphTest
+    yuan_lib
+    GTest::gtest_main
+)
+
+if(LLVM_FOUND)
+    target_include_directories(GenericMonomorphTest PUBLIC ${LLVM_INCLUDE_DIRS})
+    target_link_libraries(GenericMonomorphTest ${LLVM_LIBRARIES})
+endif()
+
+gtest_discover_tests(GenericMonomorphTest DISCOVERY_TIMEOUT ${YUAN_GTEST_DISCOVERY_TIMEOUT})

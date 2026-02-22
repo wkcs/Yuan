@@ -506,6 +506,57 @@ TEST_F(ParseDeclTest, ImplDeclWithAssociatedType) {
     EXPECT_EQ(implDecl->getAssociatedTypes()[0]->getName(), "Item");
 }
 
+TEST_F(ParseDeclTest, ImplDeclTraitWithTypeArgs) {
+    auto* decl = parseDecl("impl From<i32> for S { func from(value: i32) -> Self { } }");
+    ASSERT_NE(decl, nullptr);
+    ASSERT_FALSE(hasErrors());
+
+    auto* implDecl = dynamic_cast<ImplDecl*>(decl);
+    ASSERT_NE(implDecl, nullptr);
+    ASSERT_TRUE(implDecl->isTraitImpl());
+    EXPECT_EQ(implDecl->getTraitName(), "From");
+    ASSERT_NE(implDecl->getTraitRefType(), nullptr);
+    EXPECT_TRUE(implDecl->hasTraitTypeArgs());
+    EXPECT_EQ(implDecl->getTraitTypeArgs().size(), 1u);
+
+    auto* traitRef = dynamic_cast<GenericTypeNode*>(implDecl->getTraitRefType());
+    ASSERT_NE(traitRef, nullptr);
+    EXPECT_EQ(traitRef->getBaseName(), "From");
+    EXPECT_EQ(traitRef->getTypeArgCount(), 1u);
+}
+
+TEST_F(ParseDeclTest, ImplDeclGenericTraitWithTypeParam) {
+    auto* decl = parseDecl("impl<T> From<T> for S { func from(value: T) -> Self { } }");
+    ASSERT_NE(decl, nullptr);
+    ASSERT_FALSE(hasErrors());
+
+    auto* implDecl = dynamic_cast<ImplDecl*>(decl);
+    ASSERT_NE(implDecl, nullptr);
+    EXPECT_TRUE(implDecl->isGeneric());
+    EXPECT_EQ(implDecl->getGenericParams().size(), 1u);
+    EXPECT_EQ(implDecl->getGenericParams()[0].Name, "T");
+    EXPECT_TRUE(implDecl->isTraitImpl());
+    EXPECT_EQ(implDecl->getTraitName(), "From");
+    EXPECT_TRUE(implDecl->hasTraitTypeArgs());
+    EXPECT_EQ(implDecl->getTraitTypeArgs().size(), 1u);
+}
+
+TEST_F(ParseDeclTest, ImplDeclWhereSynthesizesGenericParam) {
+    auto* decl =
+        parseDecl("impl Display for Option<T> where T: Display { func to_string(&self) -> str { } }");
+    ASSERT_NE(decl, nullptr);
+    ASSERT_FALSE(hasErrors());
+
+    auto* implDecl = dynamic_cast<ImplDecl*>(decl);
+    ASSERT_NE(implDecl, nullptr);
+    ASSERT_TRUE(implDecl->isTraitImpl());
+    ASSERT_TRUE(implDecl->isGeneric());
+    ASSERT_EQ(implDecl->getGenericParams().size(), 1u);
+    EXPECT_EQ(implDecl->getGenericParams()[0].Name, "T");
+    ASSERT_EQ(implDecl->getGenericParams()[0].Bounds.size(), 1u);
+    EXPECT_EQ(implDecl->getGenericParams()[0].Bounds[0], "Display");
+}
+
 // ============================================================================
 // 类型别名测试
 // ============================================================================

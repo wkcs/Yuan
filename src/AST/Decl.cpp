@@ -249,10 +249,12 @@ TypeAliasDecl* TraitDecl::findAssociatedType(const std::string& name) const {
 ImplDecl::ImplDecl(SourceRange range,
                    TypeNode* targetType,
                    const std::string& traitName,
+                   TypeNode* traitRefType,
                    std::vector<FuncDecl*> methods)
     : Decl(Kind::ImplDecl, range),
       TargetType(targetType),
       TraitName(traitName),
+      TraitRefType(traitRefType),
       Methods(std::move(methods)) {}
 
 FuncDecl* ImplDecl::findMethod(const std::string& name) const {

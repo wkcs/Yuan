@@ -21,6 +21,7 @@ class Stmt;
 class Pattern;
 class Type;
 class StructType;
+class EnumType;
 class GenericInstanceType;
 
 /// \brief LLVM IR code generator.
@@ -171,6 +172,7 @@ private:
 
     // Generic struct parameter names for specialization
     std::unordered_map<const StructType*, std::vector<std::string>> StructGenericParams;
+    std::unordered_map<const EnumType*, std::vector<std::string>> EnumGenericParams;
 
     // Loop context for break/continue
     struct LoopContext {

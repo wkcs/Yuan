@@ -6,6 +6,7 @@ add_executable(sema_tests
     SymbolTableTest.cpp
     SymbolTablePropertyTest.cpp
     ModuleManagerTest.cpp
+    GenericInstantiationTest.cpp
 )
 
 target_link_libraries(sema_tests
