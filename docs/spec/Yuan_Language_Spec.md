@@ -835,6 +835,16 @@ var arr: [i32; 10] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 var slice: &[i32] = &arr[2..5]  // [2, 3, 4]
 ```
 
+### 4.11 运算符重载解析规则
+
+对二元 `+ - * / % == != < <= > >=` 与一元 `- ! ~`：
+
+- 先尝试内建类型语义（如整数/浮点/布尔等原生运算）。
+- 若不命中内建语义，仅按 trait 映射解析，不回退同名固有方法。
+- 映射关系：`+ -> Add.add`、`- -> Sub.sub`、`* -> Mul.mul`、`/ -> Div.div`、`% -> Mod.mod`、`== -> Eq.eq`、`!= -> Ne.ne`、`< -> Lt.lt`、`<= -> Le.le`、`> -> Gt.gt`、`>= -> Ge.ge`、一元 `- -> Neg.neg`、`! -> Not.not`、`~ -> BitNot.bit_not`。
+- 算术与位非重载返回 `Self`，比较与逻辑非重载返回 `bool`。
+- 二元重载要求左右操作数同类型（`Self` 对齐）。
+
 ---
 
 ## 5. 语句
@@ -1593,6 +1603,37 @@ trait Error {
     func source(self: &Self) -> ?&Error
 }
 ```
+
+### 9.5 运算符 Trait（编译器注入）
+
+若当前编译单元未声明同名 trait，编译器会注入以下运算符 trait：
+
+```yuan
+trait Add    { func add(&self, other: &Self) -> Self }
+trait Sub    { func sub(&self, other: &Self) -> Self }
+trait Mul    { func mul(&self, other: &Self) -> Self }
+trait Div    { func div(&self, other: &Self) -> Self }
+trait Mod    { func mod(&self, other: &Self) -> Self }
+
+trait Eq     { func eq(&self, other: &Self) -> bool }
+trait Ne     { func ne(&self, other: &Self) -> bool }
+trait Lt     { func lt(&self, other: &Self) -> bool }
+trait Le     { func le(&self, other: &Self) -> bool }
+trait Gt     { func gt(&self, other: &Self) -> bool }
+trait Ge     { func ge(&self, other: &Self) -> bool }
+
+trait Neg    { func neg(&self) -> Self }
+trait Not    { func not(&self) -> bool }
+trait BitNot { func bit_not(&self) -> Self }
+```
+
+规则：
+
+- 运算符重载仅通过 `impl Trait for Type` 生效，不回退到同名固有方法。
+- 本轮支持的可重载运算符：二元 `+ - * / % == != < <= > >=`，一元 `- ! ~`。
+- 比较使用独立 trait（`Eq/Ne/Lt/Le/Gt/Ge`），不使用 `Ord.cmp`。
+- `impl Add/Sub/Mul/Div/Mod/Eq/Ne/Lt/Le/Gt/Ge/Neg/Not/BitNot for <builtin>` 被禁止；`<builtin>` 包含整数、浮点、`bool`、`char`、`str`。
+- 运算符 trait 的 `Self` 约束为同类型二元运算（`lhs` 与 `rhs` 需同类型）。
 
 ---
 

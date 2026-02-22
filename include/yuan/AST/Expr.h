@@ -428,6 +428,15 @@ public:
     
     /// \brief 获取运算符名称
     static const char* getOpName(Op op);
+
+    /// \brief 设置语义阶段解析到的运算符方法
+    void setResolvedOpMethod(class FuncDecl* method) { ResolvedOpMethod = method; }
+
+    /// \brief 获取语义阶段解析到的运算符方法
+    class FuncDecl* getResolvedOpMethod() const { return ResolvedOpMethod; }
+
+    /// \brief 清除语义阶段解析到的运算符方法
+    void clearResolvedOpMethod() { ResolvedOpMethod = nullptr; }
     
     /// \brief RTTI 支持
     static bool classof(const ASTNode* node) {
@@ -438,6 +447,7 @@ private:
     Op Operator;  ///< 运算符
     Expr* LHS;    ///< 左操作数
     Expr* RHS;    ///< 右操作数
+    class FuncDecl* ResolvedOpMethod = nullptr; ///< 语义阶段解析到的运算符方法
 };
 
 
@@ -483,6 +493,15 @@ public:
     
     /// \brief 获取运算符名称
     static const char* getOpName(Op op);
+
+    /// \brief 设置语义阶段解析到的运算符方法
+    void setResolvedOpMethod(class FuncDecl* method) { ResolvedOpMethod = method; }
+
+    /// \brief 获取语义阶段解析到的运算符方法
+    class FuncDecl* getResolvedOpMethod() const { return ResolvedOpMethod; }
+
+    /// \brief 清除语义阶段解析到的运算符方法
+    void clearResolvedOpMethod() { ResolvedOpMethod = nullptr; }
     
     /// \brief RTTI 支持
     static bool classof(const ASTNode* node) {
@@ -492,6 +511,7 @@ public:
 private:
     Op Operator;    ///< 运算符
     Expr* Operand;  ///< 操作数
+    class FuncDecl* ResolvedOpMethod = nullptr; ///< 语义阶段解析到的运算符方法
 };
 
 /// \brief 赋值表达式

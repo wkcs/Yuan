@@ -210,9 +210,11 @@ CompilationResult Driver::runFrontend(bool needSema) {
         if (needSema && !unit.Analyzed) {
             unit.Semantic = std::make_unique<Sema>(*unit.Context, *Diagnostics);
             configureModuleManager(*unit.Semantic);
+            yuan::CompilationUnit semaUnit(unit.FileID);
             for (Decl* decl : unit.Declarations) {
-                (void)unit.Semantic->analyzeDecl(decl);
+                semaUnit.addDecl(decl);
             }
+            (void)unit.Semantic->analyze(&semaUnit);
             unit.Analyzed = true;
             if (Diagnostics->hasErrors()) {
                 return CompilationResult::SemanticError;
@@ -468,9 +470,11 @@ CompilationResult Driver::buildModuleObject(const std::string& moduleSourcePath,
 
     auto depSema = std::make_unique<Sema>(*depCtx, *Diagnostics);
     configureModuleManager(*depSema);
+    yuan::CompilationUnit depUnit(fileID);
     for (Decl* decl : depDecls) {
-        (void)depSema->analyzeDecl(decl);
+        depUnit.addDecl(decl);
     }
+    (void)depSema->analyze(&depUnit);
     if (Diagnostics->hasErrors()) {
         return CompilationResult::SemanticError;
     }

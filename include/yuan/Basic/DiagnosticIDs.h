@@ -324,6 +324,9 @@ enum class DiagID : uint16_t {
     /// await outside async function
     err_await_outside_async = 3047,
 
+    /// Operator traits cannot be implemented for builtin types
+    err_builtin_operator_overload_forbidden = 3048,
+
     /// Cannot dereference non-pointer type
     err_cannot_deref_non_pointer = 3037,
     

@@ -201,4 +201,117 @@ func call_i32(w: Wrap<i32>) -> i32 {
     EXPECT_FALSE(calledUnspecialized);
 }
 
+TEST_F(GenericMonomorphTest, GenericOperatorAddCallTargetsSpecializedSymbol) {
+    const std::string source = R"(
+struct Wrap<T> {
+    value: T,
+}
+
+impl<T> Add for Wrap<T> {
+    func add(&self, other: &Self) -> Self {
+        return Wrap<T> { value: self.value }
+    }
+}
+
+func add_wrap(a: Wrap<i32>, b: Wrap<i32>) -> Wrap<i32> {
+    return a + b
+}
+)";
+
+    ASSERT_TRUE(compileSource(source));
+
+    ImplDecl* impl = findImplForMethod("add");
+    ASSERT_NE(impl, nullptr);
+    FuncDecl* addDecl = impl->findMethod("add");
+    ASSERT_NE(addDecl, nullptr);
+
+    FuncDecl* callerDecl = findFunctionDecl("add_wrap");
+    ASSERT_NE(callerDecl, nullptr);
+
+    std::string methodBase = CodeGenerator->getFunctionSymbolName(addDecl);
+    std::string specPrefix = methodBase + "_S";
+    std::string callerName = CodeGenerator->getFunctionSymbolName(callerDecl);
+
+    llvm::Function* callerFn = CodeGenerator->getModule()->getFunction(callerName);
+    ASSERT_NE(callerFn, nullptr);
+
+    bool calledSpecialized = false;
+    bool calledUnspecialized = false;
+    for (const llvm::BasicBlock& bb : *callerFn) {
+        for (const llvm::Instruction& inst : bb) {
+            auto* call = llvm::dyn_cast<llvm::CallBase>(&inst);
+            if (!call) {
+                continue;
+            }
+            llvm::Function* callee = call->getCalledFunction();
+            if (!callee) {
+                continue;
+            }
+            std::string calleeName = callee->getName().str();
+            if (startsWith(calleeName, specPrefix)) {
+                calledSpecialized = true;
+            }
+            if (calleeName == methodBase) {
+                calledUnspecialized = true;
+            }
+        }
+    }
+
+    EXPECT_TRUE(calledSpecialized);
+    EXPECT_FALSE(calledUnspecialized);
+}
+
+TEST_F(GenericMonomorphTest, UnaryNegOperatorCallsResolvedMethodSymbol) {
+    const std::string source = R"(
+struct Vec2 {
+    x: i32,
+}
+
+impl Neg for Vec2 {
+    func neg(&self) -> Self {
+        return Vec2 { x: 0 - self.x }
+    }
+}
+
+func negate(v: Vec2) -> Vec2 {
+    return -v
+}
+)";
+
+    ASSERT_TRUE(compileSource(source));
+
+    ImplDecl* impl = findImplForMethod("neg");
+    ASSERT_NE(impl, nullptr);
+    FuncDecl* negDecl = impl->findMethod("neg");
+    ASSERT_NE(negDecl, nullptr);
+
+    FuncDecl* callerDecl = findFunctionDecl("negate");
+    ASSERT_NE(callerDecl, nullptr);
+
+    std::string methodName = CodeGenerator->getFunctionSymbolName(negDecl);
+    std::string callerName = CodeGenerator->getFunctionSymbolName(callerDecl);
+
+    llvm::Function* callerFn = CodeGenerator->getModule()->getFunction(callerName);
+    ASSERT_NE(callerFn, nullptr);
+
+    bool calledNegMethod = false;
+    for (const llvm::BasicBlock& bb : *callerFn) {
+        for (const llvm::Instruction& inst : bb) {
+            auto* call = llvm::dyn_cast<llvm::CallBase>(&inst);
+            if (!call) {
+                continue;
+            }
+            llvm::Function* callee = call->getCalledFunction();
+            if (!callee) {
+                continue;
+            }
+            if (callee->getName().str() == methodName) {
+                calledNegMethod = true;
+            }
+        }
+    }
+
+    EXPECT_TRUE(calledNegMethod);
+}
+
 } // namespace yuan

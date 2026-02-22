@@ -190,7 +190,7 @@ public:
 
 private:
     /// \brief 注册内置 Trait（Display/Debug）
-    void registerBuiltinTraits();
+    void registerBuiltinTraits(const CompilationUnit* unit);
 
     /// \brief 进入泛型参数作用域并注册泛型参数
     /// \return 成功返回 true

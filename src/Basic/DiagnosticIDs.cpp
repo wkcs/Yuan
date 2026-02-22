@@ -148,6 +148,8 @@ const char* getDiagnosticFormatString(DiagID id) {
             return "unhandled error propagation in function '{0}'; handle with '! -> err { ... }' or mark function as error-returning";
         case DiagID::err_await_outside_async:
             return "'await' can only be used inside async functions";
+        case DiagID::err_builtin_operator_overload_forbidden:
+            return "builtin type '{0}' cannot implement operator trait '{1}'";
         case DiagID::err_return_type_mismatch:
             return "return type mismatch: expected '{0}', found '{1}'";
         case DiagID::err_missing_return:
@@ -294,7 +296,7 @@ std::string getDiagnosticCode(DiagID id) {
     uint16_t code = static_cast<uint16_t>(id);
     switch (id) {
         case DiagID::err_expected_token:
-            code = 2005;
+            code = 2001;
             break;
         case DiagID::err_variadic_param_must_be_last:
             code = 2003;

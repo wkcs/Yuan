@@ -20,8 +20,55 @@
 #include <functional>
 #include <set>
 #include <iostream>
+#include <array>
 
 namespace yuan {
+
+namespace {
+
+Type* unwrapAliases(Type* type) {
+    Type* current = type;
+    while (current && current->isTypeAlias()) {
+        current = static_cast<TypeAlias*>(current)->getAliasedType();
+    }
+    return current;
+}
+
+Type* unwrapValueType(Type* type) {
+    Type* current = unwrapAliases(type);
+    while (current && current->isReference()) {
+        current = unwrapAliases(static_cast<ReferenceType*>(current)->getPointeeType());
+    }
+    return current;
+}
+
+bool isOperatorTraitName(const std::string& traitName) {
+    static const std::unordered_set<std::string> kOperatorTraits = {
+        "Add", "Sub", "Mul", "Div", "Mod",
+        "Eq", "Ne", "Lt", "Le", "Gt", "Ge",
+        "Neg", "Not", "BitNot"
+    };
+    return kOperatorTraits.find(traitName) != kOperatorTraits.end();
+}
+
+bool isBuiltinOperatorForbiddenTarget(Type* type) {
+    Type* base = unwrapAliases(type);
+    return base && (base->isInteger() || base->isFloat() || base->isBool() ||
+                    base->isChar() || base->isString());
+}
+
+bool isBuiltinArithmeticType(Type* type) {
+    Type* base = unwrapValueType(type);
+    return base && base->isNumeric();
+}
+
+bool isBuiltinComparisonType(Type* type) {
+    Type* base = unwrapValueType(type);
+    return base && (base->isInteger() || base->isFloat() || base->isBool() ||
+                    base->isChar() || base->isString() || base->isPointer());
+}
+
+} // namespace
 
 // ============================================================================
 // 构造和析构
@@ -38,24 +85,61 @@ Sema::Sema(ASTContext& ctx, DiagnosticEngine& diag)
     // 通过 ASTContext 获取 SourceManager
     SourceManager& sourceMgr = ctx.getSourceManager();
     ModuleMgr = std::make_unique<ModuleManager>(sourceMgr, diag, ctx, *this);
-
-    // 注册内置特征（Display/Debug）
-    registerBuiltinTraits();
 }
 
 Sema::~Sema() = default;
 
-void Sema::registerBuiltinTraits() {
+void Sema::registerBuiltinTraits(const CompilationUnit* unit) {
     auto* global = Symbols.getGlobalScope();
-    auto addTrait = [&](const char* name, const char* methodName) {
-        if (global->lookupLocal(name)) {
+    std::unordered_set<std::string> userDeclaredTraits;
+    if (unit) {
+        for (Decl* decl : unit->getDecls()) {
+            if (decl && decl->getKind() == ASTNode::Kind::TraitDecl) {
+                userDeclaredTraits.insert(static_cast<TraitDecl*>(decl)->getName());
+            }
+        }
+    }
+
+    auto shouldSkipTrait = [&](const char* name) {
+        return userDeclaredTraits.find(name) != userDeclaredTraits.end() ||
+               global->lookupLocal(name) != nullptr;
+    };
+
+    enum class ReturnKind {
+        Str,
+        Bool,
+        Self
+    };
+
+    auto makeReturnType = [&](SourceRange range, ReturnKind kind) -> TypeNode* {
+        switch (kind) {
+            case ReturnKind::Str:
+                return Ctx.create<BuiltinTypeNode>(range, BuiltinTypeNode::BuiltinKind::Str);
+            case ReturnKind::Bool:
+                return Ctx.create<BuiltinTypeNode>(range, BuiltinTypeNode::BuiltinKind::Bool);
+            case ReturnKind::Self:
+                return Ctx.create<IdentifierTypeNode>(range, "Self");
+        }
+        return Ctx.create<BuiltinTypeNode>(range, BuiltinTypeNode::BuiltinKind::Void);
+    };
+
+    auto addTrait = [&](const char* name, const char* methodName,
+                        ReturnKind returnKind, bool hasOtherParam) {
+        if (shouldSkipTrait(name)) {
             return;
         }
 
         SourceRange range;
         auto* selfParam = ParamDecl::createSelf(range, ParamDecl::ParamKind::RefSelf);
         std::vector<ParamDecl*> params{selfParam};
-        auto* retType = Ctx.create<BuiltinTypeNode>(range, BuiltinTypeNode::BuiltinKind::Str);
+        if (hasOtherParam) {
+            auto* selfTypeNode = Ctx.create<IdentifierTypeNode>(range, "Self");
+            auto* otherTypeNode = Ctx.create<ReferenceTypeNode>(range, selfTypeNode, false);
+            auto* otherParam = Ctx.create<ParamDecl>(range, "other", otherTypeNode, false);
+            params.push_back(otherParam);
+        }
+
+        TypeNode* retType = makeReturnType(range, returnKind);
         auto* method = Ctx.create<FuncDecl>(
             range,
             methodName,
@@ -81,9 +165,26 @@ void Sema::registerBuiltinTraits() {
         analyzeTraitDecl(traitDecl);
     };
 
-    addTrait("Display", "to_string");
-    addTrait("Debug", "to_debug");
-    addTrait("Error", "message");
+    addTrait("Display", "to_string", ReturnKind::Str, false);
+    addTrait("Debug", "to_debug", ReturnKind::Str, false);
+    addTrait("Error", "message", ReturnKind::Str, false);
+
+    addTrait("Add", "add", ReturnKind::Self, true);
+    addTrait("Sub", "sub", ReturnKind::Self, true);
+    addTrait("Mul", "mul", ReturnKind::Self, true);
+    addTrait("Div", "div", ReturnKind::Self, true);
+    addTrait("Mod", "mod", ReturnKind::Self, true);
+
+    addTrait("Eq", "eq", ReturnKind::Bool, true);
+    addTrait("Ne", "ne", ReturnKind::Bool, true);
+    addTrait("Lt", "lt", ReturnKind::Bool, true);
+    addTrait("Le", "le", ReturnKind::Bool, true);
+    addTrait("Gt", "gt", ReturnKind::Bool, true);
+    addTrait("Ge", "ge", ReturnKind::Bool, true);
+
+    addTrait("Neg", "neg", ReturnKind::Self, false);
+    addTrait("Not", "not", ReturnKind::Bool, false);
+    addTrait("BitNot", "bit_not", ReturnKind::Self, false);
 
     if (Symbol* sysErrSym = Symbols.lookup("SysError")) {
         if (sysErrSym->getKind() == SymbolKind::Enum && sysErrSym->getType()) {
@@ -100,6 +201,8 @@ bool Sema::analyze(CompilationUnit* unit) {
     if (!unit) {
         return false;
     }
+
+    registerBuiltinTraits(unit);
 
     bool success = true;
 
@@ -2107,6 +2210,18 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
             traitPattern = Ctx.getGenericInstanceType(traitType, std::move(traitArgs));
         }
 
+        if (traitDecl && isOperatorTraitName(traitDecl->getName()) &&
+            isBuiltinOperatorForbiddenTarget(targetType)) {
+            Diag.report(DiagID::err_builtin_operator_overload_forbidden,
+                        decl->getBeginLoc(), decl->getRange())
+                << targetType->toString()
+                << traitDecl->getName();
+            if (enteredGeneric) {
+                exitGenericParamScope();
+            }
+            return false;
+        }
+
         // 记录 impl 映射，供 trait 约束检查使用
         ImplTraitMap[targetType].insert(traitDecl->getName());
         if (targetType->isGenericInstance()) {
@@ -3071,6 +3186,7 @@ Type* Sema::analyzeBinaryExpr(BinaryExpr* expr) {
     if (!expr) {
         return nullptr;
     }
+    expr->clearResolvedOpMethod();
 
     // 分析左右操作数
     Type* lhsType = analyzeExpr(expr->getLHS());
@@ -3080,14 +3196,8 @@ Type* Sema::analyzeBinaryExpr(BinaryExpr* expr) {
         return nullptr;
     }
 
-    Type* lhsValueType = lhsType;
-    Type* rhsValueType = rhsType;
-    if (lhsValueType->isReference()) {
-        lhsValueType = static_cast<ReferenceType*>(lhsValueType)->getPointeeType();
-    }
-    if (rhsValueType->isReference()) {
-        rhsValueType = static_cast<ReferenceType*>(rhsValueType)->getPointeeType();
-    }
+    Type* lhsValueType = unwrapValueType(lhsType);
+    Type* rhsValueType = unwrapValueType(rhsType);
 
     auto adaptUnsuffixedIntLiteral = [](Expr* operandExpr,
                                         Type*& operandType,
@@ -3109,6 +3219,8 @@ Type* Sema::analyzeBinaryExpr(BinaryExpr* expr) {
     adaptUnsuffixedIntLiteral(expr->getRHS(), rhsValueType, lhsValueType);
     lhsType = expr->getLHS()->getType();
     rhsType = expr->getRHS()->getType();
+    lhsValueType = unwrapValueType(lhsType);
+    rhsValueType = unwrapValueType(rhsType);
 
     BinaryExpr::Op op = expr->getOp();
     auto reportInvalidOperands = [&](BinaryExpr::Op opKind) {
@@ -3118,6 +3230,191 @@ Type* Sema::analyzeBinaryExpr(BinaryExpr* expr) {
             << rhsType->toString();
     };
 
+    auto resolveBinaryOverload = [&](const char* traitName,
+                                     const char* methodName,
+                                     bool expectBoolResult) -> Type* {
+        if (!lhsValueType || !rhsValueType || !lhsValueType->isEqual(rhsValueType)) {
+            reportInvalidOperands(op);
+            return nullptr;
+        }
+
+        Symbol* traitSymbol = Symbols.lookup(traitName);
+        if (!traitSymbol || traitSymbol->getKind() != SymbolKind::Trait) {
+            reportError(DiagID::err_expected_trait_bound, expr->getBeginLoc());
+            return nullptr;
+        }
+
+        auto* traitDecl = dynamic_cast<TraitDecl*>(traitSymbol->getDecl());
+        if (!traitDecl) {
+            reportError(DiagID::err_expected_trait_bound, expr->getBeginLoc());
+            return nullptr;
+        }
+
+        if (!checkTraitBound(lhsValueType, traitDecl)) {
+            Diag.report(DiagID::err_trait_not_implemented, expr->getBeginLoc(), expr->getRange())
+                << traitName
+                << lhsValueType->toString();
+            return nullptr;
+        }
+
+        std::unordered_map<std::string, Type*> mapping;
+        ImplDecl* matchedImpl = nullptr;
+        if (!resolveImplCandidate(lhsValueType, traitDecl, mapping, &matchedImpl)) {
+            matchedImpl = nullptr;
+        }
+
+        FuncDecl* methodDecl = nullptr;
+        if (matchedImpl) {
+            methodDecl = matchedImpl->findMethod(methodName);
+        }
+        if (!methodDecl) {
+            methodDecl = traitDecl->findMethod(methodName);
+        }
+        if (!methodDecl) {
+            Diag.report(DiagID::err_missing_trait_method, expr->getBeginLoc(), expr->getRange())
+                << methodName;
+            return nullptr;
+        }
+
+        Type* methodType = methodDecl->getSemanticType();
+        if (!methodType || !methodType->isFunction()) {
+            Diag.report(DiagID::err_trait_method_signature_mismatch, expr->getBeginLoc(), expr->getRange())
+                << methodName;
+            return nullptr;
+        }
+
+        if (!mapping.empty()) {
+            methodType = substituteType(methodType, mapping);
+        }
+
+        if (!matchedImpl) {
+            auto replaceTraitSelf = [&](auto&& self, Type* ty) -> Type* {
+                if (!ty) {
+                    return nullptr;
+                }
+                ty = unwrapAliases(ty);
+                if (!ty) {
+                    return nullptr;
+                }
+                if (ty->isTrait()) {
+                    auto* traitTy = static_cast<TraitType*>(ty);
+                    if (traitTy->getName() == traitDecl->getName()) {
+                        return lhsValueType;
+                    }
+                    return ty;
+                }
+                if (ty->isReference()) {
+                    auto* refTy = static_cast<ReferenceType*>(ty);
+                    Type* replaced = self(self, refTy->getPointeeType());
+                    return replaced ? Ctx.getReferenceType(replaced, refTy->isMutable()) : nullptr;
+                }
+                if (ty->isPointer()) {
+                    auto* ptrTy = static_cast<PointerType*>(ty);
+                    Type* replaced = self(self, ptrTy->getPointeeType());
+                    return replaced ? Ctx.getPointerType(replaced, ptrTy->isMutable()) : nullptr;
+                }
+                if (ty->isOptional()) {
+                    auto* optTy = static_cast<OptionalType*>(ty);
+                    Type* replaced = self(self, optTy->getInnerType());
+                    return replaced ? Ctx.getOptionalType(replaced) : nullptr;
+                }
+                if (ty->isArray()) {
+                    auto* arrTy = static_cast<ArrayType*>(ty);
+                    Type* replaced = self(self, arrTy->getElementType());
+                    return replaced ? Ctx.getArrayType(replaced, arrTy->getArraySize()) : nullptr;
+                }
+                if (ty->isSlice()) {
+                    auto* sliceTy = static_cast<SliceType*>(ty);
+                    Type* replaced = self(self, sliceTy->getElementType());
+                    return replaced ? Ctx.getSliceType(replaced, sliceTy->isMutable()) : nullptr;
+                }
+                if (ty->isTuple()) {
+                    auto* tupleTy = static_cast<TupleType*>(ty);
+                    std::vector<Type*> elems;
+                    elems.reserve(tupleTy->getElementCount());
+                    for (size_t i = 0; i < tupleTy->getElementCount(); ++i) {
+                        Type* replaced = self(self, tupleTy->getElement(i));
+                        if (!replaced) {
+                            return nullptr;
+                        }
+                        elems.push_back(replaced);
+                    }
+                    return Ctx.getTupleType(std::move(elems));
+                }
+                if (ty->isFunction()) {
+                    auto* fnTy = static_cast<FunctionType*>(ty);
+                    std::vector<Type*> params;
+                    params.reserve(fnTy->getParamCount());
+                    for (Type* paramTy : fnTy->getParamTypes()) {
+                        Type* replaced = self(self, paramTy);
+                        if (!replaced) {
+                            return nullptr;
+                        }
+                        params.push_back(replaced);
+                    }
+                    Type* retTy = self(self, fnTy->getReturnType());
+                    return retTy ? Ctx.getFunctionType(std::move(params), retTy, fnTy->canError(),
+                                                       fnTy->isVariadic())
+                                 : nullptr;
+                }
+                if (ty->isError()) {
+                    auto* errTy = static_cast<ErrorType*>(ty);
+                    Type* replaced = self(self, errTy->getSuccessType());
+                    return replaced ? Ctx.getErrorType(replaced) : nullptr;
+                }
+                if (ty->isRange()) {
+                    auto* rangeTy = static_cast<RangeType*>(ty);
+                    Type* replaced = self(self, rangeTy->getElementType());
+                    return replaced ? Ctx.getRangeType(replaced, rangeTy->isInclusive()) : nullptr;
+                }
+                return ty;
+            };
+            methodType = replaceTraitSelf(replaceTraitSelf, methodType);
+            if (!methodType || !methodType->isFunction()) {
+                Diag.report(DiagID::err_trait_method_signature_mismatch, expr->getBeginLoc(), expr->getRange())
+                    << methodName;
+                return nullptr;
+            }
+        }
+
+        auto* fnType = static_cast<FunctionType*>(methodType);
+        if (fnType->getParamCount() != 2) {
+            Diag.report(DiagID::err_trait_method_signature_mismatch, expr->getBeginLoc(), expr->getRange())
+                << methodName;
+            return nullptr;
+        }
+        if (!checkTypeCompatible(fnType->getParam(0), lhsType, expr->getLHS()->getRange())) {
+            return nullptr;
+        }
+        if (!checkTypeCompatible(fnType->getParam(1), rhsType, expr->getRHS()->getRange())) {
+            return nullptr;
+        }
+
+        Type* returnType = unwrapAliases(fnType->getReturnType());
+        if (!returnType) {
+            Diag.report(DiagID::err_trait_method_signature_mismatch, expr->getBeginLoc(), expr->getRange())
+                << methodName;
+            return nullptr;
+        }
+        if (expectBoolResult) {
+            if (!returnType->isBool()) {
+                Diag.report(DiagID::err_type_mismatch, expr->getBeginLoc(), expr->getRange())
+                    << "bool"
+                    << returnType->toString();
+                return nullptr;
+            }
+            returnType = Ctx.getBoolType();
+        } else if (!returnType->isEqual(lhsValueType)) {
+            Diag.report(DiagID::err_type_mismatch, expr->getBeginLoc(), expr->getRange())
+                << lhsValueType->toString()
+                << returnType->toString();
+            return nullptr;
+        }
+
+        expr->setResolvedOpMethod(methodDecl);
+        return returnType;
+    };
+
     switch (op) {
         // 算术运算符：要求两个操作数为相同的数值类型
         case BinaryExpr::Op::Add:
@@ -3125,16 +3422,36 @@ Type* Sema::analyzeBinaryExpr(BinaryExpr* expr) {
         case BinaryExpr::Op::Mul:
         case BinaryExpr::Op::Div:
         case BinaryExpr::Op::Mod: {
-            if (!lhsValueType->isNumeric() || !rhsValueType->isNumeric()) {
+            if (isBuiltinArithmeticType(lhsValueType) || isBuiltinArithmeticType(rhsValueType)) {
+                if (!lhsValueType->isNumeric() || !rhsValueType->isNumeric()) {
+                    reportInvalidOperands(op);
+                    return nullptr;
+                }
+                // 检查类型是否相同
+                if (!lhsValueType->isEqual(rhsValueType)) {
+                    reportInvalidOperands(op);
+                    return nullptr;
+                }
+                return lhsValueType;
+            }
+
+            if (isBuiltinOperatorForbiddenTarget(lhsValueType) ||
+                isBuiltinOperatorForbiddenTarget(rhsValueType) ||
+                (lhsValueType && lhsValueType->isPointer()) ||
+                (rhsValueType && rhsValueType->isPointer())) {
                 reportInvalidOperands(op);
                 return nullptr;
             }
-            // 检查类型是否相同
-            if (!lhsValueType->isEqual(rhsValueType)) {
-                reportInvalidOperands(op);
-                return nullptr;
+            switch (op) {
+                case BinaryExpr::Op::Add: return resolveBinaryOverload("Add", "add", false);
+                case BinaryExpr::Op::Sub: return resolveBinaryOverload("Sub", "sub", false);
+                case BinaryExpr::Op::Mul: return resolveBinaryOverload("Mul", "mul", false);
+                case BinaryExpr::Op::Div: return resolveBinaryOverload("Div", "div", false);
+                case BinaryExpr::Op::Mod: return resolveBinaryOverload("Mod", "mod", false);
+                default: break;
             }
-            return lhsValueType;
+            reportInvalidOperands(op);
+            return nullptr;
         }
 
         // 位运算符：要求两个操作数为相同的整数类型
@@ -3176,12 +3493,30 @@ Type* Sema::analyzeBinaryExpr(BinaryExpr* expr) {
         case BinaryExpr::Op::Le:
         case BinaryExpr::Op::Gt:
         case BinaryExpr::Op::Ge: {
-            // 比较运算符适用于数值类型、字符类型、布尔类型等
-            if (!lhsValueType->isEqual(rhsValueType)) {
+            if (isBuiltinComparisonType(lhsValueType) || isBuiltinComparisonType(rhsValueType)) {
+                if (!lhsValueType->isEqual(rhsValueType)) {
+                    reportInvalidOperands(op);
+                    return nullptr;
+                }
+                return Ctx.getBoolType();
+            }
+
+            if (isBuiltinOperatorForbiddenTarget(lhsValueType) ||
+                isBuiltinOperatorForbiddenTarget(rhsValueType)) {
                 reportInvalidOperands(op);
                 return nullptr;
             }
-            return Ctx.getBoolType();
+            switch (op) {
+                case BinaryExpr::Op::Eq: return resolveBinaryOverload("Eq", "eq", true);
+                case BinaryExpr::Op::Ne: return resolveBinaryOverload("Ne", "ne", true);
+                case BinaryExpr::Op::Lt: return resolveBinaryOverload("Lt", "lt", true);
+                case BinaryExpr::Op::Le: return resolveBinaryOverload("Le", "le", true);
+                case BinaryExpr::Op::Gt: return resolveBinaryOverload("Gt", "gt", true);
+                case BinaryExpr::Op::Ge: return resolveBinaryOverload("Ge", "ge", true);
+                default: break;
+            }
+            reportInvalidOperands(op);
+            return nullptr;
         }
 
         // 范围运算符：返回 Range 类型
@@ -3233,16 +3568,14 @@ Type* Sema::analyzeUnaryExpr(UnaryExpr* expr) {
     if (!expr) {
         return nullptr;
     }
+    expr->clearResolvedOpMethod();
 
     // 分析操作数
     Type* operandType = analyzeExpr(expr->getOperand());
     if (!operandType) {
         return nullptr;
     }
-    Type* operandValueType = operandType;
-    if (operandValueType->isReference()) {
-        operandValueType = static_cast<ReferenceType*>(operandValueType)->getPointeeType();
-    }
+    Type* operandValueType = unwrapValueType(operandType);
 
     UnaryExpr::Op op = expr->getOp();
     auto reportUnaryMismatch = [&](const char* expected) {
@@ -3251,40 +3584,247 @@ Type* Sema::analyzeUnaryExpr(UnaryExpr* expr) {
             << operandType->toString();
     };
 
+    auto resolveUnaryOverload = [&](const char* traitName,
+                                    const char* methodName,
+                                    bool expectBoolResult) -> Type* {
+        if (!operandValueType) {
+            reportUnaryMismatch("operator operand");
+            return nullptr;
+        }
+
+        Symbol* traitSymbol = Symbols.lookup(traitName);
+        if (!traitSymbol || traitSymbol->getKind() != SymbolKind::Trait) {
+            reportError(DiagID::err_expected_trait_bound, expr->getBeginLoc());
+            return nullptr;
+        }
+
+        auto* traitDecl = dynamic_cast<TraitDecl*>(traitSymbol->getDecl());
+        if (!traitDecl) {
+            reportError(DiagID::err_expected_trait_bound, expr->getBeginLoc());
+            return nullptr;
+        }
+
+        if (!checkTraitBound(operandValueType, traitDecl)) {
+            Diag.report(DiagID::err_trait_not_implemented, expr->getBeginLoc(), expr->getRange())
+                << traitName
+                << operandValueType->toString();
+            return nullptr;
+        }
+
+        std::unordered_map<std::string, Type*> mapping;
+        ImplDecl* matchedImpl = nullptr;
+        if (!resolveImplCandidate(operandValueType, traitDecl, mapping, &matchedImpl)) {
+            matchedImpl = nullptr;
+        }
+
+        FuncDecl* methodDecl = nullptr;
+        if (matchedImpl) {
+            methodDecl = matchedImpl->findMethod(methodName);
+        }
+        if (!methodDecl) {
+            methodDecl = traitDecl->findMethod(methodName);
+        }
+        if (!methodDecl) {
+            Diag.report(DiagID::err_missing_trait_method, expr->getBeginLoc(), expr->getRange())
+                << methodName;
+            return nullptr;
+        }
+
+        Type* methodType = methodDecl->getSemanticType();
+        if (!methodType || !methodType->isFunction()) {
+            Diag.report(DiagID::err_trait_method_signature_mismatch, expr->getBeginLoc(), expr->getRange())
+                << methodName;
+            return nullptr;
+        }
+
+        if (!mapping.empty()) {
+            methodType = substituteType(methodType, mapping);
+        }
+
+        if (!matchedImpl) {
+            auto replaceTraitSelf = [&](auto&& self, Type* ty) -> Type* {
+                if (!ty) {
+                    return nullptr;
+                }
+                ty = unwrapAliases(ty);
+                if (!ty) {
+                    return nullptr;
+                }
+                if (ty->isTrait()) {
+                    auto* traitTy = static_cast<TraitType*>(ty);
+                    if (traitTy->getName() == traitDecl->getName()) {
+                        return operandValueType;
+                    }
+                    return ty;
+                }
+                if (ty->isReference()) {
+                    auto* refTy = static_cast<ReferenceType*>(ty);
+                    Type* replaced = self(self, refTy->getPointeeType());
+                    return replaced ? Ctx.getReferenceType(replaced, refTy->isMutable()) : nullptr;
+                }
+                if (ty->isPointer()) {
+                    auto* ptrTy = static_cast<PointerType*>(ty);
+                    Type* replaced = self(self, ptrTy->getPointeeType());
+                    return replaced ? Ctx.getPointerType(replaced, ptrTy->isMutable()) : nullptr;
+                }
+                if (ty->isOptional()) {
+                    auto* optTy = static_cast<OptionalType*>(ty);
+                    Type* replaced = self(self, optTy->getInnerType());
+                    return replaced ? Ctx.getOptionalType(replaced) : nullptr;
+                }
+                if (ty->isArray()) {
+                    auto* arrTy = static_cast<ArrayType*>(ty);
+                    Type* replaced = self(self, arrTy->getElementType());
+                    return replaced ? Ctx.getArrayType(replaced, arrTy->getArraySize()) : nullptr;
+                }
+                if (ty->isSlice()) {
+                    auto* sliceTy = static_cast<SliceType*>(ty);
+                    Type* replaced = self(self, sliceTy->getElementType());
+                    return replaced ? Ctx.getSliceType(replaced, sliceTy->isMutable()) : nullptr;
+                }
+                if (ty->isTuple()) {
+                    auto* tupleTy = static_cast<TupleType*>(ty);
+                    std::vector<Type*> elems;
+                    elems.reserve(tupleTy->getElementCount());
+                    for (size_t i = 0; i < tupleTy->getElementCount(); ++i) {
+                        Type* replaced = self(self, tupleTy->getElement(i));
+                        if (!replaced) {
+                            return nullptr;
+                        }
+                        elems.push_back(replaced);
+                    }
+                    return Ctx.getTupleType(std::move(elems));
+                }
+                if (ty->isFunction()) {
+                    auto* fnTy = static_cast<FunctionType*>(ty);
+                    std::vector<Type*> params;
+                    params.reserve(fnTy->getParamCount());
+                    for (Type* paramTy : fnTy->getParamTypes()) {
+                        Type* replaced = self(self, paramTy);
+                        if (!replaced) {
+                            return nullptr;
+                        }
+                        params.push_back(replaced);
+                    }
+                    Type* retTy = self(self, fnTy->getReturnType());
+                    return retTy ? Ctx.getFunctionType(std::move(params), retTy, fnTy->canError(),
+                                                       fnTy->isVariadic())
+                                 : nullptr;
+                }
+                if (ty->isError()) {
+                    auto* errTy = static_cast<ErrorType*>(ty);
+                    Type* replaced = self(self, errTy->getSuccessType());
+                    return replaced ? Ctx.getErrorType(replaced) : nullptr;
+                }
+                if (ty->isRange()) {
+                    auto* rangeTy = static_cast<RangeType*>(ty);
+                    Type* replaced = self(self, rangeTy->getElementType());
+                    return replaced ? Ctx.getRangeType(replaced, rangeTy->isInclusive()) : nullptr;
+                }
+                return ty;
+            };
+            methodType = replaceTraitSelf(replaceTraitSelf, methodType);
+            if (!methodType || !methodType->isFunction()) {
+                Diag.report(DiagID::err_trait_method_signature_mismatch, expr->getBeginLoc(), expr->getRange())
+                    << methodName;
+                return nullptr;
+            }
+        }
+
+        auto* fnType = static_cast<FunctionType*>(methodType);
+        if (fnType->getParamCount() != 1) {
+            Diag.report(DiagID::err_trait_method_signature_mismatch, expr->getBeginLoc(), expr->getRange())
+                << methodName;
+            return nullptr;
+        }
+        if (!checkTypeCompatible(fnType->getParam(0), operandType, expr->getOperand()->getRange())) {
+            return nullptr;
+        }
+
+        Type* returnType = unwrapAliases(fnType->getReturnType());
+        if (!returnType) {
+            Diag.report(DiagID::err_trait_method_signature_mismatch, expr->getBeginLoc(), expr->getRange())
+                << methodName;
+            return nullptr;
+        }
+        if (expectBoolResult) {
+            if (!returnType->isBool()) {
+                Diag.report(DiagID::err_type_mismatch, expr->getBeginLoc(), expr->getRange())
+                    << "bool"
+                    << returnType->toString();
+                return nullptr;
+            }
+            returnType = Ctx.getBoolType();
+        } else if (!returnType->isEqual(operandValueType)) {
+            Diag.report(DiagID::err_type_mismatch, expr->getBeginLoc(), expr->getRange())
+                << operandValueType->toString()
+                << returnType->toString();
+            return nullptr;
+        }
+
+        expr->setResolvedOpMethod(methodDecl);
+        return returnType;
+    };
+
     switch (op) {
         // 取负运算符：要求操作数为数值类型
         case UnaryExpr::Op::Neg: {
-            if (!operandValueType->isNumeric()) {
+            if (isBuiltinArithmeticType(operandValueType)) {
+                if (!operandValueType->isNumeric()) {
+                    reportUnaryMismatch("numeric");
+                    return nullptr;
+                }
+                // 对于整数类型，检查是否为有符号类型
+                if (operandValueType->isInteger()) {
+                    auto* intType = static_cast<IntegerType*>(operandValueType);
+                    if (!intType->isSigned()) {
+                        reportUnaryMismatch("signed integer");
+                        return nullptr;
+                    }
+                }
+                return operandValueType;
+            }
+            if (isBuiltinOperatorForbiddenTarget(operandValueType)) {
                 reportUnaryMismatch("numeric");
                 return nullptr;
             }
-            // 对于整数类型，检查是否为有符号类型
-            if (operandValueType->isInteger()) {
-                auto* intType = static_cast<IntegerType*>(operandValueType);
-                if (!intType->isSigned()) {
-                    reportUnaryMismatch("signed integer");
-                    return nullptr;
-                }
+            if (operandValueType && operandValueType->isPointer()) {
+                reportUnaryMismatch("numeric");
+                return nullptr;
             }
-            return operandValueType;
+            return resolveUnaryOverload("Neg", "neg", false);
         }
 
         // 逻辑非运算符：要求操作数为布尔类型
         case UnaryExpr::Op::Not: {
-            if (!operandValueType->isBool()) {
+            if (operandValueType->isBool()) {
+                return Ctx.getBoolType();
+            }
+            if (isBuiltinOperatorForbiddenTarget(operandValueType)) {
                 reportUnaryMismatch("bool");
                 return nullptr;
             }
-            return Ctx.getBoolType();
+            if (operandValueType && operandValueType->isPointer()) {
+                reportUnaryMismatch("bool");
+                return nullptr;
+            }
+            return resolveUnaryOverload("Not", "not", true);
         }
 
         // 位取反运算符：要求操作数为整数类型
         case UnaryExpr::Op::BitNot: {
-            if (!operandValueType->isInteger()) {
+            if (operandValueType->isInteger()) {
+                return operandValueType;
+            }
+            if (isBuiltinOperatorForbiddenTarget(operandValueType)) {
                 reportUnaryMismatch("integer");
                 return nullptr;
             }
-            return operandValueType;
+            if (operandValueType && operandValueType->isPointer()) {
+                reportUnaryMismatch("integer");
+                return nullptr;
+            }
+            return resolveUnaryOverload("BitNot", "bit_not", false);
         }
 
         // 取引用运算符：返回引用类型

@@ -1,0 +1,19 @@
+// 负例：运算符重载仅走 trait，不回退固有同名方法
+// 预期：`a + b` 报 trait 未实现相关错误，而不是命中 Counter.add
+
+struct Counter {
+    value: i32,
+}
+
+impl Counter {
+    func add(&self, other: &Self) -> Self {
+        return Counter { value: self.value + other.value }
+    }
+}
+
+func main() {
+    var a = Counter { value: 1 }
+    var b = Counter { value: 2 }
+    var c = a + b
+    _ = c
+}

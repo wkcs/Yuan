@@ -990,6 +990,18 @@ llvm::Value* CodeGen::generateBinaryExpr(BinaryExpr* expr) {
         return nullptr;
     }
 
+    if (FuncDecl* resolvedMethod = expr->getResolvedOpMethod()) {
+        MemberExpr opMethodExpr(expr->getRange(), expr->getLHS(), resolvedMethod->getName());
+        opMethodExpr.setResolvedDecl(resolvedMethod);
+        CallExpr opCallExpr(
+            expr->getRange(),
+            &opMethodExpr,
+            std::vector<Expr*>{expr->getRHS()}
+        );
+        opCallExpr.setType(expr->getType());
+        return generateCallExpr(&opCallExpr);
+    }
+
     BinaryExpr::Op op = expr->getOp();
 
     // Handle short-circuit logical operators (&&, ||)
@@ -1396,6 +1408,14 @@ llvm::Value* CodeGen::generateLogicalBinaryExpr(BinaryExpr* expr) {
 llvm::Value* CodeGen::generateUnaryExpr(UnaryExpr* expr) {
     if (!expr) {
         return nullptr;
+    }
+
+    if (FuncDecl* resolvedMethod = expr->getResolvedOpMethod()) {
+        MemberExpr opMethodExpr(expr->getRange(), expr->getOperand(), resolvedMethod->getName());
+        opMethodExpr.setResolvedDecl(resolvedMethod);
+        CallExpr opCallExpr(expr->getRange(), &opMethodExpr, std::vector<Expr*>{});
+        opCallExpr.setType(expr->getType());
+        return generateCallExpr(&opCallExpr);
     }
 
     UnaryExpr::Op op = expr->getOp();

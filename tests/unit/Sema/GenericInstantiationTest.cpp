@@ -162,5 +162,156 @@ func call_i32(w: Wrap<i32>) -> i32 {
     EXPECT_TRUE(result.SemaOK);
 }
 
-} // namespace yuan
+TEST_F(GenericInstantiationTest, OperatorAddUsesTraitImpl) {
+    const std::string source = R"(
+struct Box {
+    value: i32,
+}
 
+impl Add for Box {
+    func add(&self, other: &Self) -> Self {
+        return Box { value: self.value + other.value }
+    }
+}
+
+func combine(a: Box, b: Box) -> Box {
+    return a + b
+}
+)";
+
+    AnalyzeResult result = analyzeSource(source);
+    EXPECT_TRUE(result.Parsed);
+    EXPECT_TRUE(result.SemaOK);
+}
+
+TEST_F(GenericInstantiationTest, OperatorAddDoesNotFallbackToInherentMethod) {
+    const std::string source = R"(
+struct Counter {
+    value: i32,
+}
+
+impl Counter {
+    func add(&self, other: &Self) -> Self {
+        return Counter { value: self.value + other.value }
+    }
+}
+
+func combine(a: Counter, b: Counter) -> Counter {
+    return a + b
+}
+)";
+
+    AnalyzeResult result = analyzeSource(source);
+    EXPECT_FALSE(result.SemaOK);
+    EXPECT_TRUE(hasDiag(result, DiagID::err_trait_not_implemented));
+}
+
+TEST_F(GenericInstantiationTest, ComparisonOperatorsUseIndependentTraits) {
+    const std::string source = R"(
+struct Score {
+    value: i32,
+}
+
+impl Eq for Score {
+    func eq(&self, other: &Self) -> bool { return self.value == other.value }
+}
+
+impl Ne for Score {
+    func ne(&self, other: &Self) -> bool { return self.value != other.value }
+}
+
+impl Lt for Score {
+    func lt(&self, other: &Self) -> bool { return self.value < other.value }
+}
+
+impl Le for Score {
+    func le(&self, other: &Self) -> bool { return self.value <= other.value }
+}
+
+impl Gt for Score {
+    func gt(&self, other: &Self) -> bool { return self.value > other.value }
+}
+
+impl Ge for Score {
+    func ge(&self, other: &Self) -> bool { return self.value >= other.value }
+}
+
+func compare_all(a: Score, b: Score) -> bool {
+    return a != b && a < b && a <= b && a > b && a >= b && a == b
+}
+)";
+
+    AnalyzeResult result = analyzeSource(source);
+    EXPECT_TRUE(result.Parsed);
+    EXPECT_TRUE(result.SemaOK);
+}
+
+TEST_F(GenericInstantiationTest, UnaryOperatorsUseTraitImpls) {
+    const std::string source = R"(
+struct Vec2 {
+    x: i32,
+}
+
+impl Neg for Vec2 {
+    func neg(&self) -> Self {
+        return Vec2 { x: 0 - self.x }
+    }
+}
+
+struct Flag {
+    set: bool,
+}
+
+impl Not for Flag {
+    func not(&self) -> bool {
+        return self.set
+    }
+}
+
+struct Mask {
+    bits: i32,
+}
+
+impl BitNot for Mask {
+    func bit_not(&self) -> Self {
+        return Mask { bits: ~self.bits }
+    }
+}
+
+func use_neg(v: Vec2) -> Vec2 { return -v }
+func use_not(v: Flag) -> bool { return !v }
+func use_bit_not(v: Mask) -> Mask { return ~v }
+)";
+
+    AnalyzeResult result = analyzeSource(source);
+    EXPECT_TRUE(result.Parsed);
+    EXPECT_TRUE(result.SemaOK);
+}
+
+TEST_F(GenericInstantiationTest, RejectsOperatorTraitImplForBuiltinType) {
+    const std::string source = R"(
+impl Add for i32 {
+    func add(&self, other: &Self) -> Self {
+        return 0
+    }
+}
+)";
+
+    AnalyzeResult result = analyzeSource(source);
+    EXPECT_FALSE(result.SemaOK);
+    EXPECT_TRUE(hasDiag(result, DiagID::err_builtin_operator_overload_forbidden));
+}
+
+TEST_F(GenericInstantiationTest, GenericBoundSupportsOperatorTraitOnlyResolution) {
+    const std::string source = R"(
+func add_values<T: Add>(a: T, b: T) -> T {
+    return a + b
+}
+)";
+
+    AnalyzeResult result = analyzeSource(source);
+    EXPECT_TRUE(result.Parsed);
+    EXPECT_TRUE(result.SemaOK);
+}
+
+} // namespace yuan

@@ -1,0 +1,135 @@
+// 运算符重载综合测试（正例）
+// 目标：
+// 1) operator traits 由编译器内置注册（本文件不声明 Add/Sub/...）
+// 2) 覆盖二元 + - * / % == != < <= > >=
+// 3) 覆盖一元 - ! ~
+// 4) 覆盖泛型约束 T: Add
+
+func println(...args) {
+    if args.len == 0i64 {
+        @print("\n")
+        return
+    }
+    var message: str = @format(args)
+    @print(message)
+    @print("\n")
+}
+
+struct Vec2 {
+    x: i32,
+    y: i32,
+}
+
+impl Add for Vec2 {
+    func add(&self, other: &Self) -> Self {
+        return Vec2 { x: self.x + other.x, y: self.y + other.y }
+    }
+}
+
+impl Sub for Vec2 {
+    func sub(&self, other: &Self) -> Self {
+        return Vec2 { x: self.x - other.x, y: self.y - other.y }
+    }
+}
+
+impl Neg for Vec2 {
+    func neg(&self) -> Self {
+        return Vec2 { x: -self.x, y: -self.y }
+    }
+}
+
+struct Score {
+    value: i32,
+}
+
+impl Eq for Score {
+    func eq(&self, other: &Self) -> bool { return self.value == other.value }
+}
+
+impl Ne for Score {
+    func ne(&self, other: &Self) -> bool { return self.value != other.value }
+}
+
+impl Lt for Score {
+    func lt(&self, other: &Self) -> bool { return self.value < other.value }
+}
+
+impl Le for Score {
+    func le(&self, other: &Self) -> bool { return self.value <= other.value }
+}
+
+impl Gt for Score {
+    func gt(&self, other: &Self) -> bool { return self.value > other.value }
+}
+
+impl Ge for Score {
+    func ge(&self, other: &Self) -> bool { return self.value >= other.value }
+}
+
+struct Flag {
+    value: bool,
+}
+
+impl Not for Flag {
+    func not(&self) -> bool {
+        return !self.value
+    }
+}
+
+struct Mask {
+    bits: i32,
+}
+
+impl BitNot for Mask {
+    func bit_not(&self) -> Self {
+        return Mask { bits: ~self.bits }
+    }
+}
+
+func add_generic<T: Add>(a: T, b: T) -> T {
+    return a + b
+}
+
+func main() {
+    @assert(7 + 5 == 12, "builtin add failed")
+    @assert(9 - 4 == 5, "builtin sub failed")
+    @assert(3 * 6 == 18, "builtin mul failed")
+    @assert(8 / 2 == 4, "builtin div failed")
+    @assert(10 % 3 == 1, "builtin mod failed")
+    @assert(3 < 4 && 4 <= 4 && 5 > 4 && 5 >= 5, "builtin compare failed")
+    @assert(!false, "builtin not failed")
+    @assert(~0b1010 == -11, "builtin bitnot failed")
+
+    var a = Vec2 { x: 10, y: 3 }
+    var b = Vec2 { x: 4, y: 8 }
+    var c = a + b
+    var d = a - b
+    var e = -a
+    @assert(c.x == 14 && c.y == 11, "Vec2 Add overload failed")
+    @assert(d.x == 6 && d.y == -5, "Vec2 Sub overload failed")
+    @assert(e.x == -10 && e.y == -3, "Vec2 Neg overload failed")
+
+    var g = add_generic(a, b)
+    @assert(g.x == 14 && g.y == 11, "generic Add bound failed")
+
+    var s1 = Score { value: 7 }
+    var s2 = Score { value: 9 }
+    var s3 = Score { value: 7 }
+    @assert(s1 == s3, "Eq overload failed")
+    @assert(s1 != s2, "Ne overload failed")
+    @assert(s1 < s2, "Lt overload failed")
+    @assert(s1 <= s3, "Le overload failed")
+    @assert(s2 > s1, "Gt overload failed")
+    @assert(s2 >= s2, "Ge overload failed")
+
+    var f0 = Flag { value: false }
+    var f1 = Flag { value: true }
+    @assert(!f0, "Not overload false->true failed")
+    @assert((!f1) == false, "Not overload true->false failed")
+
+    var m = Mask { bits: 0b1010 }
+    var mn = ~m
+    @assert(mn.bits == -11, "BitNot overload failed")
+
+    println("operator overloading comprehensive test passed")
+}

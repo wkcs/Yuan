@@ -1,0 +1,8 @@
+// 负例：内建类型禁止实现 operator trait
+// 预期：报 err_builtin_operator_overload_forbidden
+
+impl Add for i32 {
+    func add(&self, other: &Self) -> Self {
+        return 0
+    }
+}
