@@ -323,10 +323,6 @@ public:
             appendRuntimeLibraryPath(cmd, YUAN_RUNTIME_NET_LIB_PATH);
 #endif
             appendRuntimeNetLinkFlags(cmd);
-        } else {
-#ifdef YUAN_RUNTIME_NET_STUB_LIB_PATH
-            appendRuntimeLibraryPath(cmd, YUAN_RUNTIME_NET_STUB_LIB_PATH);
-#endif
         }
 
         if (Options.LinkRuntimeGUI) {

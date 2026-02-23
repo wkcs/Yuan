@@ -79,11 +79,6 @@ if(TARGET yuan_driver AND TARGET yuan_runtime)
             YUAN_RUNTIME_NET_LIB_PATH=\"$<TARGET_FILE:yuan_runtime_net>\"
         )
     endif()
-    if(TARGET yuan_runtime_net_stub)
-        target_compile_definitions(yuan_driver PRIVATE
-            YUAN_RUNTIME_NET_STUB_LIB_PATH=\"$<TARGET_FILE:yuan_runtime_net_stub>\"
-        )
-    endif()
     if(DEFINED YUAN_RUNTIME_GUI_LIB_PATH AND NOT YUAN_RUNTIME_GUI_LIB_PATH STREQUAL "")
         target_compile_definitions(yuan_driver PRIVATE
             YUAN_RUNTIME_GUI_LIB_PATH=\"${YUAN_RUNTIME_GUI_LIB_PATH}\"

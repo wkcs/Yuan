@@ -22,15 +22,6 @@ target_include_directories(yuan_runtime_net PUBLIC
     ${CMAKE_SOURCE_DIR}/include
 )
 
-add_library(yuan_runtime_net_stub STATIC
-    yuan_net.cpp
-)
-
-target_include_directories(yuan_runtime_net_stub PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
-)
-target_compile_definitions(yuan_runtime_net_stub PRIVATE YUAN_ENABLE_NETWORK=0)
-
 if(YUAN_ENABLE_NETWORK)
     target_compile_definitions(yuan_runtime_net PRIVATE YUAN_ENABLE_NETWORK=1)
     target_link_libraries(yuan_runtime_net PUBLIC yuan_third_party_curl)
@@ -68,10 +59,6 @@ install(TARGETS yuan_runtime
 )
 
 install(TARGETS yuan_runtime_net
-    ARCHIVE DESTINATION lib
-)
-
-install(TARGETS yuan_runtime_net_stub
     ARCHIVE DESTINATION lib
 )
 

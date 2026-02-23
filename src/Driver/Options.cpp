@@ -466,7 +466,7 @@ void printDriverHelp(const char* programName, std::ostream& os) {
     os << "  -L<路径> / -L <路径>    添加库路径\n";
     os << "  -l<库名> / -l <库名>    添加链接库\n";
     os << "  -fruntime-net           链接网络运行时库（yuan_runtime_net）\n";
-    os << "  -fno-runtime-net        不链接网络运行时库（改为链接 net stub）\n";
+    os << "  -fno-runtime-net        不链接网络运行时库（缺符号将链接报错）\n";
     os << "  -fruntime-gui           链接 GUI 运行时动态库（按平台）\n";
     os << "  -fno-runtime-gui        不链接 GUI 运行时动态库\n";
     os << "  --module-cache <路径>   模块缓存目录（.ymi/.o）\n";
