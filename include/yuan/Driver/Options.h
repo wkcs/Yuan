@@ -43,6 +43,8 @@ public:
     std::string StdLibPath;
     std::vector<std::string> LibraryPaths;
     std::vector<std::string> Libraries;
+    bool LinkRuntimeNet = true;
+    bool LinkRuntimeGUI = false;
 
     std::string getOutputFileName() const;
     const char* getOptLevelString() const;

@@ -2355,6 +2355,10 @@ llvm::Value* CodeGen::generateCallExpr(CallExpr* expr) {
         if (resolvedDecl && resolvedDecl->getKind() == ASTNode::Kind::FuncDecl) {
             FuncDecl* resolvedFunc = static_cast<FuncDecl*>(resolvedDecl);
             funcDecl = resolvedFunc;
+            if (!resolvedFunc->getLinkName().empty()) {
+                funcName = resolvedFunc->getLinkName();
+                preferExternalSymbol = true;
+            }
 
             // Trait-bound method calls in generic code may still resolve to trait
             // declarations after Sema. Prefer a concrete impl method once the
@@ -2377,6 +2381,10 @@ llvm::Value* CodeGen::generateCallExpr(CallExpr* expr) {
                 }
                 if (implMethod) {
                     funcDecl = implMethod;
+                    if (!implMethod->getLinkName().empty()) {
+                        funcName = implMethod->getLinkName();
+                        preferExternalSymbol = true;
+                    }
                 }
             }
 

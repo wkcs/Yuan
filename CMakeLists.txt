@@ -31,6 +31,7 @@ endif()
 # Options
 option(YUAN_BUILD_TESTS "Build Yuan tests" ON)
 option(YUAN_BUILD_DOCS "Build Yuan documentation" OFF)
+option(YUAN_ENABLE_NETWORK "Enable network runtime (HTTP via libcurl)." ON)
 
 # Find LLVM
 include(cmake/FindLLVM.cmake)
@@ -69,9 +70,25 @@ add_subdirectory(runtime)
 # Inject runtime archive path into Driver link step.
 if(TARGET yuan_driver AND TARGET yuan_runtime)
     target_compile_definitions(yuan_driver PRIVATE
-        YUAN_RUNTIME_LIB_PATH=\"$<TARGET_FILE:yuan_runtime>\"
-        YUAN_RUNTIME_LINK_FLAGS=\"${YUAN_RUNTIME_LINK_FLAGS}\"
+        YUAN_RUNTIME_CORE_LIB_PATH=\"$<TARGET_FILE:yuan_runtime>\"
+        YUAN_RUNTIME_CORE_LINK_FLAGS=\"${YUAN_RUNTIME_CORE_LINK_FLAGS}\"
+        YUAN_RUNTIME_NET_LINK_FLAGS=\"${YUAN_RUNTIME_NET_LINK_FLAGS}\"
     )
+    if(TARGET yuan_runtime_net)
+        target_compile_definitions(yuan_driver PRIVATE
+            YUAN_RUNTIME_NET_LIB_PATH=\"$<TARGET_FILE:yuan_runtime_net>\"
+        )
+    endif()
+    if(TARGET yuan_runtime_net_stub)
+        target_compile_definitions(yuan_driver PRIVATE
+            YUAN_RUNTIME_NET_STUB_LIB_PATH=\"$<TARGET_FILE:yuan_runtime_net_stub>\"
+        )
+    endif()
+    if(DEFINED YUAN_RUNTIME_GUI_LIB_PATH AND NOT YUAN_RUNTIME_GUI_LIB_PATH STREQUAL "")
+        target_compile_definitions(yuan_driver PRIVATE
+            YUAN_RUNTIME_GUI_LIB_PATH=\"${YUAN_RUNTIME_GUI_LIB_PATH}\"
+        )
+    endif()
 endif()
 
 # Tools
@@ -97,4 +114,5 @@ message(STATUS "  Build type:   ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  LLVM Version: ${LLVM_VERSION}")
 message(STATUS "  Build tests:  ${YUAN_BUILD_TESTS}")
+message(STATUS "  Network:      ${YUAN_ENABLE_NETWORK}")
 message(STATUS "")

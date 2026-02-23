@@ -28,6 +28,64 @@ std::string quoteArg(const std::string& value) {
     return out;
 }
 
+void appendTokenizedLinkFlags(std::ostringstream& cmd, const std::string& configured) {
+    if (configured.empty()) {
+        return;
+    }
+
+    std::size_t start = 0;
+    while (start <= configured.size()) {
+        std::size_t end = configured.find('|', start);
+        if (end == std::string::npos) {
+            end = configured.size();
+        }
+        std::string item = configured.substr(start, end - start);
+        if (!item.empty()) {
+            cmd << " " << quoteArg(item);
+        }
+        if (end == configured.size()) {
+            break;
+        }
+        start = end + 1;
+    }
+}
+
+void appendRuntimeCoreLinkFlags(std::ostringstream& cmd) {
+    const std::string configured =
+#ifdef YUAN_RUNTIME_CORE_LINK_FLAGS
+        YUAN_RUNTIME_CORE_LINK_FLAGS;
+#else
+        "";
+#endif
+    appendTokenizedLinkFlags(cmd, configured);
+}
+
+void appendRuntimeNetLinkFlags(std::ostringstream& cmd) {
+    const std::string configured =
+#ifdef YUAN_RUNTIME_NET_LINK_FLAGS
+        YUAN_RUNTIME_NET_LINK_FLAGS;
+#elif defined(YUAN_RUNTIME_LINK_FLAGS)
+        YUAN_RUNTIME_LINK_FLAGS;
+#else
+        "";
+#endif
+    // `YUAN_RUNTIME_LINK_FLAGS` is the legacy space-joined format.
+    if (configured.find('|') == std::string::npos) {
+        if (!configured.empty()) {
+            cmd << " " << configured;
+        }
+        return;
+    }
+    appendTokenizedLinkFlags(cmd, configured);
+}
+
+void appendRuntimeLibraryPath(std::ostringstream& cmd, const std::string& libraryPath) {
+    if (libraryPath.empty()) {
+        return;
+    }
+    cmd << " " << quoteArg(libraryPath);
+}
+
 FrontendActionKind toFrontendActionKind(DriverAction action) {
     switch (action) {
         case DriverAction::Link:
@@ -254,12 +312,28 @@ public:
             cmd << " " << quoteArg(obj);
         }
 
-#ifdef YUAN_RUNTIME_LIB_PATH
-        cmd << " " << quoteArg(YUAN_RUNTIME_LIB_PATH);
+#ifdef YUAN_RUNTIME_CORE_LIB_PATH
+        appendRuntimeLibraryPath(cmd, YUAN_RUNTIME_CORE_LIB_PATH);
+#elif defined(YUAN_RUNTIME_LIB_PATH)
+        appendRuntimeLibraryPath(cmd, YUAN_RUNTIME_LIB_PATH);
 #endif
-#ifdef YUAN_RUNTIME_LINK_FLAGS
-        cmd << " " << YUAN_RUNTIME_LINK_FLAGS;
+        appendRuntimeCoreLinkFlags(cmd);
+        if (Options.LinkRuntimeNet) {
+#ifdef YUAN_RUNTIME_NET_LIB_PATH
+            appendRuntimeLibraryPath(cmd, YUAN_RUNTIME_NET_LIB_PATH);
 #endif
+            appendRuntimeNetLinkFlags(cmd);
+        } else {
+#ifdef YUAN_RUNTIME_NET_STUB_LIB_PATH
+            appendRuntimeLibraryPath(cmd, YUAN_RUNTIME_NET_STUB_LIB_PATH);
+#endif
+        }
+
+        if (Options.LinkRuntimeGUI) {
+#ifdef YUAN_RUNTIME_GUI_LIB_PATH
+            appendRuntimeLibraryPath(cmd, YUAN_RUNTIME_GUI_LIB_PATH);
+#endif
+        }
 
         for (const auto& libPath : Options.LibraryPaths) {
             cmd << " -L" << quoteArg(libPath);
