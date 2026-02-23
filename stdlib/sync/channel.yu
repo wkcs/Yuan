@@ -4,17 +4,17 @@
 const collections = @import("collections")
 const mem = @import("mem")
 
-pub struct Sender<T> {
+pub struct Sender<T: Copy> {
     queue_ptr: *mut collections.Vec<T>,
     closed_ptr: *mut i32,
 }
 
-pub struct Receiver<T> {
+pub struct Receiver<T: Copy> {
     queue_ptr: *mut collections.Vec<T>,
     closed_ptr: *mut i32,
 }
 
-pub func create<T>() -> (Sender<T>, Receiver<T>) {
+pub func create<T: Copy>() -> (Sender<T>, Receiver<T>) {
     var queue_ptr: *mut collections.Vec<T> = mem.alloc_t<collections.Vec<T>>(1u64)
     var queue_slice: &mut [collections.Vec<T>] = mem.mut_slice_from_parts(queue_ptr, 1u64)
     var queue: collections.Vec<T> = collections.Vec.new()
@@ -36,7 +36,7 @@ pub func create<T>() -> (Sender<T>, Receiver<T>) {
     )
 }
 
-impl Sender<T> {
+impl<T: Copy> Sender<T> {
     pub func send(&mut self, value: T) {
         if self.queue_ptr == 0u64 as *mut collections.Vec<T> {
             return
@@ -60,7 +60,7 @@ impl Sender<T> {
     }
 }
 
-impl Receiver<T> {
+impl<T: Copy> Receiver<T> {
     pub func recv(&mut self) -> ?T {
         if self.queue_ptr == 0u64 as *mut collections.Vec<T> {
             return None

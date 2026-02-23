@@ -31,7 +31,7 @@ protected:
     ASTContext Ctx{SM};
     DiagnosticEngine Diag{SM};
     SymbolTable Symbols{Ctx};
-    TypeChecker Checker{Symbols, Diag};
+    TypeChecker Checker{Symbols, Diag, Ctx};
     StoredDiagnosticConsumer* StoredConsumer = nullptr;
 };
 
@@ -165,6 +165,47 @@ TEST_F(TypeCheckerTest, EvaluateConstExpr_DivisionByZeroReportsDedicatedDiagnost
     EXPECT_FALSE(Checker.evaluateConstExpr(&modExpr, result));
     ASSERT_FALSE(StoredConsumer->getDiagnostics().empty());
     EXPECT_EQ(StoredConsumer->getDiagnostics().back().getID(), DiagID::err_division_by_zero);
+}
+
+TEST_F(TypeCheckerTest, IsCopyType_AggregatesWithRepeatedElementType) {
+    Type* i32Ty = Ctx.getI32Type();
+    Type* tupleTy = TupleType::get(Ctx, {i32Ty, i32Ty});
+    EXPECT_TRUE(Checker.isCopyType(tupleTy));
+
+    std::vector<StructType::Field> fields;
+    fields.emplace_back("x", i32Ty, 0);
+    fields.emplace_back("y", i32Ty, 4);
+    Type* pairTy = StructType::get(Ctx, "PairI32", std::move(fields));
+    EXPECT_TRUE(Checker.isCopyType(pairTy));
+}
+
+TEST_F(TypeCheckerTest, NeedsDrop_OnlyExplicitValidDropImpl) {
+    SourceRange range = testRange();
+
+    // 正确 Drop: drop(&mut self) -> void
+    Type* resourceTy = StructType::get(Ctx, "Resource", {});
+    ParamDecl* validSelf = ParamDecl::createSelf(range, ParamDecl::ParamKind::MutRefSelf);
+    std::vector<ParamDecl*> validParams = {validSelf};
+    FuncDecl validDrop(range, "drop", std::move(validParams), nullptr, nullptr, false, false,
+                       Visibility::Public);
+    Type* validSelfTy = ReferenceType::get(Ctx, resourceTy, true);
+    validDrop.setSemanticType(FunctionType::get(Ctx, {validSelfTy}, Ctx.getVoidType(), false));
+    Ctx.registerImplMethod(resourceTy, &validDrop);
+
+    EXPECT_TRUE(Checker.needsDrop(resourceTy));
+    EXPECT_FALSE(Checker.isCopyType(resourceTy));
+
+    // 非法 Drop: drop(&self) -> void 不应触发 needsDrop
+    Type* badDropTy = StructType::get(Ctx, "BadDrop", {});
+    ParamDecl* badSelf = ParamDecl::createSelf(range, ParamDecl::ParamKind::RefSelf);
+    std::vector<ParamDecl*> badParams = {badSelf};
+    FuncDecl badDrop(range, "drop", std::move(badParams), nullptr, nullptr, false, false,
+                     Visibility::Public);
+    Type* badSelfTy = ReferenceType::get(Ctx, badDropTy, false);
+    badDrop.setSemanticType(FunctionType::get(Ctx, {badSelfTy}, Ctx.getVoidType(), false));
+    Ctx.registerImplMethod(badDropTy, &badDrop);
+
+    EXPECT_FALSE(Checker.needsDrop(badDropTy));
 }
 
 } // namespace yuan

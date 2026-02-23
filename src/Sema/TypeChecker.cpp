@@ -2,6 +2,7 @@
 /// \brief 类型检查实现。
 
 #include "yuan/Sema/TypeChecker.h"
+#include "yuan/AST/ASTContext.h"
 #include "yuan/AST/Decl.h"
 #include "yuan/AST/Expr.h"
 #include "yuan/Basic/Diagnostic.h"
@@ -17,6 +18,27 @@ Type* TypeChecker::unwrapAliases(Type* type) {
     }
     return current;
 }
+
+namespace {
+
+struct VisitingGuard {
+    std::unordered_set<const Type*>& Visiting;
+    const Type* Key = nullptr;
+    bool Active = false;
+
+    VisitingGuard(std::unordered_set<const Type*>& visiting, const Type* key)
+        : Visiting(visiting), Key(key) {
+        Active = Visiting.insert(Key).second;
+    }
+
+    ~VisitingGuard() {
+        if (Active) {
+            Visiting.erase(Key);
+        }
+    }
+};
+
+} // namespace
 
 bool TypeChecker::checkTypeCompatible(Type* expected, Type* actual, SourceLocation loc) {
     return checkTypeCompatible(expected, actual, SourceRange(loc));
@@ -195,6 +217,150 @@ bool TypeChecker::checkMutable(Expr* target, SourceLocation loc) {
     }
 
     return true;
+}
+
+bool TypeChecker::isCopyType(Type* type) {
+    std::unordered_set<const Type*> visiting;
+    return isCopyTypeImpl(type, visiting);
+}
+
+bool TypeChecker::needsDrop(Type* type) {
+    std::unordered_set<const Type*> visiting;
+    return needsDropImpl(type, visiting);
+}
+
+bool TypeChecker::isCopyTypeImpl(Type* type, std::unordered_set<const Type*>& visiting) {
+    type = unwrapAliases(type);
+    if (!type) {
+        return false;
+    }
+
+    VisitingGuard guard(visiting, type);
+    if (!guard.Active) {
+        // Break cycles conservatively.
+        return false;
+    }
+
+    if (type->isVoid() || type->isBool() || type->isChar() || type->isString() ||
+        type->isInteger() || type->isFloat() || type->isPointer() ||
+        type->isReference() || type->isFunction()) {
+        return true;
+    }
+
+    if (type->isGeneric()) {
+        auto* genericType = static_cast<GenericType*>(type);
+        for (TraitType* constraint : genericType->getConstraints()) {
+            if (constraint && constraint->getName() == "Copy") {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    if (needsDrop(type)) {
+        return false;
+    }
+
+    if (type->isArray()) {
+        auto* arrType = static_cast<ArrayType*>(type);
+        return isCopyTypeImpl(arrType->getElementType(), visiting);
+    }
+    if (type->isSlice()) {
+        auto* sliceType = static_cast<SliceType*>(type);
+        return isCopyTypeImpl(sliceType->getElementType(), visiting);
+    }
+    if (type->isOptional()) {
+        auto* optType = static_cast<OptionalType*>(type);
+        return isCopyTypeImpl(optType->getInnerType(), visiting);
+    }
+    if (type->isTuple()) {
+        auto* tupleType = static_cast<TupleType*>(type);
+        for (size_t i = 0; i < tupleType->getElementCount(); ++i) {
+            if (!isCopyTypeImpl(tupleType->getElement(i), visiting)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (type->isStruct()) {
+        auto* structType = static_cast<StructType*>(type);
+        for (const auto& field : structType->getFields()) {
+            if (!isCopyTypeImpl(field.FieldType, visiting)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (type->isEnum()) {
+        auto* enumType = static_cast<EnumType*>(type);
+        for (const auto& variant : enumType->getVariants()) {
+            for (Type* payloadTy : variant.Data) {
+                if (!isCopyTypeImpl(payloadTy, visiting)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    if (type->isGenericInstance()) {
+        auto* instType = static_cast<GenericInstanceType*>(type);
+        if (!isCopyTypeImpl(instType->getBaseType(), visiting)) {
+            return false;
+        }
+        for (Type* argTy : instType->getTypeArgs()) {
+            if (!isCopyTypeImpl(argTy, visiting)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (type->isError()) {
+        auto* errType = static_cast<ErrorType*>(type);
+        return isCopyTypeImpl(errType->getSuccessType(), visiting);
+    }
+    if (type->isRange()) {
+        auto* rangeType = static_cast<RangeType*>(type);
+        return isCopyTypeImpl(rangeType->getElementType(), visiting);
+    }
+
+    return false;
+}
+
+bool TypeChecker::needsDropImpl(Type* type, std::unordered_set<const Type*>& visiting) {
+    type = unwrapAliases(type);
+    if (!type) {
+        return false;
+    }
+
+    VisitingGuard guard(visiting, type);
+    if (!guard.Active) {
+        return false;
+    }
+
+    if (type->isGeneric()) {
+        // needsDrop 仅对“具有显式 Drop impl 的具体类型”返回 true。
+        return false;
+    }
+
+    FuncDecl* dropMethod = Ctx.getImplMethod(type, "drop");
+    if (!dropMethod) {
+        return false;
+    }
+    if (dropMethod->getParams().empty()) {
+        return false;
+    }
+    ParamDecl* selfParam = dropMethod->getParams()[0];
+    if (!selfParam || !selfParam->isSelf() ||
+        selfParam->getParamKind() != ParamDecl::ParamKind::MutRefSelf) {
+        return false;
+    }
+
+    Type* retType = dropMethod->getSemanticType();
+    if (!retType || !retType->isFunction()) {
+        return false;
+    }
+    auto* fnType = static_cast<FunctionType*>(retType);
+    return fnType->getReturnType() && fnType->getReturnType()->isVoid();
 }
 
 Type* TypeChecker::getCommonType(Type* t1, Type* t2) {

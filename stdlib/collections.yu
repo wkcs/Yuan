@@ -3,13 +3,13 @@
 
 const mem = @import("mem")
 
-pub struct Vec<T> {
+pub struct Vec<T: Copy> {
     data: *mut T,
     len: usize,
     cap: usize,
 }
 
-impl Vec<T> {
+impl<T: Copy> Vec<T> {
     pub func new() -> Vec<T> {
         return Vec { data: 0u64 as *mut T, len: 0u64, cap: 0u64 }
     }
@@ -130,7 +130,7 @@ impl Vec<T> {
         return self.as_slice()
     }
 
-    pub func free(&mut self) {
+    func release_buffer(&mut self) {
         if self.data != 0u64 as *mut T {
             mem.free(self.data as *mut u8)
         }
@@ -140,12 +140,18 @@ impl Vec<T> {
     }
 }
 
-pub struct HashMap<K, V> {
+impl<T: Copy> Drop for Vec<T> {
+    pub func drop(&mut self) {
+        self.release_buffer()
+    }
+}
+
+pub struct HashMap<K: Copy + Eq, V: Copy> {
     keys: Vec<K>,
     values: Vec<V>,
 }
 
-impl HashMap<K, V> {
+impl<K: Copy + Eq, V: Copy> HashMap<K, V> {
     func find_index(&self, key: K) -> i64 {
         var i: usize = 0u64
         while i < self.keys.len() {
@@ -211,17 +217,23 @@ impl HashMap<K, V> {
         self.values.clear()
     }
 
-    pub func free(&mut self) {
-        self.keys.free()
-        self.values.free()
+    func release_storage(&mut self) {
+        self.keys.release_buffer()
+        self.values.release_buffer()
     }
 }
 
-pub struct HashSet<T> {
+impl<K: Copy + Eq, V: Copy> Drop for HashMap<K, V> {
+    pub func drop(&mut self) {
+        self.release_storage()
+    }
+}
+
+pub struct HashSet<T: Copy + Eq> {
     values: Vec<T>,
 }
 
-impl HashSet<T> {
+impl<T: Copy + Eq> HashSet<T> {
     func find_index(&self, value: T) -> i64 {
         var i: usize = 0u64
         while i < self.values.len() {
@@ -270,7 +282,13 @@ impl HashSet<T> {
         self.values.clear()
     }
 
-    pub func free(&mut self) {
-        self.values.free()
+    func release_storage(&mut self) {
+        self.values.release_buffer()
+    }
+}
+
+impl<T: Copy + Eq> Drop for HashSet<T> {
+    pub func drop(&mut self) {
+        self.release_storage()
     }
 }

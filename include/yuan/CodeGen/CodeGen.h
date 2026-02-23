@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace yuan {
 
@@ -180,11 +181,22 @@ private:
         llvm::BasicBlock* BreakBlock;     ///< Block to jump to for break
         std::string Label;                ///< Loop label (if any)
         size_t DeferDepth = 0;            ///< Defer stack depth at loop entry
+        size_t DropScopeDepth = 0;        ///< Auto-drop scope depth at loop entry
     };
     std::vector<LoopContext> LoopStack;
 
     // Defer stack (stores deferred statements)
     std::vector<Stmt*> DeferStack;
+
+    // Auto-drop tracking for locals/parameters that need Drop
+    struct DropLocalInfo {
+        llvm::Value* Storage = nullptr;        ///< alloca/global storage for the binding
+        llvm::AllocaInst* DropFlag = nullptr;  ///< i1 flag: true => value is live and should be dropped
+        Type* ValueType = nullptr;             ///< semantic value type of the binding
+        FuncDecl* DropMethod = nullptr;        ///< resolved drop method (impl Drop::drop)
+    };
+    std::unordered_map<const Decl*, DropLocalInfo> DropLocals;
+    std::vector<std::vector<const Decl*>> DropScopeStack;
 
     // Helper methods
     std::string mangleIdentifier(const std::string& text) const;
@@ -281,6 +293,17 @@ private:
 
     // Helper methods for defer
     void executeDeferredStatements(size_t fromDepth = 0);
+
+    // Helper methods for automatic Drop
+    bool typeNeedsAutoDrop(Type* type, FuncDecl** dropMethod = nullptr) const;
+    void beginDropScope();
+    void endDropScope(bool emitDrops);
+    void registerDropLocal(const Decl* decl, llvm::Value* storage, Type* type, bool isInitialized);
+    void setDropFlag(const Decl* decl, bool live);
+    void emitDropForDecl(const Decl* decl);
+    void emitDropForScope(size_t scopeIndex);
+    void emitDropForScopeRange(size_t fromDepth);
+    const Decl* getDeclFromExprPlace(Expr* expr) const;
 
     // Symbol mangling caches
     mutable std::unordered_map<const FuncDecl*, std::string> FunctionSymbolCache;

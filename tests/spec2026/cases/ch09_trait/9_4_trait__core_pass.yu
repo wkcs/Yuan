@@ -6,51 +6,41 @@
 /// @phase: sema
 /// @diag_codes:
 /// @diag_keywords:
-// 常用内置 Trait — Clone 深拷贝、Eq 相等性比较
-
-trait Clone {
-    func clone(&self) -> Self
-}
-
-trait Eq {
-    func eq(&self, other: &Self) -> bool
-}
+// 常用内置 Trait + 所有权语义（Copy / Drop / self 接收）
 
 struct Vec2 {
     x: i32,
     y: i32,
 }
 
-impl Clone for Vec2 {
-    func clone(&self) -> Self {
-        return Vec2 { x: self.x, y: self.y }
+struct ConsumeMe {
+    value: i32,
+}
+
+impl ConsumeMe {
+    func into_value(self) -> i32 {
+        return self.value
     }
 }
 
-impl Eq for Vec2 {
-    func eq(&self, other: &Vec2) -> bool {
-        return self.x == other.x && self.y == other.y
+impl Drop for ConsumeMe {
+    func drop(&mut self) -> void {
+        self.value = 0
     }
 }
 
 func main() -> i32 {
+    // Copy: 结构化 Copy 类型赋值后源值仍可用
     var v = Vec2 { x: 3, y: 4 }
-
-    // Clone：克隆值等于原值
-    var c = v.clone()
-    @assert(c.x == 3, "9.4 Clone: x field copied")
-    @assert(c.y == 4, "9.4 Clone: y field copied")
-
-    // Clone 独立性：修改克隆不影响原始
+    var c = v
     c.x = 99
-    @assert(v.x == 3, "9.4 Clone: original unchanged")
+    @assert(v.x == 3, "9.4 Copy: original unchanged after copy-assignment")
+    @assert(c.x == 99, "9.4 Copy: copied value is mutable independently")
 
-    // Eq：相等判断
-    var a = Vec2 { x: 1, y: 2 }
-    var b = Vec2 { x: 1, y: 2 }
-    var d = Vec2 { x: 1, y: 9 }
-    @assert(a.eq(&b), "9.4 Eq: equal vectors")
-    @assert(!a.eq(&d), "9.4 Eq: different vectors")
+    // self: Self 按值消费接收者
+    var token = ConsumeMe { value: 7 }
+    var out = token.into_value()
+    @assert(out == 7, "9.4 self:Self consumes receiver")
 
     return 0
 }

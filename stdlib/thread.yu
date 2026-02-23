@@ -3,12 +3,12 @@
 
 const time = @import("time")
 
-pub struct Thread<T> {
+pub struct Thread<T: Copy> {
     value: T,
     finished: bool,
 }
 
-impl Thread<T> {
+impl<T: Copy> Thread<T> {
     pub func join(&self) -> T {
         return self.value
     }
@@ -17,13 +17,16 @@ impl Thread<T> {
         return self.finished
     }
 
-    pub func free(&mut self) {
+}
+
+impl<T: Copy> Drop for Thread<T> {
+    pub func drop(&mut self) {
         self.finished = true
     }
 }
 
 /// 启动线程（当前实现同步执行）
-pub func spawn<T>(task: func() -> T) -> Thread<T> {
+pub func spawn<T: Copy>(task: func() -> T) -> Thread<T> {
     var result: T = task()
     return Thread { value: result, finished: true }
 }

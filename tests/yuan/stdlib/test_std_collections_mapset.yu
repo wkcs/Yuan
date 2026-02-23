@@ -21,7 +21,6 @@ func main() -> i32 {
     _ = map.remove(1)
     println("[map] len after remove = {}", map.len())
     println("[map] contains_key(1) = {}", map.contains_key(1))
-    map.free()
 
     var str_map: collections.HashMap<str, i32> = collections.HashMap.new()
     str_map.insert("alpha", 7)
@@ -29,7 +28,6 @@ func main() -> i32 {
     var str_val: i32 = str_map.get("alpha") orelse -1
     println("[map<str>] get(alpha) = {}", str_val)
     println("[map<str>] contains_key(beta) = {}", str_map.contains_key("beta"))
-    str_map.free()
 
     var set: collections.HashSet<i32> = collections.HashSet.new()
     set.insert(10)
@@ -39,7 +37,6 @@ func main() -> i32 {
     println("[set] contains(10) = {}", set.contains(10))
     _ = set.remove(10)
     println("[set] len after remove = {}", set.len())
-    set.free()
 
     return 0
 }

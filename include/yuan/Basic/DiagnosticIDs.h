@@ -327,6 +327,24 @@ enum class DiagID : uint16_t {
     /// Operator traits cannot be implemented for builtin types
     err_builtin_operator_overload_forbidden = 3048,
 
+    /// Use of value after it has been moved
+    err_use_after_move = 3049,
+
+    /// Use of a value that may have been moved
+    err_use_of_maybe_moved = 3050,
+
+    /// Partial move (field/index) is not supported
+    err_partial_move_not_supported = 3051,
+
+    /// Explicit call to Drop::drop is forbidden
+    err_explicit_drop_call_forbidden = 3052,
+
+    /// Type contains resource semantics but does not implement Drop
+    err_type_requires_drop_impl = 3053,
+
+    /// Type is not copyable in this context
+    err_type_not_copyable = 3054,
+
     /// Cannot dereference non-pointer type
     err_cannot_deref_non_pointer = 3037,
     

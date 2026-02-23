@@ -4287,10 +4287,10 @@
     "expect_pass_command": "{yuanc} {pass_case} -o {tmp_bin} && {tmp_bin}; rc=$?; if [ $rc -ge 128 ]; then exit $rc; fi; exit 0",
     "expect_fail_command": "{yuanc} -fsyntax-only {fail_case}",
     "diag_codes": [
-      "E3003"
+      "E3052"
     ],
     "diag_keywords": [
-      "type mismatch"
+      "explicit call to Drop::drop is forbidden"
     ],
     "cases": [
       {
@@ -4326,10 +4326,10 @@
         "path": "tests/spec2026/cases/ch09_trait/9_4_trait__semantic_edge_fail.yu",
         "expect_command": "{yuanc} -fsyntax-only {fail_case}",
         "diag_codes": [
-          "E3003"
+          "E3052"
         ],
         "diag_keywords": [
-          "type mismatch"
+          "explicit call to Drop::drop is forbidden"
         ]
       }
     ]

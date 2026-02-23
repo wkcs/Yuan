@@ -197,6 +197,7 @@ bool CodeGen::generateVarDecl(VarDecl* decl) {
 
         // Store the alloca in the value map
         ValueMap[decl] = alloca;
+        registerDropLocal(decl, alloca, semanticType, false);
 
         // Generate initialization if present
         if (Expr* init = decl->getInit()) {
@@ -338,6 +339,7 @@ bool CodeGen::generateVarDecl(VarDecl* decl) {
             }
 
             Builder->CreateStore(initValue, alloca);
+            setDropFlag(decl, true);
         }
 
         return true;
@@ -608,7 +610,12 @@ bool CodeGen::generateFuncDecl(FuncDecl* decl) {
         CurrentFunctionName = name;
         CurrentFuncDecl = decl;
         std::vector<Stmt*> savedDeferStack = std::move(DeferStack);
+        auto savedDropLocals = std::move(DropLocals);
+        auto savedDropScopes = std::move(DropScopeStack);
+        DropLocals.clear();
+        DropScopeStack.clear();
         DeferStack.clear();
+        beginDropScope();
 
         // Create allocas for parameters
         idx = 0;
@@ -627,6 +634,7 @@ bool CodeGen::generateFuncDecl(FuncDecl* decl) {
 
             // Map parameter decl to alloca
             ValueMap[param] = alloca;
+            registerDropLocal(param, alloca, param->getSemanticType(), true);
 
             ++idx;
         }
@@ -695,7 +703,10 @@ bool CodeGen::generateFuncDecl(FuncDecl* decl) {
         CurrentFuncDecl = savedFuncDecl;
 
         if (!success) {
+            endDropScope(false);
             DeferStack = std::move(savedDeferStack);
+            DropLocals = std::move(savedDropLocals);
+            DropScopeStack = std::move(savedDropScopes);
             std::cerr << "CodeGen failed in function body: " << name << std::endl;
             func->eraseFromParent();
             return false;
@@ -705,21 +716,27 @@ bool CodeGen::generateFuncDecl(FuncDecl* decl) {
         if (returnType->isVoidTy()) {
             if (!Builder->GetInsertBlock()->getTerminator()) {
                 executeDeferredStatements(0);
+                emitDropForScopeRange(0);
                 Builder->CreateRetVoid();
             }
         }
 
         // Defer stack is per-function state and must not leak to other functions.
         DeferStack.clear();
+        endDropScope(false);
 
         // Verify function
         if (llvm::verifyFunction(*func, &llvm::errs())) {
             DeferStack = std::move(savedDeferStack);
+            DropLocals = std::move(savedDropLocals);
+            DropScopeStack = std::move(savedDropScopes);
             func->eraseFromParent();
             return false;
         }
 
         DeferStack = std::move(savedDeferStack);
+        DropLocals = std::move(savedDropLocals);
+        DropScopeStack = std::move(savedDropScopes);
     }
 
     // If this is the main function, create a C-style main wrapper

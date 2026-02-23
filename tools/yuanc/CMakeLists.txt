@@ -18,6 +18,12 @@ target_compile_definitions(yuanc PRIVATE
     ${LLVM_DEFINITIONS}
 )
 
+if(TARGET libcurl_static)
+    add_dependencies(yuanc libcurl_static)
+elseif(TARGET libcurl)
+    add_dependencies(yuanc libcurl)
+endif()
+
 # 设置 C++17 标准
 set_target_properties(yuanc PROPERTIES
     CXX_STANDARD 17

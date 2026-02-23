@@ -151,6 +151,15 @@ public:
     /// \param node 类型节点
     /// \return 解析后的类型，出错返回 nullptr
     Type* resolveType(TypeNode* node);
+
+    /// \brief 查询类型是否为 Copy 类型
+    bool isCopyType(Type* type);
+
+    /// \brief 查询类型是否需要自动 Drop
+    bool needsDrop(Type* type);
+
+    /// \brief 对函数体执行所有权/生命周期分析
+    bool analyzeOwnership(FuncDecl* decl);
     
     /// \brief 获取 AST 上下文
     ASTContext& getContext() { return Ctx; }

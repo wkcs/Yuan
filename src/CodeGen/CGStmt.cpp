@@ -103,11 +103,13 @@ bool CodeGen::generateBlockStmt(BlockStmt* stmt) {
     }
 
     size_t scopeDeferDepth = DeferStack.size();
+    beginDropScope();
 
     // Generate all statements in the block
     for (Stmt* s : stmt->getStatements()) {
         if (!generateStmt(s)) {
             DeferStack.resize(scopeDeferDepth);
+            endDropScope(false);
             return false;
         }
 
@@ -115,11 +117,13 @@ bool CodeGen::generateBlockStmt(BlockStmt* stmt) {
         if (Builder->GetInsertBlock()->getTerminator()) {
             // Block is terminated, stop generating statements
             DeferStack.resize(scopeDeferDepth);
+            endDropScope(false);
             return true;
         }
     }
 
     executeDeferredStatements(scopeDeferDepth);
+    endDropScope(true);
     DeferStack.resize(scopeDeferDepth);
     return true;
 }
@@ -130,6 +134,7 @@ llvm::Value* CodeGen::generateBlockStmtWithResult(BlockStmt* stmt) {
     }
 
     size_t scopeDeferDepth = DeferStack.size();
+    beginDropScope();
     const auto& stmts = stmt->getStatements();
     llvm::Value* lastValue = nullptr;
 
@@ -149,23 +154,27 @@ llvm::Value* CodeGen::generateBlockStmtWithResult(BlockStmt* stmt) {
             } else {
                 if (!generateStmt(s)) {
                     DeferStack.resize(scopeDeferDepth);
+                    endDropScope(false);
                     return nullptr;
                 }
             }
         } else {
             if (!generateStmt(s)) {
                 DeferStack.resize(scopeDeferDepth);
+                endDropScope(false);
                 return nullptr;
             }
         }
 
         if (Builder->GetInsertBlock()->getTerminator()) {
             DeferStack.resize(scopeDeferDepth);
+            endDropScope(false);
             return nullptr;
         }
     }
 
     executeDeferredStatements(scopeDeferDepth);
+    endDropScope(true);
     DeferStack.resize(scopeDeferDepth);
     return lastValue;
 }
@@ -341,6 +350,7 @@ bool CodeGen::generateReturnStmt(ReturnStmt* stmt) {
                     llvm::Value* normalized = llvm::UndefValue::get(llvmExpectedOptType);
                     normalized = Builder->CreateInsertValue(normalized, hasValue, 0, "ret.opt.has");
                     normalized = Builder->CreateInsertValue(normalized, innerValue, 1, "ret.opt.value");
+                    emitDropForScopeRange(0);
                     Builder->CreateRet(normalized);
                     return true;
                 }
@@ -368,6 +378,7 @@ bool CodeGen::generateReturnStmt(ReturnStmt* stmt) {
                     "ret.opt.has"
                 );
                 wrapped = Builder->CreateInsertValue(wrapped, innerValue, 1, "ret.opt.value");
+                emitDropForScopeRange(0);
                 Builder->CreateRet(wrapped);
                 return true;
             }
@@ -382,11 +393,13 @@ bool CodeGen::generateReturnStmt(ReturnStmt* stmt) {
                     return false;
                 }
             }
+            emitDropForScopeRange(0);
             Builder->CreateRet(retValue);
             return true;
         }
 
         if (valueType && valueType->isError()) {
+            emitDropForScopeRange(0);
             Builder->CreateRet(retValue);
             return true;
         }
@@ -396,6 +409,7 @@ bool CodeGen::generateReturnStmt(ReturnStmt* stmt) {
             if (!okResult) {
                 return false;
             }
+            emitDropForScopeRange(0);
             Builder->CreateRet(okResult);
             return true;
         }
@@ -405,10 +419,12 @@ bool CodeGen::generateReturnStmt(ReturnStmt* stmt) {
         if (!errResult) {
             return false;
         }
+        emitDropForScopeRange(0);
         Builder->CreateRet(errResult);
     } else {
         if (!canError) {
             // Return void
+            emitDropForScopeRange(0);
             Builder->CreateRetVoid();
             return true;
         }
@@ -418,6 +434,7 @@ bool CodeGen::generateReturnStmt(ReturnStmt* stmt) {
         if (!okResult) {
             return false;
         }
+        emitDropForScopeRange(0);
         Builder->CreateRet(okResult);
     }
 
@@ -521,7 +538,7 @@ bool CodeGen::generateWhileStmt(WhileStmt* stmt) {
     Builder->CreateBr(condBB);
 
     // Push loop context for break/continue
-    LoopStack.push_back({condBB, endBB, stmt->getLabel(), DeferStack.size()});
+    LoopStack.push_back({condBB, endBB, stmt->getLabel(), DeferStack.size(), DropScopeStack.size()});
 
     // Generate condition
     Builder->SetInsertPoint(condBB);
@@ -576,7 +593,7 @@ bool CodeGen::generateLoopStmt(LoopStmt* stmt) {
     Builder->CreateBr(loopBB);
 
     // Push loop context for break/continue
-    LoopStack.push_back({loopBB, endBB, stmt->getLabel(), DeferStack.size()});
+    LoopStack.push_back({loopBB, endBB, stmt->getLabel(), DeferStack.size(), DropScopeStack.size()});
 
     // Generate body
     Builder->SetInsertPoint(loopBB);
@@ -722,7 +739,7 @@ bool CodeGen::generateForStmt(ForStmt* stmt) {
         }
 
         // Push loop context
-        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size()});
+        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size(), DropScopeStack.size()});
 
         // Generate body
         if (!generateBlockStmt(stmt->getBody())) {
@@ -790,7 +807,7 @@ bool CodeGen::generateForStmt(ForStmt* stmt) {
             return false;
         }
 
-        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size()});
+        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size(), DropScopeStack.size()});
 
         if (!generateBlockStmt(stmt->getBody())) {
             LoopStack.pop_back();
@@ -877,7 +894,7 @@ bool CodeGen::generateForStmt(ForStmt* stmt) {
         }
 
         // Push loop context
-        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size()});
+        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size(), DropScopeStack.size()});
 
         // Generate body
         if (!generateBlockStmt(stmt->getBody())) {
@@ -955,7 +972,7 @@ bool CodeGen::generateForStmt(ForStmt* stmt) {
         }
 
         // Push loop context
-        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size()});
+        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size(), DropScopeStack.size()});
 
         // Generate body
         if (!generateBlockStmt(stmt->getBody())) {
@@ -1021,7 +1038,7 @@ bool CodeGen::generateForStmt(ForStmt* stmt) {
             return false;
         }
 
-        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size()});
+        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size(), DropScopeStack.size()});
         if (!generateBlockStmt(stmt->getBody())) {
             LoopStack.pop_back();
             return false;
@@ -1130,7 +1147,7 @@ bool CodeGen::generateForStmt(ForStmt* stmt) {
             return false;
         }
 
-        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size()});
+        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size(), DropScopeStack.size()});
 
         if (!generateBlockStmt(stmt->getBody())) {
             LoopStack.pop_back();
@@ -1321,7 +1338,7 @@ bool CodeGen::generateForStmt(ForStmt* stmt) {
             return false;
         }
 
-        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size()});
+        LoopStack.push_back({incBB, endBB, stmt->getLabel(), DeferStack.size(), DropScopeStack.size()});
         if (!generateBlockStmt(stmt->getBody())) {
             LoopStack.pop_back();
             return false;
@@ -1689,6 +1706,7 @@ bool CodeGen::generateBreakStmt(BreakStmt* stmt) {
 
     // Execute deferred statements
     executeDeferredStatements(target->DeferDepth);
+    emitDropForScopeRange(target->DropScopeDepth);
 
     // Jump to break block
     Builder->CreateBr(target->BreakBlock);
@@ -1725,6 +1743,7 @@ bool CodeGen::generateContinueStmt(ContinueStmt* stmt) {
 
     // Execute deferred statements
     executeDeferredStatements(target->DeferDepth);
+    emitDropForScopeRange(target->DropScopeDepth);
 
     // Jump to continue block
     Builder->CreateBr(target->ContinueBlock);

@@ -68,6 +68,792 @@ bool isBuiltinComparisonType(Type* type) {
                     base->isChar() || base->isString() || base->isPointer());
 }
 
+enum class OwnershipState {
+    Live,
+    Moved,
+    MaybeMoved
+};
+
+bool isTrackedOwnershipDecl(const Decl* decl) {
+    if (!decl) {
+        return false;
+    }
+    return decl->getKind() == ASTNode::Kind::VarDecl ||
+           decl->getKind() == ASTNode::Kind::ParamDecl;
+}
+
+std::string getOwnershipDeclName(const Decl* decl) {
+    if (!decl) {
+        return "<value>";
+    }
+    if (decl->getKind() == ASTNode::Kind::VarDecl) {
+        return static_cast<const VarDecl*>(decl)->getName();
+    }
+    if (decl->getKind() == ASTNode::Kind::ParamDecl) {
+        return static_cast<const ParamDecl*>(decl)->getName();
+    }
+    return "<value>";
+}
+
+OwnershipState joinOwnershipStates(const std::vector<OwnershipState>& states) {
+    if (states.empty()) {
+        return OwnershipState::Live;
+    }
+    bool allLive = true;
+    bool allMoved = true;
+    for (OwnershipState state : states) {
+        if (state != OwnershipState::Live) {
+            allLive = false;
+        }
+        if (state != OwnershipState::Moved) {
+            allMoved = false;
+        }
+    }
+    if (allLive) {
+        return OwnershipState::Live;
+    }
+    if (allMoved) {
+        return OwnershipState::Moved;
+    }
+    return OwnershipState::MaybeMoved;
+}
+
+class OwnershipAnalyzer {
+public:
+    OwnershipAnalyzer(Sema& sema, FuncDecl* func)
+        : SemaRef(sema), Diag(sema.getDiagnostics()), Func(func) {}
+
+    bool run() {
+        if (!Func || !Func->getBody()) {
+            return true;
+        }
+
+        enterScope();
+        for (ParamDecl* param : Func->getParams()) {
+            if (isTrackedOwnershipDecl(param)) {
+                trackDecl(param, OwnershipState::Live);
+            }
+        }
+
+        analyzeStmt(Func->getBody());
+        exitScope();
+        return Success;
+    }
+
+private:
+    Sema& SemaRef;
+    DiagnosticEngine& Diag;
+    FuncDecl* Func = nullptr;
+    std::unordered_map<const Decl*, OwnershipState> States;
+    std::vector<std::vector<const Decl*>> ScopeDecls;
+    bool Success = true;
+
+    void enterScope() {
+        ScopeDecls.emplace_back();
+    }
+
+    void exitScope() {
+        if (ScopeDecls.empty()) {
+            return;
+        }
+        for (const Decl* decl : ScopeDecls.back()) {
+            States.erase(decl);
+        }
+        ScopeDecls.pop_back();
+    }
+
+    void trackDecl(const Decl* decl, OwnershipState state) {
+        if (!decl || !isTrackedOwnershipDecl(decl)) {
+            return;
+        }
+        if (ScopeDecls.empty()) {
+            enterScope();
+        }
+        States[decl] = state;
+        ScopeDecls.back().push_back(decl);
+    }
+
+    const Decl* getRootPlaceDecl(Expr* expr) const {
+        if (!expr) {
+            return nullptr;
+        }
+        if (auto* ident = dynamic_cast<IdentifierExpr*>(expr)) {
+            Decl* decl = ident->getResolvedDecl();
+            if (isTrackedOwnershipDecl(decl)) {
+                return decl;
+            }
+            return nullptr;
+        }
+        if (auto* member = dynamic_cast<MemberExpr*>(expr)) {
+            return getRootPlaceDecl(member->getBase());
+        }
+        if (auto* index = dynamic_cast<IndexExpr*>(expr)) {
+            return getRootPlaceDecl(index->getBase());
+        }
+        return nullptr;
+    }
+
+    OwnershipState getStateOrLive(const Decl* decl) const {
+        auto it = States.find(decl);
+        if (it == States.end()) {
+            return OwnershipState::Live;
+        }
+        return it->second;
+    }
+
+    void setStateIfTracked(const Decl* decl, OwnershipState state) {
+        auto it = States.find(decl);
+        if (it != States.end()) {
+            it->second = state;
+        }
+    }
+
+    void reportInvalidUse(const Decl* decl, Expr* atExpr) {
+        if (!decl || !atExpr) {
+            return;
+        }
+        OwnershipState state = getStateOrLive(decl);
+        if (state == OwnershipState::Moved) {
+            Diag.report(DiagID::err_use_after_move, atExpr->getBeginLoc(), atExpr->getRange())
+                << getOwnershipDeclName(decl);
+            Success = false;
+        } else if (state == OwnershipState::MaybeMoved) {
+            Diag.report(DiagID::err_use_of_maybe_moved, atExpr->getBeginLoc(), atExpr->getRange())
+                << getOwnershipDeclName(decl);
+            Success = false;
+        }
+    }
+
+    void analyzePatternBindings(Pattern* pattern) {
+        if (!pattern) {
+            return;
+        }
+        switch (pattern->getKind()) {
+            case ASTNode::Kind::IdentifierPattern: {
+                auto* ident = static_cast<IdentifierPattern*>(pattern);
+                if (Decl* decl = ident->getDecl()) {
+                    trackDecl(decl, OwnershipState::Live);
+                }
+                return;
+            }
+            case ASTNode::Kind::BindPattern: {
+                auto* bind = static_cast<BindPattern*>(pattern);
+                if (Decl* decl = bind->getDecl()) {
+                    trackDecl(decl, OwnershipState::Live);
+                }
+                analyzePatternBindings(bind->getInner());
+                return;
+            }
+            case ASTNode::Kind::TuplePattern: {
+                auto* tuple = static_cast<TuplePattern*>(pattern);
+                for (Pattern* elem : tuple->getElements()) {
+                    analyzePatternBindings(elem);
+                }
+                return;
+            }
+            case ASTNode::Kind::StructPattern: {
+                auto* s = static_cast<StructPattern*>(pattern);
+                for (const auto& field : s->getFields()) {
+                    analyzePatternBindings(field.Pat);
+                }
+                return;
+            }
+            case ASTNode::Kind::EnumPattern: {
+                auto* e = static_cast<EnumPattern*>(pattern);
+                for (Pattern* payload : e->getPayload()) {
+                    analyzePatternBindings(payload);
+                }
+                return;
+            }
+            case ASTNode::Kind::OrPattern: {
+                auto* o = static_cast<OrPattern*>(pattern);
+                for (Pattern* alt : o->getPatterns()) {
+                    analyzePatternBindings(alt);
+                }
+                return;
+            }
+            default:
+                return;
+        }
+    }
+
+    void consumeExprValue(Expr* expr) {
+        if (!expr) {
+            return;
+        }
+        Type* exprType = expr->getType();
+        if (!exprType || SemaRef.isCopyType(exprType)) {
+            analyzeExprRead(expr);
+            return;
+        }
+
+        if (auto* ident = dynamic_cast<IdentifierExpr*>(expr)) {
+            Decl* decl = ident->getResolvedDecl();
+            if (isTrackedOwnershipDecl(decl)) {
+                reportInvalidUse(decl, expr);
+                setStateIfTracked(decl, OwnershipState::Moved);
+                ident->setMoveConsumed(true);
+                return;
+            }
+        }
+
+        if (dynamic_cast<MemberExpr*>(expr) || dynamic_cast<IndexExpr*>(expr)) {
+            if (const Decl* root = getRootPlaceDecl(expr)) {
+                if (States.find(root) != States.end()) {
+                    Diag.report(DiagID::err_partial_move_not_supported, expr->getBeginLoc(),
+                                expr->getRange())
+                        << getOwnershipDeclName(root);
+                    Success = false;
+                }
+            }
+        }
+
+        analyzeExprRead(expr);
+    }
+
+    void analyzeCallExpr(CallExpr* call) {
+        if (!call) {
+            return;
+        }
+
+        auto* memberCallee = dynamic_cast<MemberExpr*>(call->getCallee());
+        auto* calleeType = dynamic_cast<FunctionType*>(call->getCallee() ? call->getCallee()->getType()
+                                                                          : nullptr);
+        FuncDecl* calleeDecl = nullptr;
+        bool baseIsType = false;
+
+        if (memberCallee) {
+            if (Decl* resolved = memberCallee->getResolvedDecl()) {
+                if (resolved->getKind() == ASTNode::Kind::FuncDecl) {
+                    calleeDecl = static_cast<FuncDecl*>(resolved);
+                }
+            }
+            if (auto* identBase = dynamic_cast<IdentifierExpr*>(memberCallee->getBase())) {
+                if (Decl* baseDecl = identBase->getResolvedDecl()) {
+                    if (baseDecl->getKind() == ASTNode::Kind::StructDecl ||
+                        baseDecl->getKind() == ASTNode::Kind::EnumDecl ||
+                        baseDecl->getKind() == ASTNode::Kind::TraitDecl ||
+                        baseDecl->getKind() == ASTNode::Kind::TypeAliasDecl) {
+                        baseIsType = true;
+                    }
+                }
+            }
+        } else if (auto* identCallee = dynamic_cast<IdentifierExpr*>(call->getCallee())) {
+            if (Decl* resolved = identCallee->getResolvedDecl()) {
+                if (resolved->getKind() == ASTNode::Kind::FuncDecl) {
+                    calleeDecl = static_cast<FuncDecl*>(resolved);
+                }
+            }
+        }
+
+        bool injectSelf = false;
+        if (memberCallee && calleeDecl && !calleeDecl->getParams().empty() &&
+            calleeDecl->getParams()[0]->isSelf() && !baseIsType) {
+            injectSelf = true;
+        }
+
+        if (memberCallee && injectSelf && memberCallee->getMember() == "drop" &&
+            call->getArgCount() == 0) {
+            const Decl* root = getRootPlaceDecl(memberCallee->getBase());
+            std::string name = root ? getOwnershipDeclName(root) : memberCallee->getMember();
+            Diag.report(DiagID::err_explicit_drop_call_forbidden, call->getBeginLoc(), call->getRange())
+                << name;
+            Success = false;
+        }
+
+        if (memberCallee) {
+            if (injectSelf && calleeType && calleeType->getParamCount() > 0) {
+                Type* selfParamType = calleeType->getParam(0);
+                if (selfParamType &&
+                    !selfParamType->isReference() &&
+                    !selfParamType->isPointer()) {
+                    consumeExprValue(memberCallee->getBase());
+                } else {
+                    analyzeExprRead(memberCallee->getBase());
+                }
+            } else {
+                analyzeExprRead(memberCallee->getBase());
+            }
+        } else {
+            analyzeExprRead(call->getCallee());
+        }
+
+        const auto& args = call->getArgs();
+        size_t paramStart = injectSelf ? 1 : 0;
+        for (size_t i = 0; i < args.size(); ++i) {
+            Expr* argExpr = args[i].Value;
+            if (!argExpr) {
+                continue;
+            }
+            if (args[i].IsSpread || !calleeType) {
+                analyzeExprRead(argExpr);
+                continue;
+            }
+
+            Type* paramType = nullptr;
+            size_t paramCount = calleeType->getParamCount();
+            if (calleeType->isVariadic() && paramCount > 0 &&
+                (i + paramStart) >= (paramCount - 1)) {
+                paramType = calleeType->getParam(paramCount - 1);
+                if (paramType && paramType->isVarArgs()) {
+                    paramType = static_cast<VarArgsType*>(paramType)->getElementType();
+                }
+            } else if ((i + paramStart) < paramCount) {
+                paramType = calleeType->getParam(i + paramStart);
+            }
+
+            if (paramType && (paramType->isReference() || paramType->isPointer())) {
+                analyzeExprRead(argExpr);
+            } else {
+                consumeExprValue(argExpr);
+            }
+        }
+    }
+
+    void analyzeAssignExpr(AssignExpr* assign) {
+        if (!assign) {
+            return;
+        }
+
+        if (assign->isCompound()) {
+            analyzeExprRead(assign->getTarget());
+            analyzeExprRead(assign->getValue());
+            return;
+        }
+
+        consumeExprValue(assign->getValue());
+        if (auto* identTarget = dynamic_cast<IdentifierExpr*>(assign->getTarget())) {
+            if (Decl* decl = identTarget->getResolvedDecl()) {
+                setStateIfTracked(decl, OwnershipState::Live);
+            }
+        } else {
+            analyzeExprRead(assign->getTarget());
+        }
+    }
+
+    bool stmtTerminates(Stmt* stmt) const {
+        if (!stmt) {
+            return false;
+        }
+        switch (stmt->getKind()) {
+            case ASTNode::Kind::ReturnStmt:
+            case ASTNode::Kind::BreakStmt:
+            case ASTNode::Kind::ContinueStmt:
+                return true;
+            case ASTNode::Kind::BlockStmt: {
+                auto* block = static_cast<BlockStmt*>(stmt);
+                for (Stmt* inner : block->getStatements()) {
+                    if (stmtTerminates(inner)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            case ASTNode::Kind::IfStmt: {
+                auto* ifStmt = static_cast<IfStmt*>(stmt);
+                if (!ifStmt->hasElse()) {
+                    return false;
+                }
+                for (const auto& branch : ifStmt->getBranches()) {
+                    if (!stmtTerminates(branch.Body)) {
+                        return false;
+                    }
+                }
+                return !ifStmt->getBranches().empty();
+            }
+            case ASTNode::Kind::MatchStmt: {
+                auto* matchStmt = static_cast<MatchStmt*>(stmt);
+                if (matchStmt->getArms().empty()) {
+                    return false;
+                }
+                for (const auto& arm : matchStmt->getArms()) {
+                    if (!stmtTerminates(arm.Body)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
+
+    void analyzeIfStmt(IfStmt* stmt) {
+        if (!stmt) {
+            return;
+        }
+        std::unordered_map<const Decl*, OwnershipState> entry = States;
+        std::vector<std::unordered_map<const Decl*, OwnershipState>> branchStates;
+
+        for (const auto& branch : stmt->getBranches()) {
+            States = entry;
+            if (branch.Condition) {
+                analyzeExprRead(branch.Condition);
+            }
+            analyzeStmt(branch.Body);
+            if (!stmtTerminates(branch.Body)) {
+                branchStates.push_back(States);
+            }
+        }
+
+        if (!stmt->hasElse()) {
+            branchStates.push_back(entry);
+        }
+        if (branchStates.empty()) {
+            States = entry;
+            return;
+        }
+
+        States = entry;
+        for (auto& item : States) {
+            std::vector<OwnershipState> collected;
+            collected.reserve(branchStates.size());
+            for (const auto& branchMap : branchStates) {
+                auto it = branchMap.find(item.first);
+                collected.push_back(it == branchMap.end() ? item.second : it->second);
+            }
+            item.second = joinOwnershipStates(collected);
+        }
+    }
+
+    void analyzeMatchStmt(MatchStmt* stmt) {
+        if (!stmt) {
+            return;
+        }
+        consumeExprValue(stmt->getScrutinee());
+        std::unordered_map<const Decl*, OwnershipState> entry = States;
+        std::vector<std::unordered_map<const Decl*, OwnershipState>> armStates;
+
+        for (const auto& arm : stmt->getArms()) {
+            States = entry;
+            enterScope();
+            analyzePatternBindings(arm.Pat);
+            if (arm.Guard) {
+                analyzeExprRead(arm.Guard);
+            }
+            analyzeStmt(arm.Body);
+            exitScope();
+            if (!stmtTerminates(arm.Body)) {
+                armStates.push_back(States);
+            }
+        }
+
+        if (armStates.empty()) {
+            States = entry;
+            return;
+        }
+
+        States = entry;
+        for (auto& item : States) {
+            std::vector<OwnershipState> collected;
+            collected.reserve(armStates.size());
+            for (const auto& armMap : armStates) {
+                auto it = armMap.find(item.first);
+                collected.push_back(it == armMap.end() ? item.second : it->second);
+            }
+            item.second = joinOwnershipStates(collected);
+        }
+    }
+
+    void analyzeLoopBody(BlockStmt* body) {
+        std::unordered_map<const Decl*, OwnershipState> entry = States;
+        analyzeStmt(body);
+        std::unordered_map<const Decl*, OwnershipState> bodyExit = States;
+        States = entry;
+        for (auto& item : States) {
+            OwnershipState bodyState = item.second;
+            auto it = bodyExit.find(item.first);
+            if (it != bodyExit.end()) {
+                bodyState = it->second;
+            }
+            if (item.second != bodyState) {
+                item.second = OwnershipState::MaybeMoved;
+            }
+        }
+    }
+
+    void analyzeStmt(Stmt* stmt) {
+        if (!stmt) {
+            return;
+        }
+        switch (stmt->getKind()) {
+            case ASTNode::Kind::DeclStmt: {
+                auto* declStmt = static_cast<DeclStmt*>(stmt);
+                Decl* decl = declStmt->getDecl();
+                if (!decl) {
+                    return;
+                }
+                if (decl->getKind() == ASTNode::Kind::VarDecl) {
+                    auto* varDecl = static_cast<VarDecl*>(decl);
+                    if (varDecl->getInit()) {
+                        consumeExprValue(varDecl->getInit());
+                    }
+                    if (varDecl->getPattern()) {
+                        analyzePatternBindings(varDecl->getPattern());
+                    } else {
+                        trackDecl(varDecl, OwnershipState::Live);
+                    }
+                } else if (decl->getKind() == ASTNode::Kind::ConstDecl) {
+                    auto* constDecl = static_cast<ConstDecl*>(decl);
+                    if (constDecl->getInit()) {
+                        consumeExprValue(constDecl->getInit());
+                    }
+                }
+                return;
+            }
+            case ASTNode::Kind::BlockStmt: {
+                enterScope();
+                auto* block = static_cast<BlockStmt*>(stmt);
+                for (Stmt* inner : block->getStatements()) {
+                    analyzeStmt(inner);
+                }
+                exitScope();
+                return;
+            }
+            case ASTNode::Kind::ReturnStmt: {
+                auto* ret = static_cast<ReturnStmt*>(stmt);
+                if (ret->hasValue()) {
+                    consumeExprValue(ret->getValue());
+                }
+                return;
+            }
+            case ASTNode::Kind::IfStmt:
+                analyzeIfStmt(static_cast<IfStmt*>(stmt));
+                return;
+            case ASTNode::Kind::WhileStmt: {
+                auto* whileStmt = static_cast<WhileStmt*>(stmt);
+                analyzeExprRead(whileStmt->getCondition());
+                analyzeLoopBody(whileStmt->getBody());
+                return;
+            }
+            case ASTNode::Kind::LoopStmt: {
+                auto* loopStmt = static_cast<LoopStmt*>(stmt);
+                analyzeLoopBody(loopStmt->getBody());
+                return;
+            }
+            case ASTNode::Kind::ForStmt: {
+                auto* forStmt = static_cast<ForStmt*>(stmt);
+                analyzeExprRead(forStmt->getIterable());
+                std::unordered_map<const Decl*, OwnershipState> entry = States;
+                enterScope();
+                analyzePatternBindings(forStmt->getPattern());
+                analyzeStmt(forStmt->getBody());
+                exitScope();
+                std::unordered_map<const Decl*, OwnershipState> bodyExit = States;
+                States = entry;
+                for (auto& item : States) {
+                    OwnershipState bodyState = item.second;
+                    auto it = bodyExit.find(item.first);
+                    if (it != bodyExit.end()) {
+                        bodyState = it->second;
+                    }
+                    if (item.second != bodyState) {
+                        item.second = OwnershipState::MaybeMoved;
+                    }
+                }
+                return;
+            }
+            case ASTNode::Kind::MatchStmt:
+                analyzeMatchStmt(static_cast<MatchStmt*>(stmt));
+                return;
+            case ASTNode::Kind::DeferStmt: {
+                auto* deferStmt = static_cast<DeferStmt*>(stmt);
+                analyzeStmt(deferStmt->getBody());
+                return;
+            }
+            case ASTNode::Kind::ExprStmt: {
+                auto* exprStmt = static_cast<ExprStmt*>(stmt);
+                analyzeExprRead(exprStmt->getExpr());
+                return;
+            }
+            case ASTNode::Kind::BreakStmt:
+            case ASTNode::Kind::ContinueStmt:
+                return;
+            default:
+                return;
+        }
+    }
+
+    void analyzeExprRead(Expr* expr) {
+        if (!expr) {
+            return;
+        }
+        switch (expr->getKind()) {
+            case ASTNode::Kind::IdentifierExpr: {
+                auto* ident = static_cast<IdentifierExpr*>(expr);
+                if (Decl* decl = ident->getResolvedDecl()) {
+                    if (isTrackedOwnershipDecl(decl)) {
+                        reportInvalidUse(decl, expr);
+                    }
+                }
+                return;
+            }
+            case ASTNode::Kind::MemberExpr:
+                analyzeExprRead(static_cast<MemberExpr*>(expr)->getBase());
+                return;
+            case ASTNode::Kind::IndexExpr: {
+                auto* index = static_cast<IndexExpr*>(expr);
+                analyzeExprRead(index->getBase());
+                analyzeExprRead(index->getIndex());
+                return;
+            }
+            case ASTNode::Kind::SliceExpr: {
+                auto* slice = static_cast<SliceExpr*>(expr);
+                analyzeExprRead(slice->getBase());
+                analyzeExprRead(slice->getStart());
+                analyzeExprRead(slice->getEnd());
+                return;
+            }
+            case ASTNode::Kind::UnaryExpr:
+                analyzeExprRead(static_cast<UnaryExpr*>(expr)->getOperand());
+                return;
+            case ASTNode::Kind::BinaryExpr: {
+                auto* binary = static_cast<BinaryExpr*>(expr);
+                analyzeExprRead(binary->getLHS());
+                analyzeExprRead(binary->getRHS());
+                return;
+            }
+            case ASTNode::Kind::AssignExpr:
+                analyzeAssignExpr(static_cast<AssignExpr*>(expr));
+                return;
+            case ASTNode::Kind::CallExpr:
+                analyzeCallExpr(static_cast<CallExpr*>(expr));
+                return;
+            case ASTNode::Kind::CastExpr:
+                analyzeExprRead(static_cast<CastExpr*>(expr)->getExpr());
+                return;
+            case ASTNode::Kind::IfExpr: {
+                auto* ifExpr = static_cast<IfExpr*>(expr);
+                std::unordered_map<const Decl*, OwnershipState> entry = States;
+                std::vector<std::unordered_map<const Decl*, OwnershipState>> branchStates;
+
+                for (const auto& branch : ifExpr->getBranches()) {
+                    States = entry;
+                    analyzeExprRead(branch.Condition);
+                    analyzeExprRead(branch.Body);
+                    branchStates.push_back(States);
+                }
+
+                if (!ifExpr->hasElse()) {
+                    branchStates.push_back(entry);
+                }
+
+                States = entry;
+                for (auto& item : States) {
+                    std::vector<OwnershipState> collected;
+                    collected.reserve(branchStates.size());
+                    for (const auto& branchMap : branchStates) {
+                        auto it = branchMap.find(item.first);
+                        collected.push_back(it == branchMap.end() ? item.second : it->second);
+                    }
+                    item.second = joinOwnershipStates(collected);
+                }
+                return;
+            }
+            case ASTNode::Kind::MatchExpr: {
+                auto* matchExpr = static_cast<MatchExpr*>(expr);
+                consumeExprValue(matchExpr->getScrutinee());
+                std::unordered_map<const Decl*, OwnershipState> entry = States;
+                std::vector<std::unordered_map<const Decl*, OwnershipState>> armStates;
+                for (const auto& arm : matchExpr->getArms()) {
+                    States = entry;
+                    enterScope();
+                    analyzePatternBindings(arm.Pat);
+                    analyzeExprRead(arm.Guard);
+                    analyzeExprRead(arm.Body);
+                    exitScope();
+                    armStates.push_back(States);
+                }
+                States = entry;
+                for (auto& item : States) {
+                    std::vector<OwnershipState> collected;
+                    collected.reserve(armStates.size());
+                    for (const auto& armMap : armStates) {
+                        auto it = armMap.find(item.first);
+                        collected.push_back(it == armMap.end() ? item.second : it->second);
+                    }
+                    item.second = joinOwnershipStates(collected);
+                }
+                return;
+            }
+            case ASTNode::Kind::BlockExpr: {
+                auto* blockExpr = static_cast<BlockExpr*>(expr);
+                enterScope();
+                for (Stmt* s : blockExpr->getStatements()) {
+                    analyzeStmt(s);
+                }
+                if (blockExpr->hasResult()) {
+                    analyzeExprRead(blockExpr->getResultExpr());
+                }
+                exitScope();
+                return;
+            }
+            case ASTNode::Kind::ClosureExpr:
+                return;
+            case ASTNode::Kind::ArrayExpr: {
+                auto* arrayExpr = static_cast<ArrayExpr*>(expr);
+                for (Expr* element : arrayExpr->getElements()) {
+                    consumeExprValue(element);
+                }
+                if (arrayExpr->isRepeat()) {
+                    analyzeExprRead(arrayExpr->getRepeatCount());
+                }
+                return;
+            }
+            case ASTNode::Kind::TupleExpr: {
+                auto* tupleExpr = static_cast<TupleExpr*>(expr);
+                for (Expr* element : tupleExpr->getElements()) {
+                    consumeExprValue(element);
+                }
+                return;
+            }
+            case ASTNode::Kind::StructExpr: {
+                auto* structExpr = static_cast<StructExpr*>(expr);
+                for (const auto& field : structExpr->getFields()) {
+                    consumeExprValue(field.Value);
+                }
+                analyzeExprRead(structExpr->getBase());
+                return;
+            }
+            case ASTNode::Kind::RangeExpr: {
+                auto* rangeExpr = static_cast<RangeExpr*>(expr);
+                analyzeExprRead(rangeExpr->getStart());
+                analyzeExprRead(rangeExpr->getEnd());
+                return;
+            }
+            case ASTNode::Kind::AwaitExpr:
+                analyzeExprRead(static_cast<AwaitExpr*>(expr)->getInner());
+                return;
+            case ASTNode::Kind::ErrorPropagateExpr:
+                analyzeExprRead(static_cast<ErrorPropagateExpr*>(expr)->getInner());
+                return;
+            case ASTNode::Kind::ErrorHandleExpr: {
+                auto* errHandle = static_cast<ErrorHandleExpr*>(expr);
+                analyzeExprRead(errHandle->getInner());
+                enterScope();
+                if (Decl* errorDecl = errHandle->getErrorVarDecl()) {
+                    trackDecl(errorDecl, OwnershipState::Live);
+                }
+                analyzeStmt(errHandle->getHandler());
+                exitScope();
+                return;
+            }
+            case ASTNode::Kind::BuiltinCallExpr: {
+                auto* builtin = static_cast<BuiltinCallExpr*>(expr);
+                for (const auto& arg : builtin->getArgs()) {
+                    if (!arg.isExpr()) {
+                        continue;
+                    }
+                    consumeExprValue(arg.getExpr());
+                }
+                return;
+            }
+            default:
+                return;
+        }
+    }
+};
+
 } // namespace
 
 // ============================================================================
@@ -78,7 +864,7 @@ Sema::Sema(ASTContext& ctx, DiagnosticEngine& diag)
     : Ctx(ctx),
       Diag(diag),
       Symbols(ctx),
-      TypeCheckerImpl(std::make_unique<TypeChecker>(Symbols, Diag)) {
+      TypeCheckerImpl(std::make_unique<TypeChecker>(Symbols, Diag, Ctx)) {
     // 符号表会自动注册内置类型
 
     // 初始化模块管理器
@@ -108,7 +894,8 @@ void Sema::registerBuiltinTraits(const CompilationUnit* unit) {
     enum class ReturnKind {
         Str,
         Bool,
-        Self
+        Self,
+        Void
     };
 
     auto makeReturnType = [&](SourceRange range, ReturnKind kind) -> TypeNode* {
@@ -119,6 +906,8 @@ void Sema::registerBuiltinTraits(const CompilationUnit* unit) {
                 return Ctx.create<BuiltinTypeNode>(range, BuiltinTypeNode::BuiltinKind::Bool);
             case ReturnKind::Self:
                 return Ctx.create<IdentifierTypeNode>(range, "Self");
+            case ReturnKind::Void:
+                return Ctx.create<BuiltinTypeNode>(range, BuiltinTypeNode::BuiltinKind::Void);
         }
         return Ctx.create<BuiltinTypeNode>(range, BuiltinTypeNode::BuiltinKind::Void);
     };
@@ -165,9 +954,60 @@ void Sema::registerBuiltinTraits(const CompilationUnit* unit) {
         analyzeTraitDecl(traitDecl);
     };
 
+    auto addMarkerTrait = [&](const char* name) {
+        if (shouldSkipTrait(name)) {
+            return;
+        }
+        SourceRange range;
+        std::vector<FuncDecl*> methods;
+        std::vector<TypeAliasDecl*> assocTypes;
+        auto* traitDecl = Ctx.create<TraitDecl>(
+            range,
+            name,
+            std::move(methods),
+            std::move(assocTypes),
+            Visibility::Public
+        );
+        analyzeTraitDecl(traitDecl);
+    };
+
+    auto addDropTrait = [&]() {
+        if (shouldSkipTrait("Drop")) {
+            return;
+        }
+        SourceRange range;
+        auto* selfParam = ParamDecl::createSelf(range, ParamDecl::ParamKind::MutRefSelf);
+        std::vector<ParamDecl*> params{selfParam};
+        TypeNode* retType = makeReturnType(range, ReturnKind::Void);
+        auto* method = Ctx.create<FuncDecl>(
+            range,
+            "drop",
+            std::move(params),
+            retType,
+            nullptr,
+            false,
+            false,
+            Visibility::Public
+        );
+        std::vector<FuncDecl*> methods;
+        methods.push_back(method);
+        std::vector<TypeAliasDecl*> assocTypes;
+        auto* traitDecl = Ctx.create<TraitDecl>(
+            range,
+            "Drop",
+            std::move(methods),
+            std::move(assocTypes),
+            Visibility::Public
+        );
+        analyzeTraitDecl(traitDecl);
+    };
+
     addTrait("Display", "to_string", ReturnKind::Str, false);
     addTrait("Debug", "to_debug", ReturnKind::Str, false);
     addTrait("Error", "message", ReturnKind::Str, false);
+    addTrait("Clone", "clone", ReturnKind::Self, false);
+    addMarkerTrait("Copy");
+    addDropTrait();
 
     addTrait("Add", "add", ReturnKind::Self, true);
     addTrait("Sub", "sub", ReturnKind::Self, true);
@@ -1550,6 +2390,10 @@ bool Sema::analyzeFuncDecl(FuncDecl* decl) {
         // 退出函数作用域
         Symbols.exitScope();
 
+        if (bodySuccess && !analyzeOwnership(decl)) {
+            bodySuccess = false;
+        }
+
         if (!bodySuccess) {
             if (hasGenericParams) {
                 exitGenericParamScope();
@@ -2415,12 +3259,17 @@ bool Sema::analyzeImplDecl(ImplDecl* decl) {
             }
 
             // 分析方法体
-            if (!analyzeStmt(method->getBody())) {
+            bool methodBodyOk = analyzeStmt(method->getBody());
+            if (!methodBodyOk) {
                 success = false;
             }
 
             // 退出方法作用域
             Symbols.exitScope();
+
+            if (methodBodyOk && !analyzeOwnership(method)) {
+                success = false;
+            }
         }
 
         if (enteredMethodGenerics) {
@@ -4323,11 +5172,33 @@ Type* Sema::analyzeCallExpr(CallExpr* expr) {
             }
 
             Type* actualType = it->second;
+            Type* ownershipCheckType = actualType;
             while (actualType && actualType->isReference()) {
                 actualType = static_cast<ReferenceType*>(actualType)->getPointeeType();
             }
+            while (actualType && actualType->isTypeAlias()) {
+                actualType = static_cast<TypeAlias*>(actualType)->getAliasedType();
+            }
 
             for (const std::string& bound : param.Bounds) {
+                if (bound == "Copy") {
+                    if (!ownershipCheckType || !isCopyType(ownershipCheckType)) {
+                        Diag.report(DiagID::err_type_not_copyable, expr->getBeginLoc(), expr->getRange())
+                            << (ownershipCheckType ? ownershipCheckType->toString() : "<?>");
+                        return false;
+                    }
+                    continue;
+                }
+                if (bound == "Drop") {
+                    if (!ownershipCheckType || !needsDrop(ownershipCheckType)) {
+                        Diag.report(DiagID::err_type_requires_drop_impl, expr->getBeginLoc(),
+                                    expr->getRange())
+                            << (ownershipCheckType ? ownershipCheckType->toString() : "<?>");
+                        return false;
+                    }
+                    continue;
+                }
+
                 Symbol* traitSymbol = Symbols.lookup(bound);
                 if (!traitSymbol || traitSymbol->getKind() != SymbolKind::Trait) {
                     Diag.report(DiagID::err_expected_trait_bound, expr->getBeginLoc(), expr->getRange());
@@ -6574,6 +7445,19 @@ Type* Sema::getCommonType(Type* t1, Type* t2) {
     return TypeCheckerImpl ? TypeCheckerImpl->getCommonType(t1, t2) : nullptr;
 }
 
+bool Sema::isCopyType(Type* type) {
+    return TypeCheckerImpl && TypeCheckerImpl->isCopyType(type);
+}
+
+bool Sema::needsDrop(Type* type) {
+    return TypeCheckerImpl && TypeCheckerImpl->needsDrop(type);
+}
+
+bool Sema::analyzeOwnership(FuncDecl* decl) {
+    OwnershipAnalyzer analyzer(*this, decl);
+    return analyzer.run();
+}
+
 // ============================================================================
 // 模式分析（占位符）
 // ============================================================================
@@ -7561,24 +8445,38 @@ bool Sema::checkGenericBoundsSatisfied(
         }
 
         Type* actualType = it->second;
-        while (actualType && actualType->isReference()) {
-            actualType = static_cast<ReferenceType*>(actualType)->getPointeeType();
+        Type* normalizedType = actualType;
+        while (normalizedType && normalizedType->isReference()) {
+            normalizedType = static_cast<ReferenceType*>(normalizedType)->getPointeeType();
         }
-        while (actualType && actualType->isPointer()) {
-            actualType = static_cast<PointerType*>(actualType)->getPointeeType();
+        while (normalizedType && normalizedType->isPointer()) {
+            normalizedType = static_cast<PointerType*>(normalizedType)->getPointeeType();
         }
-        while (actualType && actualType->isTypeAlias()) {
-            actualType = static_cast<TypeAlias*>(actualType)->getAliasedType();
+        while (normalizedType && normalizedType->isTypeAlias()) {
+            normalizedType = static_cast<TypeAlias*>(normalizedType)->getAliasedType();
         }
 
         for (const std::string& bound : param.Bounds) {
+            if (bound == "Copy") {
+                if (!const_cast<Sema*>(this)->isCopyType(actualType)) {
+                    return false;
+                }
+                continue;
+            }
+            if (bound == "Drop") {
+                if (!const_cast<Sema*>(this)->needsDrop(actualType)) {
+                    return false;
+                }
+                continue;
+            }
+
             Symbol* traitSymbol = Symbols.lookup(bound);
             if (!traitSymbol || traitSymbol->getKind() != SymbolKind::Trait) {
                 return false;
             }
 
             auto* traitDecl = dynamic_cast<TraitDecl*>(traitSymbol->getDecl());
-            if (!traitDecl || !const_cast<Sema*>(this)->checkTraitBound(actualType, traitDecl)) {
+            if (!traitDecl || !const_cast<Sema*>(this)->checkTraitBound(normalizedType, traitDecl)) {
                 return false;
             }
         }
@@ -7833,6 +8731,24 @@ bool Sema::checkTraitBound(Type* type, TraitDecl* trait) {
     Type* normalized = normalize(type);
     if (!normalized) {
         return false;
+    }
+
+    if (traitName == "Copy") {
+        return isCopyType(normalized);
+    }
+    if (traitName == "Drop") {
+        if (normalized->isGeneric()) {
+            auto* genericType = static_cast<GenericType*>(normalized);
+            for (TraitType* constraint : genericType->getConstraints()) {
+                if (constraint && constraint->getName() == "Drop") {
+                    return true;
+                }
+            }
+        }
+        return needsDrop(normalized);
+    }
+    if ((traitName == "Eq" || traitName == "Ne") && isBuiltinComparisonType(normalized)) {
+        return true;
     }
 
     struct RecursionGuard {
@@ -8507,7 +9423,78 @@ Type* Sema::resolveGenericType(GenericTypeNode* node) {
         return nullptr;
     }
 
-    // 7. 创建泛型实例类型
+    // 7. 检查泛型约束
+    const std::vector<GenericParam>* genericParams = nullptr;
+    if (baseDecl) {
+        switch (baseDecl->getKind()) {
+            case ASTNode::Kind::StructDecl:
+                genericParams = &static_cast<StructDecl*>(baseDecl)->getGenericParams();
+                break;
+            case ASTNode::Kind::EnumDecl:
+                genericParams = &static_cast<EnumDecl*>(baseDecl)->getGenericParams();
+                break;
+            case ASTNode::Kind::TypeAliasDecl:
+                genericParams = &static_cast<TypeAliasDecl*>(baseDecl)->getGenericParams();
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (genericParams && genericParams->size() == typeArgs.size()) {
+        for (size_t i = 0; i < genericParams->size(); ++i) {
+            const GenericParam& param = (*genericParams)[i];
+            Type* argType = typeArgs[i];
+            if (!argType || param.Bounds.empty()) {
+                continue;
+            }
+
+            Type* normalizedArg = argType;
+            while (normalizedArg && normalizedArg->isReference()) {
+                normalizedArg = static_cast<ReferenceType*>(normalizedArg)->getPointeeType();
+            }
+            while (normalizedArg && normalizedArg->isPointer()) {
+                normalizedArg = static_cast<PointerType*>(normalizedArg)->getPointeeType();
+            }
+            while (normalizedArg && normalizedArg->isTypeAlias()) {
+                normalizedArg = static_cast<TypeAlias*>(normalizedArg)->getAliasedType();
+            }
+
+            for (const std::string& bound : param.Bounds) {
+                if (bound == "Copy") {
+                    if (!isCopyType(argType)) {
+                        Diag.report(DiagID::err_type_not_copyable, node->getBeginLoc(), node->getRange())
+                            << argType->toString();
+                        return nullptr;
+                    }
+                    continue;
+                }
+                if (bound == "Drop") {
+                    if (!needsDrop(argType)) {
+                        Diag.report(DiagID::err_type_requires_drop_impl,
+                                    node->getBeginLoc(), node->getRange())
+                            << argType->toString();
+                        return nullptr;
+                    }
+                    continue;
+                }
+
+                Symbol* traitSymbol = Symbols.lookup(bound);
+                if (!traitSymbol || traitSymbol->getKind() != SymbolKind::Trait) {
+                    Diag.report(DiagID::err_expected_trait_bound, node->getBeginLoc(), node->getRange());
+                    return nullptr;
+                }
+                auto* traitDecl = dynamic_cast<TraitDecl*>(traitSymbol->getDecl());
+                if (!traitDecl || !checkTraitBound(normalizedArg, traitDecl)) {
+                    Diag.report(DiagID::err_missing_trait_method, node->getBeginLoc(), node->getRange())
+                        << ("trait bound " + bound);
+                    return nullptr;
+                }
+            }
+        }
+    }
+
+    // 8. 创建泛型实例类型
     return Ctx.getGenericInstanceType(baseType, std::move(typeArgs));
 }
 

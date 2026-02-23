@@ -511,7 +511,11 @@ llvm::Value* CodeGen::generateIdentifierExpr(IdentifierExpr* expr) {
             return nullptr;
         }
 
-        return Builder->CreateLoad(llvmType, value, expr->getName());
+        llvm::Value* loaded = Builder->CreateLoad(llvmType, value, expr->getName());
+        if (expr->isMoveConsumed()) {
+            setDropFlag(decl, false);
+        }
+        return loaded;
     }
 
     // Otherwise it's already a value (function, parameter after load, etc.)
@@ -990,7 +994,63 @@ llvm::Value* CodeGen::generateBinaryExpr(BinaryExpr* expr) {
         return nullptr;
     }
 
-    if (FuncDecl* resolvedMethod = expr->getResolvedOpMethod()) {
+    BinaryExpr::Op op = expr->getOp();
+    auto getLoweringOperandType = [&]() -> Type* {
+        Type* type = expr->getLHS() ? expr->getLHS()->getType() : nullptr;
+        if (!type) {
+            return nullptr;
+        }
+        if (!GenericSubstStack.empty()) {
+            type = substituteType(type);
+        }
+        if (type->isReference()) {
+            type = static_cast<ReferenceType*>(type)->getPointeeType();
+        }
+        type = unwrapTypeAlias(type);
+        if (type && type->isTypeVar()) {
+            auto* typeVar = static_cast<TypeVariable*>(type);
+            if (typeVar->isResolved()) {
+                type = unwrapTypeAlias(typeVar->getResolvedType());
+            }
+        }
+        return type;
+    };
+    auto isBuiltinArithmeticOperand = [](Type* type) -> bool {
+        Type* normalized = unwrapTypeAlias(type);
+        return normalized && normalized->isNumeric();
+    };
+    auto isBuiltinComparisonOperand = [](Type* type) -> bool {
+        Type* normalized = unwrapTypeAlias(type);
+        return normalized && (normalized->isInteger() || normalized->isFloat() ||
+                              normalized->isBool() || normalized->isChar() ||
+                              normalized->isString() || normalized->isPointer());
+    };
+
+    bool preferBuiltinLowering = false;
+    if (Type* loweringType = getLoweringOperandType()) {
+        switch (op) {
+            case BinaryExpr::Op::Add:
+            case BinaryExpr::Op::Sub:
+            case BinaryExpr::Op::Mul:
+            case BinaryExpr::Op::Div:
+            case BinaryExpr::Op::Mod:
+                preferBuiltinLowering = isBuiltinArithmeticOperand(loweringType);
+                break;
+            case BinaryExpr::Op::Eq:
+            case BinaryExpr::Op::Ne:
+            case BinaryExpr::Op::Lt:
+            case BinaryExpr::Op::Le:
+            case BinaryExpr::Op::Gt:
+            case BinaryExpr::Op::Ge:
+                preferBuiltinLowering = isBuiltinComparisonOperand(loweringType);
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (FuncDecl* resolvedMethod = expr->getResolvedOpMethod();
+        resolvedMethod && !preferBuiltinLowering) {
         MemberExpr opMethodExpr(expr->getRange(), expr->getLHS(), resolvedMethod->getName());
         opMethodExpr.setResolvedDecl(resolvedMethod);
         CallExpr opCallExpr(
@@ -1001,8 +1061,6 @@ llvm::Value* CodeGen::generateBinaryExpr(BinaryExpr* expr) {
         opCallExpr.setType(expr->getType());
         return generateCallExpr(&opCallExpr);
     }
-
-    BinaryExpr::Op op = expr->getOp();
 
     // Handle short-circuit logical operators (&&, ||)
     if (op == BinaryExpr::Op::And || op == BinaryExpr::Op::Or) {
@@ -1410,15 +1468,53 @@ llvm::Value* CodeGen::generateUnaryExpr(UnaryExpr* expr) {
         return nullptr;
     }
 
-    if (FuncDecl* resolvedMethod = expr->getResolvedOpMethod()) {
+    UnaryExpr::Op op = expr->getOp();
+    auto getLoweringOperandType = [&]() -> Type* {
+        Type* type = expr->getOperand() ? expr->getOperand()->getType() : nullptr;
+        if (!type) {
+            return nullptr;
+        }
+        if (!GenericSubstStack.empty()) {
+            type = substituteType(type);
+        }
+        if (type->isReference()) {
+            type = static_cast<ReferenceType*>(type)->getPointeeType();
+        }
+        type = unwrapTypeAlias(type);
+        if (type && type->isTypeVar()) {
+            auto* typeVar = static_cast<TypeVariable*>(type);
+            if (typeVar->isResolved()) {
+                type = unwrapTypeAlias(typeVar->getResolvedType());
+            }
+        }
+        return type;
+    };
+
+    bool preferBuiltinLowering = false;
+    if (Type* loweringType = getLoweringOperandType()) {
+        switch (op) {
+            case UnaryExpr::Op::Neg:
+                preferBuiltinLowering = loweringType->isNumeric();
+                break;
+            case UnaryExpr::Op::Not:
+                preferBuiltinLowering = loweringType->isBool();
+                break;
+            case UnaryExpr::Op::BitNot:
+                preferBuiltinLowering = loweringType->isInteger();
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (FuncDecl* resolvedMethod = expr->getResolvedOpMethod();
+        resolvedMethod && !preferBuiltinLowering) {
         MemberExpr opMethodExpr(expr->getRange(), expr->getOperand(), resolvedMethod->getName());
         opMethodExpr.setResolvedDecl(resolvedMethod);
         CallExpr opCallExpr(expr->getRange(), &opMethodExpr, std::vector<Expr*>{});
         opCallExpr.setType(expr->getType());
         return generateCallExpr(&opCallExpr);
     }
-
-    UnaryExpr::Op op = expr->getOp();
 
     // For reference operators, we need to return the address, not the value
     if (op == UnaryExpr::Op::Ref || op == UnaryExpr::Op::RefMut) {
@@ -1624,6 +1720,10 @@ llvm::Value* CodeGen::generateAssignExpr(AssignExpr* expr) {
     }
 
     AssignExpr::Op op = expr->getOp();
+    const Decl* targetDecl = nullptr;
+    if (auto* identTarget = dynamic_cast<IdentifierExpr*>(expr->getTarget())) {
+        targetDecl = identTarget->getResolvedDecl();
+    }
 
     // Generate the value to assign
     llvm::Value* value = generateExpr(expr->getValue());
@@ -1685,6 +1785,9 @@ llvm::Value* CodeGen::generateAssignExpr(AssignExpr* expr) {
 
     // Handle simple assignment (=)
     if (op == AssignExpr::Op::Assign) {
+        if (targetDecl) {
+            emitDropForDecl(targetDecl);
+        }
         llvm::Type* llvmTargetType = getLLVMType(targetType);
         if (!llvmTargetType) {
             return nullptr;
@@ -1694,6 +1797,9 @@ llvm::Value* CodeGen::generateAssignExpr(AssignExpr* expr) {
             return nullptr;
         }
         Builder->CreateStore(value, targetAddr);
+        if (targetDecl) {
+            setDropFlag(targetDecl, true);
+        }
         return value;  // Assignment expression evaluates to the assigned value
     }
 
@@ -1781,6 +1887,9 @@ llvm::Value* CodeGen::generateAssignExpr(AssignExpr* expr) {
 
     // Store the new value
     Builder->CreateStore(newValue, targetAddr);
+    if (targetDecl) {
+        setDropFlag(targetDecl, true);
+    }
 
     return newValue;  // Compound assignment evaluates to the new value
 }
@@ -4480,6 +4589,7 @@ llvm::Value* CodeGen::generateErrorPropagateExpr(ErrorPropagateExpr* expr) {
     // 如果当前函数返回 ErrorType，沿调用链传播错误；
     // 否则将 `expr!` 视为强制解包失败并直接终止。
     if (currentFunc->getReturnType() == result->getType()) {
+        emitDropForScopeRange(0);
         Builder->CreateRet(result);
     } else {
         llvm::Function* trapFn =

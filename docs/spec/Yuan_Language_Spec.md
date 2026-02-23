@@ -1,7 +1,7 @@
 # Yuan 语言规范文档 (编译型版本)
 
 版本：1.0
-最后更新：2026-02-15
+最后更新：2026-02-22
 
 ## 目录
 
@@ -22,6 +22,7 @@
 15. [完整示例](#15-完整示例)
 16. [附录](#16-附录)
 17. [实现说明：语义分析与代码生成](#17-实现说明语义分析与代码生成)
+18. [所有权与对象生命周期](#18-所有权与对象生命周期)
 
 ---
 
@@ -1376,6 +1377,13 @@ var rect2: Rectangle = Rectangle.square(10.0)
 rect2.scale(2.0)
 ```
 
+方法接收者与所有权规则：
+
+- `self: &Self` / `self: &mut Self` 不消费接收者（仅借用）。
+- `self: Self` 按值消费接收者；当 `Self` 非 Copy 时，调用后原变量进入 moved 状态。
+- moved 变量禁止继续读取、借用、成员访问、方法调用；可通过重新赋值恢复为 live。
+- v1 不支持字段级/索引级部分移动（例如 `x.field` 的 move）；需要整体 move。
+
 ### 7.4 泛型结构体
 
 ```yuan
@@ -1573,7 +1581,7 @@ trait Clone {
     func clone(self: &Self) -> Self
 }
 
-// Copy - 按位复制（标记 trait）
+// Copy - 按值复制语义（标记 trait）
 trait Copy: Clone { }
 
 // Eq - 相等性比较
@@ -1593,7 +1601,7 @@ trait Default {
 
 // Drop - 析构
 trait Drop {
-    func drop(self: &mut Self)
+    func drop(self: &mut Self) -> void
 }
 
 // Error - 错误类型（详见错误处理章节）
@@ -1603,6 +1611,12 @@ trait Error {
     func source(self: &Self) -> ?&Error
 }
 ```
+
+说明：
+
+- `Copy` 由编译器按结构自动判定（非手写 `impl Copy`）：基础标量、`str`、引用、指针、函数值为 Copy；数组/元组/结构体/枚举在其成员全为 Copy 且自身无 Drop 实现时自动 Copy。
+- `Drop` 仅对显式 `impl Drop` 的类型生效；仅这类类型会在局部作用域退出时触发自动析构。
+- 禁止显式调用 `Drop::drop`；提前释放请通过更小作用域触发自动 drop。
 
 ### 9.5 运算符 Trait（编译器注入）
 
@@ -2743,6 +2757,21 @@ Yuan 当前编译流程为：
 - 泛型约束检查会读取该映射或泛型参数自身约束列表。
 - trait 方法实现需与声明签名一致（参数个数、`self` 形式、返回类型、是否可报错）。
 
+#### 17.2.8 所有权分析（Ownership Pass）
+
+- 在函数/方法语义分析后，编译器执行所有权状态机分析：`Live / Moved / MaybeMoved`。
+- 非 Copy 值在以下场景触发 move（源是可追踪 place 时）：赋值右值、变量初始化右值、按值实参、`self: Self` 方法调用、`return` 返回。
+- move 后读取、借用、成员访问、方法调用报错：
+  - `E3049 use_after_move`
+  - `E3050 use_of_maybe_moved`
+- 分支 join 规则：
+  - 全分支 `Live` => `Live`
+  - 全分支 `Moved` => `Moved`
+  - 其余 => `MaybeMoved`
+- 循环出口保守合并为 `MaybeMoved`（除非可证明保持 `Live`），避免放行 use-after-move。
+- v1 禁止部分移动（字段/索引级），报 `E3051 partial_move_not_supported`。
+- 禁止显式调用 `Drop::drop`，报 `E3052 explicit_drop_call_forbidden`。
+
 ### 17.3 代码生成（CodeGen）关键规则
 
 #### 17.3.1 入口与依赖
@@ -2781,11 +2810,88 @@ Yuan 当前编译流程为：
 - `expr -> err { ... }`：构建成功/失败控制流并在失败分支执行处理块。
 - 非可传播上下文下的错误强制解包失败会触发终止路径（trap）。
 
+#### 17.3.7 自动 Drop 与作用域析构
+
+- 仅 `needsDrop(type)==true`（类型有显式 Drop impl）的局部绑定参与自动析构。
+- 后端为每个需要 Drop 的局部/参数维护 `drop_flag(i1)`：
+  - 初始化后置 `true`
+  - move 消费后置 `false`
+  - 重新赋值后置 `true`
+- 作用域退出、`return`、`break/continue` 离开作用域时，按声明逆序执行条件 drop（最多一次）。
+- 覆盖赋值前会先对旧值执行条件 drop，再写入新值，保证析构次数正确。
+- `defer` 执行顺序先于自动 drop，保证 defer 仍可访问同层对象。
+
 ### 17.4 当前实现边界（摘要）
 
-- 类型检查器逻辑主要集中在 `Sema.cpp`，独立 `TypeChecker` 文件仍为占位。
+- 本版本不引入 Rust 风格借用冲突/生命周期静态检查；`&/&mut` 仍为 Zig 风格引用语义。
+- 自动析构当前覆盖局部生命周期；不定义全局对象析构顺序。
+- 容器实现为 v1 约束模型：`Vec/HashMap/HashSet` 元素需满足 Copy（避免元素级 Drop 漏调）。
 - 泛型采用“按需单态化”，并非全程序提前实例化。
-- 更高级别的静态分析（如完整借用生命周期检查）尚未纳入当前版本。
+
+## 18. 所有权与对象生命周期
+
+本章定义 Yuan 2026 版对象生命周期模型。该模型为一次性切换（breaking）：
+从“默认按值复制 + 手工 `free`”切换为“结构化 Copy + 非 Copy 默认 move + Drop 自动析构（仅 Drop 类型）”。
+
+### 18.1 基本模型
+
+- 无新增语法关键字；无 Rust 式借用检查。
+- 非 Copy 值默认遵循所有权 move 语义。
+- 编译器在语义阶段检查 use-after-move。
+- 自动析构仅对显式实现 `Drop` 的类型生效。
+
+### 18.2 Copy 判定
+
+- 以下类型默认 Copy：内建标量、`str`、引用、指针、函数值。
+- 复合类型结构化 Copy：
+  - 数组/元组/结构体/枚举仅在全部成员为 Copy 且该类型无 Drop 实现时为 Copy。
+- 泛型参数仅在具备 `Copy` 约束时按 Copy 处理。
+
+### 18.3 Move 触发与状态
+
+- 非 Copy 值在以下位置触发 move（源为可追踪 place 时）：
+  - 赋值右值
+  - `var` 初始化右值
+  - 按值实参传递
+  - `self: Self` 方法调用
+  - `return` 返回值
+- 状态机：
+  - `Live`：可正常使用
+  - `Moved`：已移动，禁止读用
+  - `MaybeMoved`：分支/循环保守合并状态，读用报错，赋值允许再初始化
+- 重新赋值可把 `Moved/MaybeMoved` 恢复为 `Live`。
+
+### 18.4 分支与循环 join
+
+- `if/match` 结束后按变量状态 join：
+  - 全 `Live` => `Live`
+  - 全 `Moved` => `Moved`
+  - 其余 => `MaybeMoved`
+- 终止分支（`return/break/continue`）不参与落地状态合并。
+- 循环出口采用保守策略：状态变化时合并为 `MaybeMoved`。
+
+### 18.5 部分移动与解构
+
+- v1 禁止字段/索引级部分移动（报 `E3051`）。
+- 模式解构按“整体 move 到临时，再绑定子模式”语义处理；源值视为整体已 move。
+
+### 18.6 Drop 触发与顺序
+
+- `needsDrop(type)` 定义：类型有显式 `Drop` 实现（签名 `drop(&mut self) -> void`）。
+- 自动 drop 触发点：
+  - 作用域退出
+  - `return`
+  - `break/continue` 离开作用域
+  - 变量覆盖赋值前（先 drop 旧值）
+- 同一对象最多 drop 一次（由后端 `drop_flag` 保证）。
+- 顺序：先执行显式 `defer`，再执行该层自动 drop。
+- 禁止用户显式调用 `Drop::drop`（报 `E3052`）。
+
+### 18.7 标准库迁移规则
+
+- 资源类型迁移为 `Drop` 自动释放（如 `String`、`Vec`、`HashMap`、`HashSet`、`Thread`）。
+- 标准库对外不再暴露资源对象的 `free()` 方法。
+- `std.mem.free` 仍作为裸内存 API 保留，用于低层手动内存管理。
 
 ---
 

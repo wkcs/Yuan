@@ -16,7 +16,6 @@ func main() -> i32 {
 
     var entries: std.collections.Vec<fs.DirEntry> = fs.read_dir(".")
     println("[fs] read_dir entries len > 0 = {}", entries.len() > 0u64)
-    entries.free()
 
     return 0
 }

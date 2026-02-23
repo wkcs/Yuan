@@ -317,7 +317,6 @@ func main() -> i32 {
     @assert(tup.0 == 7, "3.3 tuple")
     @assert(fallback == 9, "3.3 optional")
     @assert(v.len() == 2u64, "3.3 vec")
-    v.free()
     return 0
 }
 """)
@@ -430,7 +429,6 @@ func main() -> i32 {
     v.push(1)
     v.push(2)
     var n = v.len()
-    v.free()
     return n as i32
 }
 """)
@@ -1016,22 +1014,32 @@ func main() -> i32 {
 }
 """)
         if s2key == "9.4":
-            return wrap(title, """trait Clone {
-    func clone(&self) -> Self
+            return wrap(title, """struct V { x: i32 }
+struct S { v: i32 }
+
+impl S {
+    func into_v(self) -> i32 {
+        return self.v
+    }
 }
 
-struct T { x: i32 }
-
-impl Clone for T {
-    func clone(&self) -> Self {
-        return T { x: self.x }
+impl Drop for S {
+    func drop(&mut self) -> void {
+        self.v = 0
     }
 }
 
 func main() -> i32 {
-    var t = T { x: 1 }
-    var c = t.clone()
-    return c.x
+    var a = V { x: 1 }
+    var b = a
+    @assert(a.x == 1, "9.4 copy keeps source live")
+    b.x = 9
+    @assert(b.x == 9, "9.4 copied value mutable")
+
+    var s = S { v: 7 }
+    var out = s.into_v()
+    @assert(out == 7, "9.4 self by value consume")
+    return 0
 }
 """)
         return wrap(title, f"""func main() -> i32 {{
@@ -1308,7 +1316,6 @@ func main() -> i32 {
     var v: Vec<i32> = Vec.new()
     v.push(1)
     var x = v.get(0)
-    v.free()
     return x
 }
 """)
@@ -1756,7 +1763,7 @@ def fail_body(point: Dict[str, object]) -> Tuple[str, List[str], List[str]]:
             "3.3.1": ("func main() -> i32 {\n    var arr: [i32; 3] = [1, 2]\n    return arr[0]\n}\n", ["E3003"], ["type mismatch"]),
             "3.3.2": ("func main() -> i32 {\n    var n: i32 = 7\n    var s: &[i32] = &n[0..1]\n    _ = s\n    return 0\n}\n", ["E3003"], ["slice"]),
             "3.3.3": ("func main() -> i32 {\n    var txt: str = \"abc\"\n    var s = txt[true..2]\n    _ = s\n    return 0\n}\n", ["E3003"], ["type mismatch"]),
-            "3.3.4": ("const Vec = @import(\"std\").collections.Vec\nfunc main() -> i32 {\n    var v: Vec<i32> = Vec.new()\n    v.push(\"bad\")\n    v.free()\n    return 0\n}\n", ["E3003"], ["type mismatch"]),
+            "3.3.4": ("const Vec = @import(\"std\").collections.Vec\nfunc main() -> i32 {\n    var v: Vec<i32> = Vec.new()\n    v.push(\"bad\")\n    return 0\n}\n", ["E3003"], ["type mismatch"]),
             "3.3.5": ("func main() -> i32 {\n    var t: (i32, bool) = (1, true, 3)\n    _ = t\n    return 0\n}\n", ["E3003"], ["tuple"]),
             "3.3.6": ("func main() -> i32 {\n    var x: i32 = None\n    return x\n}\n", ["E3003"], ["type mismatch"]),
             "3.4": ("func main() -> i32 {\n    var x: i32 = 1\n    var r: &i32 = x as *i32\n    _ = r\n    return 0\n}\n", ["E3003"], ["type mismatch"]),
@@ -1851,7 +1858,7 @@ def fail_body(point: Dict[str, object]) -> Tuple[str, List[str], List[str]]:
             "9.1": ("trait T {\n    func x(&self) -> i32 {\n        return 1\n    }\n}\nstruct A {}\nimpl T for A {}\nfunc main() -> i32 { return 0 }\n", ["E3041"], ["not supported yet"]),
             "9.2": ("trait T { func x(&self) -> i32 }\nstruct A {}\nimpl T for A {}\nfunc main() -> i32 { return 0 }\n", ["E3034"], ["missing implementation"]),
             "9.3": ("trait Render { func render(&self) -> str }\nfunc show<T: Render>(v: &T) -> str { return v.render() }\nstruct NoRender {}\nfunc main() -> i32 {\n    var x = NoRender {}\n    _ = show(&x)\n    return 0\n}\n", ["E3034"], ["trait bound"]),
-            "9.4": ("trait Clone { func clone(&self) -> Self }\nstruct X {}\nimpl Clone for X {\n    func clone(&self) -> i32 {\n        return 1\n    }\n}\nfunc main() -> i32 { return 0 }\n", ["E3003"], ["type mismatch"]),
+            "9.4": ("struct X { v: i32 }\nimpl Drop for X {\n    func drop(&mut self) -> void {\n        self.v = 0\n    }\n}\nfunc main() -> i32 {\n    var x = X { v: 1 }\n    x.drop()\n    return 0\n}\n", ["E3052"], ["explicit call to Drop::drop is forbidden"]),
         }
         if spec_ref in cases:
             return cases[spec_ref]
@@ -1921,7 +1928,7 @@ def fail_body(point: Dict[str, object]) -> Tuple[str, List[str], List[str]]:
             "14.2": ("const std = @import(\"std\")\nfunc main() -> i32 {\n    _ = std.core_missing\n    return 0\n}\n", ["E3021"], ["field", "not found"]),
             "14.2.1": ("const io = @import(\"std\").io\nfunc main() -> i32 {\n    io.printline(\"x\")\n    return 0\n}\n", ["E3021"], ["field", "not found"]),
             "14.2.2": ("const fs = @import(\"std\").fs\nfunc main() -> i32 {\n    _ = fs.read_non_exist\n    return 0\n}\n", ["E3021"], ["field", "not found"]),
-            "14.2.3": ("const Vec = @import(\"std\").collections.Vec\nfunc main() -> i32 {\n    var v: Vec<i32> = Vec.new()\n    v.push(\"x\")\n    v.free()\n    return 0\n}\n", ["E3003"], ["type mismatch"]),
+            "14.2.3": ("const Vec = @import(\"std\").collections.Vec\nfunc main() -> i32 {\n    var v: Vec<i32> = Vec.new()\n    v.push(\"x\")\n    return 0\n}\n", ["E3003"], ["type mismatch"]),
             "14.2.4": ("const fmt = @import(\"std\").fmt\nfunc main() -> i32 {\n    _ = fmt.format_missing\n    return 0\n}\n", ["E3021"], ["field", "not found"]),
             "14.2.5": ("const time = @import(\"std\").time\nfunc main() -> i32 {\n    _ = time.clock_missing\n    return 0\n}\n", ["E3021"], ["field", "not found"]),
             "14.2.6": ("const math = @import(\"std\").math\nfunc main() -> i32 {\n    _ = math.sin(\"x\")\n    return 0\n}\n", ["E3003"], ["type mismatch"]),

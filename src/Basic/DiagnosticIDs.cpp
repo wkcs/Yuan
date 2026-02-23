@@ -150,6 +150,18 @@ const char* getDiagnosticFormatString(DiagID id) {
             return "'await' can only be used inside async functions";
         case DiagID::err_builtin_operator_overload_forbidden:
             return "builtin type '{0}' cannot implement operator trait '{1}'";
+        case DiagID::err_use_after_move:
+            return "use of moved value '{0}'";
+        case DiagID::err_use_of_maybe_moved:
+            return "use of value '{0}' that may have been moved";
+        case DiagID::err_partial_move_not_supported:
+            return "partial move is not supported; move the whole value '{0}'";
+        case DiagID::err_explicit_drop_call_forbidden:
+            return "explicit call to Drop::drop is forbidden for '{0}'";
+        case DiagID::err_type_requires_drop_impl:
+            return "type '{0}' requires a Drop implementation";
+        case DiagID::err_type_not_copyable:
+            return "type '{0}' is not copyable";
         case DiagID::err_return_type_mismatch:
             return "return type mismatch: expected '{0}', found '{1}'";
         case DiagID::err_missing_return:
@@ -338,6 +350,24 @@ std::string getDiagnosticCode(DiagID id) {
             break;
         case DiagID::err_invalid_borrow:
             code = 3038;
+            break;
+        case DiagID::err_use_after_move:
+            code = 3049;
+            break;
+        case DiagID::err_use_of_maybe_moved:
+            code = 3050;
+            break;
+        case DiagID::err_partial_move_not_supported:
+            code = 3051;
+            break;
+        case DiagID::err_explicit_drop_call_forbidden:
+            code = 3052;
+            break;
+        case DiagID::err_type_requires_drop_impl:
+            code = 3053;
+            break;
+        case DiagID::err_type_not_copyable:
+            code = 3054;
             break;
         case DiagID::err_non_exhaustive_match:
             code = 2014;

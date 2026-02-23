@@ -34,7 +34,6 @@ func test_vec_core_ops() {
 
     v.clear()
     println("[vec] len after clear = {}, expect 0", v.len)
-    v.free()
 }
 
 func main() -> i32 {

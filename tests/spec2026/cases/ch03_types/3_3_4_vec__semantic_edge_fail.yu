@@ -11,6 +11,5 @@ const Vec = @import("std").collections.Vec
 func main() -> i32 {
     var v: Vec<i32> = Vec.new()
     v.push("bad")
-    v.free()
     return 0
 }

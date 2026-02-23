@@ -65,7 +65,10 @@ impl String {
         self.len = 0u64
     }
 
-    pub func free(&mut self) {
+}
+
+impl Drop for String {
+    pub func drop(&mut self) {
         if self.data != 0u64 as *mut u8 {
             mem.free(self.data)
         }

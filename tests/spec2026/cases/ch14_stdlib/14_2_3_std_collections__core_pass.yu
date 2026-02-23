@@ -13,7 +13,6 @@ func main() -> i32 {
     var v: Vec<i32> = Vec.new()
     v.push(1)
     var x = v.get(0)
-    v.free()
     var __spec2026_actual: i32 = x
     var __spec2026_expected: i32 = x
     @assert(__spec2026_actual == __spec2026_expected, "14_2_3_std_collections assertion failed")

@@ -43,6 +43,12 @@ public:
     
     /// \brief 是否为左值
     virtual bool isLValue() const { return false; }
+
+    /// \brief 标记该表达式是否在 ownership 分析中被按 move 消费
+    void setMoveConsumed(bool consumed) { MoveConsumed = consumed; }
+
+    /// \brief 查询该表达式是否被按 move 消费
+    bool isMoveConsumed() const { return MoveConsumed; }
     
     /// \brief RTTI 支持
     static bool classof(const ASTNode* node) {
@@ -51,6 +57,7 @@ public:
     
 protected:
     Type* ExprType;  ///< 表达式类型（语义分析后设置）
+    bool MoveConsumed = false;  ///< ownership pass 标记：该表达式是否发生 move 消费
 };
 
 

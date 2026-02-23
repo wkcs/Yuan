@@ -6,6 +6,7 @@
 
 #include "yuan/Basic/SourceLocation.h"
 #include <cstdint>
+#include <unordered_set>
 
 namespace yuan {
 
@@ -13,6 +14,7 @@ class Type;
 class Expr;
 class SymbolTable;
 class DiagnosticEngine;
+class ASTContext;
 
 /// \brief 类型检查器。
 class TypeChecker {
@@ -20,8 +22,9 @@ public:
     /// \brief 构造类型检查器。
     /// \param symbols 符号表引用
     /// \param diag 诊断引擎引用
-    TypeChecker(SymbolTable& symbols, DiagnosticEngine& diag)
-        : Symbols(symbols), Diag(diag) {}
+    /// \param ctx AST 上下文引用
+    TypeChecker(SymbolTable& symbols, DiagnosticEngine& diag, ASTContext& ctx)
+        : Symbols(symbols), Diag(diag), Ctx(ctx) {}
 
     /// \brief 检查类型兼容性（使用单点位置）。
     /// \param expected 期望类型
@@ -61,14 +64,24 @@ public:
     /// \return 求值成功返回 true
     bool evaluateConstExpr(Expr* expr, int64_t& result);
 
+    /// \brief 判断类型是否可按 Copy 语义复制
+    bool isCopyType(Type* type);
+
+    /// \brief 判断类型是否需要自动 Drop
+    bool needsDrop(Type* type);
+
 private:
     /// \brief 解包类型别名到真实类型。
     /// \param type 输入类型
     /// \return 解包后的类型
     static Type* unwrapAliases(Type* type);
 
+    bool isCopyTypeImpl(Type* type, std::unordered_set<const Type*>& visiting);
+    bool needsDropImpl(Type* type, std::unordered_set<const Type*>& visiting);
+
     SymbolTable& Symbols;
     DiagnosticEngine& Diag;
+    ASTContext& Ctx;
 };
 
 } // namespace yuan

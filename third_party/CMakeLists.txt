@@ -5,6 +5,17 @@ set(_YUAN_BUNDLED_CURL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/curl")
 set(_YUAN_USING_BUNDLED_CURL OFF)
 set(_YUAN_USE_SYSTEM_CURL OFF)
 
+function(yuan_configure_minimal_bundled_curl)
+    # Keep bundled curl link surface minimal to avoid unresolved transitive
+    # dependencies when Driver links via raw shell flags.
+    set(CURL_BROTLI OFF CACHE BOOL "" FORCE)
+    set(CURL_ZSTD OFF CACHE BOOL "" FORCE)
+    set(USE_NGHTTP2 OFF CACHE BOOL "" FORCE)
+    set(CURL_USE_LIBSSH2 OFF CACHE BOOL "" FORCE)
+    set(CURL_DISABLE_LDAP ON CACHE BOOL "" FORCE)
+    set(CURL_DISABLE_LDAPS ON CACHE BOOL "" FORCE)
+endfunction()
+
 if(YUAN_USE_BUNDLED_CURL AND EXISTS "${_YUAN_BUNDLED_CURL_DIR}/CMakeLists.txt")
     find_package(OpenSSL QUIET)
     if(OpenSSL_FOUND)
@@ -16,6 +27,7 @@ if(YUAN_USE_BUNDLED_CURL AND EXISTS "${_YUAN_BUNDLED_CURL_DIR}/CMakeLists.txt")
         set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
         set(USE_LIBIDN2 OFF CACHE BOOL "" FORCE)
         set(CURL_USE_OPENSSL ON CACHE BOOL "" FORCE)
+        yuan_configure_minimal_bundled_curl()
         add_subdirectory(curl EXCLUDE_FROM_ALL)
 
         if(TARGET libcurl AND NOT TARGET CURL::libcurl)
@@ -39,6 +51,7 @@ if(YUAN_USE_BUNDLED_CURL AND EXISTS "${_YUAN_BUNDLED_CURL_DIR}/CMakeLists.txt")
             set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
             set(USE_LIBIDN2 OFF CACHE BOOL "" FORCE)
             set(CURL_USE_OPENSSL OFF CACHE BOOL "" FORCE)
+            yuan_configure_minimal_bundled_curl()
             if(WIN32)
                 # OpenSSL unavailable on Windows: use native Schannel so HTTPS still works.
                 set(CURL_USE_SCHANNEL ON CACHE BOOL "" FORCE)
@@ -106,6 +119,12 @@ if(CMAKE_DL_LIBS)
             list(APPEND _YUAN_RUNTIME_LINK_FLAG_ITEMS "-l${_dl_lib}")
         endif()
     endforeach()
+endif()
+if(APPLE)
+    list(APPEND _YUAN_RUNTIME_LINK_FLAG_ITEMS
+        "-framework CoreFoundation"
+        "-framework SystemConfiguration"
+    )
 endif()
 
 if(WIN32)

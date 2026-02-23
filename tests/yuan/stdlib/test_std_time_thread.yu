@@ -22,6 +22,5 @@ func main() -> i32 {
     })
     println("[thread] join = {}, expect 7", th.join())
     println("[thread] finished = {}", th.is_finished())
-    th.free()
     return 0
 }

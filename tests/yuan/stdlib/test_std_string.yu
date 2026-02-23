@@ -11,7 +11,6 @@ func test_string_alias_with_explicit_type() {
     s.push_str("y")
     println("[string] alias explicit len = {}, expect 2", s.len)
     println("[string] alias explicit as_str = {}, expect xy", s.as_str())
-    s.free()
 }
 
 func test_string_build_and_clear() {
@@ -27,14 +26,12 @@ func test_string_build_and_clear() {
 
     s.clear()
     println("[string] len after clear = {}, expect 0", s.len)
-    s.free()
 }
 
 func test_string_from() {
     var s = std.string.String.from("abc")
     println("[string] from('abc').len = {}, expect 3", s.len)
     println("[string] from('abc').as_str().len = {}, expect 3", s.as_str().len())
-    s.free()
 }
 
 func main() -> i32 {

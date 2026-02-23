@@ -4,6 +4,7 @@
 #include "yuan/CodeGen/CodeGen.h"
 #include "yuan/AST/ASTContext.h"
 #include "yuan/AST/Decl.h"
+#include "yuan/AST/Expr.h"
 #include "yuan/Sema/Type.h"
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/raw_ostream.h>
@@ -221,6 +222,14 @@ static llvm::Type* normalizeFirstClassType(llvm::Type* type) {
     return type;
 }
 
+static Type* unwrapAliases(Type* type) {
+    Type* current = type;
+    while (current && current->isTypeAlias()) {
+        current = static_cast<TypeAlias*>(current)->getAliasedType();
+    }
+    return current;
+}
+
 } // namespace
 
 // ============================================================================
@@ -235,6 +244,180 @@ CodeGen::CodeGen(ASTContext& ctx, const std::string& moduleName)
 }
 
 CodeGen::~CodeGen() = default;
+
+bool CodeGen::typeNeedsAutoDrop(Type* type, FuncDecl** dropMethod) const {
+    type = unwrapAliases(type);
+    if (!type) {
+        return false;
+    }
+
+    FuncDecl* method = Ctx.getImplMethod(type, "drop");
+    if (!method) {
+        return false;
+    }
+    if (method->getParams().empty()) {
+        return false;
+    }
+    ParamDecl* selfParam = method->getParams()[0];
+    if (!selfParam || !selfParam->isSelf() ||
+        selfParam->getParamKind() != ParamDecl::ParamKind::MutRefSelf) {
+        return false;
+    }
+
+    Type* methodType = method->getSemanticType();
+    if (!methodType || !methodType->isFunction()) {
+        return false;
+    }
+    auto* fnType = static_cast<FunctionType*>(methodType);
+    if (!fnType->getReturnType() || !fnType->getReturnType()->isVoid()) {
+        return false;
+    }
+
+    if (dropMethod) {
+        *dropMethod = method;
+    }
+    return true;
+}
+
+void CodeGen::beginDropScope() {
+    DropScopeStack.emplace_back();
+}
+
+void CodeGen::endDropScope(bool emitDrops) {
+    if (DropScopeStack.empty()) {
+        return;
+    }
+    size_t idx = DropScopeStack.size() - 1;
+    if (emitDrops) {
+        emitDropForScope(idx);
+    }
+    for (const Decl* decl : DropScopeStack[idx]) {
+        DropLocals.erase(decl);
+    }
+    DropScopeStack.pop_back();
+}
+
+void CodeGen::registerDropLocal(const Decl* decl, llvm::Value* storage, Type* type,
+                                bool isInitialized) {
+    if (!decl || !storage || !type || !CurrentFunction) {
+        return;
+    }
+
+    FuncDecl* dropMethod = nullptr;
+    if (!typeNeedsAutoDrop(type, &dropMethod) || !dropMethod) {
+        return;
+    }
+
+    llvm::IRBuilder<> entryBuilder(&CurrentFunction->getEntryBlock(),
+                                   CurrentFunction->getEntryBlock().begin());
+    llvm::AllocaInst* flagAlloca = entryBuilder.CreateAlloca(
+        llvm::Type::getInt1Ty(*Context), nullptr,
+        getGlobalSymbolName(decl, "drop_flag", 'V'));
+    entryBuilder.CreateStore(
+        llvm::ConstantInt::get(llvm::Type::getInt1Ty(*Context), isInitialized ? 1 : 0),
+        flagAlloca);
+
+    DropLocals[decl] = DropLocalInfo{storage, flagAlloca, type, dropMethod};
+    if (!DropScopeStack.empty()) {
+        DropScopeStack.back().push_back(decl);
+    }
+}
+
+void CodeGen::setDropFlag(const Decl* decl, bool live) {
+    auto it = DropLocals.find(decl);
+    if (it == DropLocals.end() || !it->second.DropFlag ||
+        !Builder || !Builder->GetInsertBlock() || Builder->GetInsertBlock()->getTerminator()) {
+        return;
+    }
+    Builder->CreateStore(
+        llvm::ConstantInt::get(llvm::Type::getInt1Ty(*Context), live ? 1 : 0),
+        it->second.DropFlag);
+}
+
+void CodeGen::emitDropForDecl(const Decl* decl) {
+    auto it = DropLocals.find(decl);
+    if (it == DropLocals.end()) {
+        return;
+    }
+    DropLocalInfo& info = it->second;
+    if (!info.Storage || !info.DropFlag || !info.DropMethod ||
+        !Builder || !Builder->GetInsertBlock() || Builder->GetInsertBlock()->getTerminator()) {
+        return;
+    }
+
+    llvm::Value* shouldDrop = Builder->CreateLoad(
+        llvm::Type::getInt1Ty(*Context), info.DropFlag, "drop.flag");
+    llvm::Function* currentFunc = Builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock* dropBB = llvm::BasicBlock::Create(*Context, "drop.do", currentFunc);
+    llvm::BasicBlock* contBB = llvm::BasicBlock::Create(*Context, "drop.cont", currentFunc);
+    Builder->CreateCondBr(shouldDrop, dropBB, contBB);
+
+    Builder->SetInsertPoint(dropBB);
+
+    // Reuse regular call lowering so generic impl resolution/specialization is
+    // consistent with normal method calls.
+    std::string selfName = "drop_self";
+    if (auto* varDecl = dynamic_cast<const VarDecl*>(decl)) {
+        selfName = varDecl->getName();
+    } else if (auto* paramDecl = dynamic_cast<const ParamDecl*>(decl)) {
+        selfName = paramDecl->getName();
+    }
+    IdentifierExpr selfExpr(SourceRange(), selfName);
+    selfExpr.setResolvedDecl(const_cast<Decl*>(decl));
+    selfExpr.setType(info.ValueType);
+
+    MemberExpr dropMember(SourceRange(), &selfExpr, "drop");
+    dropMember.setResolvedDecl(info.DropMethod);
+    dropMember.setType(info.DropMethod->getSemanticType());
+
+    CallExpr dropCall(SourceRange(), &dropMember, std::vector<Expr*>{});
+    dropCall.setType(Ctx.getVoidType());
+    (void)generateCallExpr(&dropCall);
+
+    if (!Builder || !Builder->GetInsertBlock() || Builder->GetInsertBlock()->getTerminator()) {
+        return;
+    }
+
+    Builder->CreateStore(llvm::ConstantInt::get(llvm::Type::getInt1Ty(*Context), 0), info.DropFlag);
+    Builder->CreateBr(contBB);
+
+    Builder->SetInsertPoint(contBB);
+}
+
+void CodeGen::emitDropForScope(size_t scopeIndex) {
+    if (scopeIndex >= DropScopeStack.size()) {
+        return;
+    }
+    const auto& decls = DropScopeStack[scopeIndex];
+    for (auto it = decls.rbegin(); it != decls.rend(); ++it) {
+        emitDropForDecl(*it);
+    }
+}
+
+void CodeGen::emitDropForScopeRange(size_t fromDepth) {
+    if (fromDepth >= DropScopeStack.size()) {
+        return;
+    }
+    for (size_t idx = DropScopeStack.size(); idx > fromDepth; --idx) {
+        emitDropForScope(idx - 1);
+    }
+}
+
+const Decl* CodeGen::getDeclFromExprPlace(Expr* expr) const {
+    if (!expr) {
+        return nullptr;
+    }
+    if (auto* ident = dynamic_cast<IdentifierExpr*>(expr)) {
+        return ident->getResolvedDecl();
+    }
+    if (auto* member = dynamic_cast<MemberExpr*>(expr)) {
+        return getDeclFromExprPlace(member->getBase());
+    }
+    if (auto* index = dynamic_cast<IndexExpr*>(expr)) {
+        return getDeclFromExprPlace(index->getBase());
+    }
+    return nullptr;
+}
 
 std::string CodeGen::mangleIdentifier(const std::string& text) const {
     return "I" + std::to_string(text.size()) + "_" + hexEncode(text);
