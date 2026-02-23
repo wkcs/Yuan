@@ -301,6 +301,7 @@ private:
     void registerDropLocal(const Decl* decl, llvm::Value* storage, Type* type, bool isInitialized);
     void setDropFlag(const Decl* decl, bool live);
     void emitDropForDecl(const Decl* decl);
+    bool emitDropForAddress(llvm::Value* storage, Type* valueType);
     void emitDropForScope(size_t scopeIndex);
     void emitDropForScopeRange(size_t fromDepth);
     const Decl* getDeclFromExprPlace(Expr* expr) const;

@@ -353,70 +353,11 @@ void CodeGen::emitDropForDecl(const Decl* decl) {
     Builder->CreateCondBr(shouldDrop, dropBB, contBB);
 
     Builder->SetInsertPoint(dropBB);
-
-    GenericSubst dropMapping;
-    Type* valueType = unwrapAliases(info.ValueType);
-    Type* selfTypeForUnify = nullptr;
-    if (info.DropMethod && !info.DropMethod->getParams().empty()) {
-        if (ParamDecl* selfParam = info.DropMethod->getParams()[0]) {
-            selfTypeForUnify = selfParam->getSemanticType();
-        }
-    }
-    if (!selfTypeForUnify) {
-        if (Type* dropFnType = info.DropMethod->getSemanticType()) {
-            if (dropFnType->isFunction()) {
-                auto* fnType = static_cast<FunctionType*>(dropFnType);
-                if (fnType->getParamCount() > 0) {
-                    selfTypeForUnify = fnType->getParam(0);
-                }
-            }
-        }
-    }
-    selfTypeForUnify = unwrapAliases(selfTypeForUnify);
-    if (selfTypeForUnify && selfTypeForUnify->isReference()) {
-        selfTypeForUnify = unwrapAliases(static_cast<ReferenceType*>(selfTypeForUnify)->getPointeeType());
-    }
-    if (selfTypeForUnify && valueType && typeHasGenericParam(selfTypeForUnify)) {
-        (void)unifyGenericTypes(selfTypeForUnify, valueType, dropMapping);
-    }
-
-    llvm::Function* dropFunc = nullptr;
-    if (!dropMapping.empty() && info.DropMethod->hasBody()) {
-        dropFunc = getOrCreateSpecializedFunction(info.DropMethod, dropMapping);
-    }
-    if (!dropFunc) {
-        if (!generateDecl(info.DropMethod)) {
-            Builder->CreateBr(contBB);
-            Builder->SetInsertPoint(contBB);
-            return;
-        }
-        auto vmIt = ValueMap.find(info.DropMethod);
-        if (vmIt != ValueMap.end()) {
-            dropFunc = llvm::dyn_cast<llvm::Function>(vmIt->second);
-        }
-        if (!dropFunc) {
-            dropFunc = Module->getFunction(getFunctionSymbolName(info.DropMethod));
-        }
-    }
-    if (!dropFunc || dropFunc->arg_size() < 1) {
+    if (!emitDropForAddress(info.Storage, info.ValueType)) {
         Builder->CreateBr(contBB);
         Builder->SetInsertPoint(contBB);
         return;
     }
-
-    llvm::Value* selfArg = info.Storage;
-    llvm::Type* expectedSelfTy = dropFunc->getFunctionType()->getParamType(0);
-    if (selfArg->getType() != expectedSelfTy) {
-        if (selfArg->getType()->isPointerTy() && expectedSelfTy->isPointerTy()) {
-            selfArg = Builder->CreateBitCast(selfArg, expectedSelfTy, "drop.self.cast");
-        } else {
-            Builder->CreateBr(contBB);
-            Builder->SetInsertPoint(contBB);
-            return;
-        }
-    }
-
-    Builder->CreateCall(dropFunc, {selfArg});
 
     if (!Builder || !Builder->GetInsertBlock() || Builder->GetInsertBlock()->getTerminator()) {
         return;
@@ -426,6 +367,80 @@ void CodeGen::emitDropForDecl(const Decl* decl) {
     Builder->CreateBr(contBB);
 
     Builder->SetInsertPoint(contBB);
+}
+
+bool CodeGen::emitDropForAddress(llvm::Value* storage, Type* valueType) {
+    if (!storage || !valueType || !Builder || !Builder->GetInsertBlock() ||
+        Builder->GetInsertBlock()->getTerminator()) {
+        return false;
+    }
+
+    FuncDecl* dropMethod = nullptr;
+    if (!typeNeedsAutoDrop(valueType, &dropMethod) || !dropMethod) {
+        return false;
+    }
+
+    GenericSubst dropMapping;
+    Type* concreteValueType = unwrapAliases(valueType);
+    Type* selfTypeForUnify = nullptr;
+
+    if (!dropMethod->getParams().empty()) {
+        if (ParamDecl* selfParam = dropMethod->getParams()[0]) {
+            selfTypeForUnify = selfParam->getSemanticType();
+        }
+    }
+    if (!selfTypeForUnify) {
+        if (Type* dropFnType = dropMethod->getSemanticType()) {
+            if (dropFnType->isFunction()) {
+                auto* fnType = static_cast<FunctionType*>(dropFnType);
+                if (fnType->getParamCount() > 0) {
+                    selfTypeForUnify = fnType->getParam(0);
+                }
+            }
+        }
+    }
+
+    selfTypeForUnify = unwrapAliases(selfTypeForUnify);
+    if (selfTypeForUnify && selfTypeForUnify->isReference()) {
+        selfTypeForUnify =
+            unwrapAliases(static_cast<ReferenceType*>(selfTypeForUnify)->getPointeeType());
+    }
+    if (selfTypeForUnify && concreteValueType && typeHasGenericParam(selfTypeForUnify)) {
+        (void)unifyGenericTypes(selfTypeForUnify, concreteValueType, dropMapping);
+    }
+
+    llvm::Function* dropFunc = nullptr;
+    if (!dropMapping.empty() && dropMethod->hasBody()) {
+        dropFunc = getOrCreateSpecializedFunction(dropMethod, dropMapping);
+    }
+    if (!dropFunc) {
+        if (!generateDecl(dropMethod)) {
+            return false;
+        }
+        auto vmIt = ValueMap.find(dropMethod);
+        if (vmIt != ValueMap.end()) {
+            dropFunc = llvm::dyn_cast<llvm::Function>(vmIt->second);
+        }
+        if (!dropFunc) {
+            dropFunc = Module->getFunction(getFunctionSymbolName(dropMethod));
+        }
+    }
+    if (!dropFunc || dropFunc->arg_size() < 1) {
+        return false;
+    }
+
+    llvm::Value* selfArg = storage;
+    llvm::Type* expectedSelfTy = dropFunc->getFunctionType()->getParamType(0);
+    if (selfArg->getType() != expectedSelfTy) {
+        if (selfArg->getType()->isPointerTy() && expectedSelfTy->isPointerTy()) {
+            selfArg = Builder->CreateBitCast(selfArg, expectedSelfTy, "drop.self.cast");
+        } else {
+            return false;
+        }
+    }
+
+    Builder->CreateCall(dropFunc, {selfArg});
+    return true;
 }
 
 void CodeGen::emitDropForScope(size_t scopeIndex) {

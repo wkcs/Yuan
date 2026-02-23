@@ -1787,6 +1787,8 @@ llvm::Value* CodeGen::generateAssignExpr(AssignExpr* expr) {
     if (op == AssignExpr::Op::Assign) {
         if (targetDecl) {
             emitDropForDecl(targetDecl);
+        } else {
+            (void)emitDropForAddress(targetAddr, targetType);
         }
         llvm::Type* llvmTargetType = getLLVMType(targetType);
         if (!llvmTargetType) {
