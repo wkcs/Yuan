@@ -1,19 +1,18 @@
 #include "LSPServer.h"
-#include "yuan/AST/ASTContext.h"
 #include "yuan/AST/AST.h"
 #include "yuan/AST/Decl.h"
 #include "yuan/AST/ASTVisitor.h"
-#include "yuan/Lexer/Lexer.h"
-#include "yuan/Parser/Parser.h"
-#include "yuan/Sema/Sema.h"
-#include "yuan/Sema/Symbol.h"
-#include "yuan/Sema/Scope.h"
-#include "yuan/Sema/Type.h"
 #include "yuan/Basic/Diagnostic.h"
 #include "yuan/Basic/SourceManager.h"
-#include <iostream>
+#include "yuan/Tooling/ProjectConfig.h"
+#include "yuan/Sema/Sema.h"
+#include "yuan/Sema/Scope.h"
+#include "yuan/Sema/Symbol.h"
+#include "yuan/Sema/Type.h"
+#include <cctype>
 #include <climits>
 #include <ctime>
+#include <iostream>
 
 using json = nlohmann::json;
 
@@ -125,6 +124,7 @@ void LSPServer::onTextDocumentDidOpen(const json& params) {
     unsigned version = doc.value("version", 0);
 
     Documents[uri] = DocumentInfo{uri, text, version};
+    Session.invalidate(uri);
     validateDocument(uri);
 }
 
@@ -138,6 +138,7 @@ void LSPServer::onTextDocumentDidChange(const json& params) {
         if (!changes.empty()) {
             Documents[uri].Content = changes.back()["text"]; // Full sync
             Documents[uri].Version = version;
+            Session.invalidate(uri);
             validateDocument(uri);
         }
     }
@@ -146,6 +147,7 @@ void LSPServer::onTextDocumentDidChange(const json& params) {
 void LSPServer::onTextDocumentDidClose(const json& params) {
     std::string uri = params["textDocument"]["uri"];
     Documents.erase(uri);
+    Session.invalidate(uri);
 
     // Clear diagnostics
     json diagParams = {
@@ -155,34 +157,41 @@ void LSPServer::onTextDocumentDidClose(const json& params) {
     sendNotification("textDocument/publishDiagnostics", diagParams);
 }
 
-// ---------------------------------------------------------------------------
-// Frontend pipeline helper
-// ---------------------------------------------------------------------------
+std::string LSPServer::uriToPath(const std::string& uri) {
+    static const std::string fileScheme = "file://";
+    if (uri.rfind(fileScheme, 0) == 0) {
+        return uri.substr(fileScheme.size());
+    }
+    return uri;
+}
 
-LSPServer::FrontendResult LSPServer::runFrontend(const std::string& uri,
-                                                  const std::string& content) {
-    FrontendResult res;
+CompilerInvocation LSPServer::buildInvocationForUri(const std::string& uri) const {
+    CompilerInvocation invocation;
+    invocation.Action = FrontendActionKind::SyntaxOnly;
 
-    res.FID = res.SM.createBuffer(content, uri);
+    std::string path = uriToPath(uri);
+    std::string projectFile = ProjectConfigLoader::discover(path);
+    if (!projectFile.empty()) {
+        ProjectConfig config;
+        std::string errorMsg;
+        if (ProjectConfigLoader::loadFromFile(projectFile, config, errorMsg)) {
+            applyProjectConfig(config, invocation, true);
+        } else {
+            log("project config load failed: " + errorMsg);
+        }
+    }
+    return invocation;
+}
 
-    res.DiagEngine = std::make_unique<DiagnosticEngine>(res.SM);
-    auto consumer = std::make_unique<StoredDiagnosticConsumer>();
-    res.DiagConsumer = consumer.get();
-    res.DiagEngine->setConsumer(std::move(consumer));
-
-    res.Ctx = std::make_unique<ASTContext>(res.SM);
-    res.Ctx->setPointerBitWidth(64);
-
-    Lexer lexer(res.SM, *res.DiagEngine, res.FID);
-    Parser parser(lexer, *res.DiagEngine, *res.Ctx);
-    res.Decls = parser.parseCompilationUnit();
-
-    res.SemaInst = std::make_unique<Sema>(*res.Ctx, *res.DiagEngine);
-    for (Decl* decl : res.Decls) {
-        (void)res.SemaInst->analyzeDecl(decl);
+std::shared_ptr<SessionSnapshot> LSPServer::getSnapshot(const std::string& uri) {
+    auto it = Documents.find(uri);
+    if (it == Documents.end()) {
+        return nullptr;
     }
 
-    return res;
+    const DocumentInfo& doc = it->second;
+    CompilerInvocation invocation = buildInvocationForUri(uri);
+    return Session.getOrCreateSnapshot(uri, doc.Content, doc.Version, invocation);
 }
 
 // ---------------------------------------------------------------------------
@@ -190,15 +199,22 @@ LSPServer::FrontendResult LSPServer::runFrontend(const std::string& uri,
 // ---------------------------------------------------------------------------
 
 void LSPServer::validateDocument(const std::string& uri) {
-    if (Documents.find(uri) == Documents.end()) return;
-    const auto& info = Documents[uri];
+    auto snapshot = getSnapshot(uri);
+    if (!snapshot || !snapshot->Instance || snapshot->Instance->getUnits().empty()) {
+        return;
+    }
 
-    FrontendResult res = runFrontend(uri, info.Content);
+    CompilerInstance& ci = *snapshot->Instance;
+    SourceManager& sm = ci.getSourceManager();
+    auto* diagConsumer = dynamic_cast<StoredDiagnosticConsumer*>(ci.getDiagnostics().getConsumer());
+    if (!diagConsumer) {
+        return;
+    }
 
     json diagnosticsArray = json::array();
 
-    for (const Diagnostic& d : res.DiagConsumer->getDiagnostics()) {
-        auto [line, col] = res.SM.getLineAndColumn(d.getLocation());
+    for (const Diagnostic& d : diagConsumer->getDiagnostics()) {
+        auto [line, col] = sm.getLineAndColumn(d.getLocation());
 
         // LSP is 0-indexed, Yuan is 1-indexed
         int lspLine = (line > 0) ? line - 1 : 0;
@@ -220,8 +236,8 @@ void LSPServer::validateDocument(const std::string& uri) {
 
         if (!d.getRanges().empty()) {
             const SourceRange& r = d.getRanges()[0];
-            auto [startL, startC] = res.SM.getLineAndColumn(r.getBegin());
-            auto [endL,   endC  ] = res.SM.getLineAndColumn(r.getEnd());
+            auto [startL, startC] = sm.getLineAndColumn(r.getBegin());
+            auto [endL,   endC  ] = sm.getLineAndColumn(r.getEnd());
             int sl = (startL > 0) ? startL - 1 : 0;
             int sc = (startC > 0) ? startC - 1 : 0;
             int el = (endL   > 0) ? endL   - 1 : 0;
@@ -364,7 +380,14 @@ void LSPServer::onHover(const json& params, const json& id) {
     unsigned lspChar = params["position"]["character"];
     log("hover: " + uri + " " + std::to_string(lspLine) + ":" + std::to_string(lspChar));
 
-    FrontendResult res = runFrontend(uri, info.Content);
+    auto snapshot = getSnapshot(uri);
+    if (!snapshot || !snapshot->Instance || snapshot->Instance->getUnits().empty()) {
+        reply(id, nullptr);
+        return;
+    }
+
+    CompilerInstance& ci = *snapshot->Instance;
+    FrontendUnit& unit = ci.getUnits().front();
 
     size_t offset = positionToOffset(info.Content, lspLine, lspChar);
     if (offset == SIZE_MAX) {
@@ -374,10 +397,10 @@ void LSPServer::onHover(const json& params, const json& id) {
     }
 
     // LSP offset -> SourceLocation (SourceManager offsets are 1-based global)
-    SourceLocation targetLoc = res.SM.getLocation(res.FID, static_cast<uint32_t>(offset));
+    SourceLocation targetLoc = ci.getSourceManager().getLocation(unit.FileID, static_cast<uint32_t>(offset));
 
     HoverDefVisitor visitor(targetLoc);
-    for (Decl* decl : res.Decls) {
+    for (Decl* decl : unit.Declarations) {
         visitor.visit(decl);
     }
 
@@ -434,9 +457,18 @@ void LSPServer::onCompletion(const json& params, const json& id) {
         reply(id, json::array());
         return;
     }
-    const auto& info = Documents[uri];
+    auto snapshot = getSnapshot(uri);
+    if (!snapshot || !snapshot->Instance || snapshot->Instance->getUnits().empty()) {
+        reply(id, json::array());
+        return;
+    }
 
-    FrontendResult res = runFrontend(uri, info.Content);
+    CompilerInstance& ci = *snapshot->Instance;
+    FrontendUnit& unit = ci.getUnits().front();
+    if (!unit.Semantic) {
+        reply(id, json::array());
+        return;
+    }
 
     // LSP CompletionItemKind values
     // Text=1, Method=2, Function=3, Constructor=4, Field=5, Variable=6,
@@ -463,7 +495,7 @@ void LSPServer::onCompletion(const json& params, const json& id) {
     json items = json::array();
 
     // Walk all scopes from current up to global to collect visible symbols.
-    Scope* scope = res.SemaInst->getSymbolTable().getCurrentScope();
+    Scope* scope = unit.Semantic->getSymbolTable().getCurrentScope();
     // Gather unique names to avoid duplicates from shadowing.
     std::unordered_map<std::string, bool> seen;
     while (scope) {
@@ -501,7 +533,17 @@ void LSPServer::onDefinition(const json& params, const json& id) {
     unsigned lspLine = params["position"]["line"];
     unsigned lspChar = params["position"]["character"];
 
-    FrontendResult res = runFrontend(uri, info.Content);
+    auto snapshot = getSnapshot(uri);
+    if (!snapshot || !snapshot->Instance || snapshot->Instance->getUnits().empty()) {
+        reply(id, nullptr);
+        return;
+    }
+    CompilerInstance& ci = *snapshot->Instance;
+    FrontendUnit& unit = ci.getUnits().front();
+    if (!unit.Semantic) {
+        reply(id, nullptr);
+        return;
+    }
 
     size_t offset = positionToOffset(info.Content, lspLine, lspChar);
     if (offset == SIZE_MAX) {
@@ -528,7 +570,7 @@ void LSPServer::onDefinition(const json& params, const json& id) {
     }
 
     std::string word = info.Content.substr(start, end - start);
-    Symbol* sym = res.SemaInst->getSymbolTable().lookup(word);
+    Symbol* sym = unit.Semantic->getSymbolTable().lookup(word);
     if (!sym) {
         reply(id, nullptr);
         return;
@@ -540,7 +582,7 @@ void LSPServer::onDefinition(const json& params, const json& id) {
         return;
     }
 
-    auto [defLine, defCol] = res.SM.getLineAndColumn(defLoc);
+    auto [defLine, defCol] = ci.getSourceManager().getLineAndColumn(defLoc);
     int defLspLine = (defLine > 0) ? defLine - 1 : 0;
     int defLspCol  = (defCol  > 0) ? defCol  - 1 : 0;
 
@@ -564,9 +606,13 @@ void LSPServer::onDocumentSymbol(const json& params, const json& id) {
         reply(id, json::array());
         return;
     }
-    const auto& info = Documents[uri];
-
-    FrontendResult res = runFrontend(uri, info.Content);
+    auto snapshot = getSnapshot(uri);
+    if (!snapshot || !snapshot->Instance || snapshot->Instance->getUnits().empty()) {
+        reply(id, json::array());
+        return;
+    }
+    CompilerInstance& ci = *snapshot->Instance;
+    FrontendUnit& unit = ci.getUnits().front();
 
     // LSP SymbolKind: File=1, Module=2, Namespace=3, Class=5, Method=6,
     // Property=7, Field=8, Constructor=9, Enum=10, Interface=11,
@@ -575,7 +621,7 @@ void LSPServer::onDocumentSymbol(const json& params, const json& id) {
     json symbols = json::array();
 
     auto makeRange = [&](SourceLocation loc) -> json {
-        auto [line, col] = res.SM.getLineAndColumn(loc);
+        auto [line, col] = ci.getSourceManager().getLineAndColumn(loc);
         int l = (line > 0) ? line - 1 : 0;
         int c = (col  > 0) ? col  - 1 : 0;
         return {
@@ -584,7 +630,7 @@ void LSPServer::onDocumentSymbol(const json& params, const json& id) {
         };
     };
 
-    for (Decl* decl : res.Decls) {
+    for (Decl* decl : unit.Declarations) {
         if (!decl) continue;
 
         json sym;

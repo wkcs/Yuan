@@ -8,6 +8,8 @@ add_subdirectory(Parser)
 add_subdirectory(Sema)
 add_subdirectory(Builtin)
 add_subdirectory(CodeGen)
+add_subdirectory(Frontend)
+add_subdirectory(Tooling)
 add_subdirectory(Driver)
 
 # Create the main Yuan library
@@ -19,6 +21,8 @@ add_library(yuan_lib STATIC
     $<TARGET_OBJECTS:yuan_sema>
     $<TARGET_OBJECTS:yuan_builtin>
     $<TARGET_OBJECTS:yuan_codegen>
+    $<TARGET_OBJECTS:yuan_frontend>
+    $<TARGET_OBJECTS:yuan_tooling>
     $<TARGET_OBJECTS:yuan_driver>
 )
 
@@ -30,6 +34,8 @@ target_include_directories(yuan_lib PUBLIC
 if(LLVM_FOUND)
     target_link_libraries(yuan_lib PUBLIC ${LLVM_LIBRARIES})
 endif()
+
+target_link_libraries(yuan_lib PUBLIC yuan_third_party_json)
 
 set_target_properties(yuan_lib PROPERTIES
     OUTPUT_NAME yuan

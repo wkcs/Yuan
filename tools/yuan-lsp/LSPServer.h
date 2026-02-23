@@ -2,10 +2,8 @@
 #define YUAN_LSP_LSPSERVER_H
 
 #include "JSONRPC.h"
-#include "yuan/Basic/Diagnostic.h"
-#include "yuan/Basic/SourceManager.h"
-#include "yuan/AST/ASTContext.h"
-#include "yuan/Sema/Sema.h"
+#include "yuan/Frontend/CompilerInvocation.h"
+#include "yuan/Tooling/CompilerSession.h"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
@@ -37,20 +35,11 @@ private:
         unsigned Version = 0;
     };
     std::unordered_map<std::string, DocumentInfo> Documents;
+    CompilerSession Session;
 
-    // Result of running the frontend pipeline on a document.
-    struct FrontendResult {
-        SourceManager SM;
-        SourceManager::FileID FID = SourceManager::InvalidFileID;
-        std::unique_ptr<ASTContext> Ctx;
-        std::unique_ptr<DiagnosticEngine> DiagEngine;
-        StoredDiagnosticConsumer* DiagConsumer = nullptr; // owned by DiagEngine
-        std::vector<Decl*> Decls;
-        std::unique_ptr<Sema> SemaInst;
-    };
-
-    /// Run Lexer -> Parser -> Sema on the given document content.
-    FrontendResult runFrontend(const std::string& uri, const std::string& content);
+    std::shared_ptr<SessionSnapshot> getSnapshot(const std::string& uri);
+    CompilerInvocation buildInvocationForUri(const std::string& uri) const;
+    static std::string uriToPath(const std::string& uri);
 
     void handleMessage(const json& msg);
     void handleRequest(const std::string& method, const json& params, const json& id);

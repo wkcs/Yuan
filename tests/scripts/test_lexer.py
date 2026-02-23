@@ -45,7 +45,7 @@ def run_lexer_test(yuanc_path, test_file, output_dir):
     output_file = os.path.join(output_dir, f"{test_name}.tokens")
     
     # 运行词法分析
-    cmd = [yuanc_path, "--emit=tokens", "-o", output_file, test_file]
+    cmd = [yuanc_path, "-dump-tokens", "-o", output_file, test_file]
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -70,7 +70,7 @@ def run_error_test(yuanc_path, test_file):
     print(f"错误测试文件: {test_file}")
     
     # 运行词法分析，期望失败
-    cmd = [yuanc_path, "--emit=tokens", test_file]
+    cmd = [yuanc_path, "-dump-tokens", test_file]
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)

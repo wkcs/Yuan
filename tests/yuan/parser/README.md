@@ -133,7 +133,7 @@ cmake -B build
 cmake --build build
 
 # 测试单个文件
-./build/tools/yuanc/yuanc --emit=ast tests/yuan/parser/declarations/functions.yu
+./build/tools/yuanc/yuanc -ast-dump tests/yuan/parser/declarations/functions.yu
 ```
 
 ## 测试要求

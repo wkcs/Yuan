@@ -1,23 +1,14 @@
-/// \file
-/// \brief 编译器驱动器实现
-
 #include "yuan/Driver/Driver.h"
-#include "yuan/AST/ASTContext.h"
-#include "yuan/AST/ASTDumper.h"
-#include "yuan/AST/ASTPrinter.h"
-#include "yuan/Basic/TextDiagnosticPrinter.h"
-#include "yuan/Basic/TokenKinds.h"
 #include "yuan/Basic/Version.h"
-#include "yuan/CodeGen/CodeGen.h"
-#include "yuan/Lexer/Lexer.h"
-#include "yuan/Parser/Parser.h"
-#include "yuan/Sema/Sema.h"
+#include "yuan/Frontend/CompilerInstance.h"
+#include "yuan/Frontend/FrontendAction.h"
+#include "yuan/Sema/ModuleManager.h"
 #include <chrono>
-#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <unordered_set>
 
@@ -37,9 +28,36 @@ std::string quoteArg(const std::string& value) {
     return out;
 }
 
-std::string getModuleNameFromPath(const std::string& inputFile) {
-    std::filesystem::path p(inputFile);
-    return p.stem().string();
+FrontendActionKind toFrontendActionKind(DriverAction action) {
+    switch (action) {
+        case DriverAction::Link:
+        case DriverAction::EmitObj:
+            return FrontendActionKind::EmitObj;
+        case DriverAction::EmitLLVM:
+            return FrontendActionKind::EmitLLVM;
+        case DriverAction::SyntaxOnly:
+            return FrontendActionKind::SyntaxOnly;
+        case DriverAction::DumpTokens:
+            return FrontendActionKind::DumpTokens;
+        case DriverAction::ASTDump:
+            return FrontendActionKind::ASTDump;
+        case DriverAction::ASTPrint:
+            return FrontendActionKind::ASTPrint;
+    }
+    return FrontendActionKind::SyntaxOnly;
+}
+
+CompilationResult fromFrontendStatus(FrontendStatus status) {
+    switch (status) {
+        case FrontendStatus::Success: return CompilationResult::Success;
+        case FrontendStatus::LexerError: return CompilationResult::LexerError;
+        case FrontendStatus::ParserError: return CompilationResult::ParserError;
+        case FrontendStatus::SemanticError: return CompilationResult::SemanticError;
+        case FrontendStatus::CodeGenError: return CompilationResult::CodeGenError;
+        case FrontendStatus::IOError: return CompilationResult::IOError;
+        case FrontendStatus::InternalError: return CompilationResult::InternalError;
+    }
+    return CompilationResult::InternalError;
 }
 
 std::string makeCachedMainObjectPath(const std::string& inputFile,
@@ -58,295 +76,83 @@ std::string makeCachedMainObjectPath(const std::string& inputFile,
     return (std::filesystem::path(moduleCacheDir) / "main" / fileName).string();
 }
 
-unsigned mapOptLevel(OptLevel level) {
-    switch (level) {
-        case OptLevel::O0: return 0;
-        case OptLevel::O1: return 1;
-        case OptLevel::O2: return 2;
-        case OptLevel::O3: return 3;
+CompilerInvocation buildInvocation(const DriverOptions& options,
+                                   FrontendActionKind action) {
+    CompilerInvocation invocation;
+    invocation.Action = action;
+    invocation.Verbose = options.Verbose;
+    invocation.OptimizationLevel = options.getOptimizationLevel();
+    invocation.OutputFile = options.OutputFile;
+    invocation.StdLibPath = options.StdLibPath;
+    invocation.ModuleCacheDir = options.ModuleCacheDir;
+    invocation.IncludePaths = options.IncludePaths;
+    invocation.PackagePaths = options.PackagePaths;
+    invocation.LibraryPaths = options.LibraryPaths;
+    invocation.Libraries = options.Libraries;
+    return invocation;
+}
+
+struct DriverContext {
+    const DriverOptions& Options;
+    std::ostream& Out;
+    std::ostream& Err;
+    std::vector<std::string> ObjectFiles;
+    std::unordered_set<std::string> SeenObjectFiles;
+};
+
+void addObjectFile(DriverContext& ctx, const std::string& objectFile) {
+    if (objectFile.empty()) {
+        return;
     }
-    return 0;
+    if (ctx.SeenObjectFiles.insert(objectFile).second) {
+        ctx.ObjectFiles.push_back(objectFile);
+    }
 }
 
-} // namespace
-
-Driver::Driver(const CompilerOptions& options)
-    : Options(options) {
-    SourceMgr = std::make_unique<SourceManager>();
-    initializeDiagnostics();
-}
-
-Driver::~Driver() = default;
-
-void Driver::initializeDiagnostics() {
-    Diagnostics = std::make_unique<DiagnosticEngine>(*SourceMgr);
-    DiagConsumer = std::make_unique<TextDiagnosticPrinter>(
-        std::cerr, *SourceMgr, true /* 彩色输出 */);
-    Diagnostics->setConsumer(std::move(DiagConsumer));
-}
-
-CompilationResult Driver::run() {
-    auto startTime = std::chrono::high_resolution_clock::now();
-
-    if (Options.Verbose) {
-        std::cout << "Yuan 编译器 v" << VersionInfo::getVersionString() << "\n";
-        std::cout << "驱动动作: " << Options.getActionString() << "\n";
-        std::cout << "优化级别: " << Options.getOptLevelString() << "\n";
+CompilationResult buildModuleObject(const std::string& moduleSourcePath,
+                                    const DriverOptions& options,
+                                    const std::string& preferredObjectPath,
+                                    std::string& outObjectFile,
+                                    std::ostream& err) {
+    std::filesystem::path srcPath(moduleSourcePath);
+    try {
+        srcPath = std::filesystem::weakly_canonical(srcPath);
+    } catch (...) {
+        srcPath = srcPath.lexically_normal();
     }
 
-    std::string errorMsg;
-    if (!Options.validate(errorMsg)) {
-        std::cerr << errorMsg << "\n";
+    if (!std::filesystem::exists(srcPath)) {
+        err << "错误：依赖模块源文件不存在: " << srcPath.string() << "\n";
         return CompilationResult::IOError;
     }
 
-    CompilationResult result = loadInputFiles();
-    if (result != CompilationResult::Success) {
-        return result;
+    std::string outputPath = preferredObjectPath;
+    if (outputPath.empty()) {
+        outputPath = (std::filesystem::path(options.ModuleCacheDir) /
+                      (srcPath.stem().string() + ".o")).string();
     }
 
-    switch (Options.Action) {
-        case DriverAction::Tokens:
-            result = runTokenDump();
-            break;
-        case DriverAction::AST:
-            result = runASTLikeDump(true);
-            break;
-        case DriverAction::Pretty:
-            result = runASTLikeDump(false);
-            break;
-        case DriverAction::SyntaxOnly:
-            result = runFrontend(true);
-            break;
-        case DriverAction::IR:
-        case DriverAction::Object:
-        case DriverAction::Link:
-            result = runCodeGeneration();
-            break;
+    CompilerInvocation invocation = buildInvocation(options, FrontendActionKind::EmitObj);
+    CompilerInstance ci(invocation);
+    ci.enableTextDiagnostics(err, true);
+
+    EmitObjAction action;
+    std::vector<FrontendInputFile> inputs = {
+        FrontendInputFile::fromFile(srcPath.string(), outputPath)
+    };
+    FrontendResult result = executeFrontendAction(ci, action, inputs);
+    if (!result.succeeded()) {
+        return fromFrontendStatus(result.OverallStatus);
     }
 
-    if (Options.Verbose) {
-        auto endTime = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            endTime - startTime);
-        std::cout << "编译完成，用时: " << duration.count() << "ms\n";
-        printStatistics();
-    }
-
-    return result;
-}
-
-CompilationResult Driver::loadInputFiles() {
-    if (Options.Verbose) {
-        std::cout << "加载输入文件...\n";
-    }
-
-    Units.clear();
-    Units.reserve(Options.InputFiles.size());
-    for (const auto& inputFile : Options.InputFiles) {
-        SourceManager::FileID fileID = SourceMgr->loadFile(inputFile);
-        if (fileID == SourceManager::InvalidFileID) {
-            std::cerr << "错误：无法加载文件 " << inputFile << "\n";
-            return CompilationResult::IOError;
-        }
-        CompilationUnit unit;
-        unit.InputFile = inputFile;
-        unit.FileID = fileID;
-        Units.push_back(std::move(unit));
-        if (Options.Verbose) {
-            std::cout << "  已加载: " << inputFile << "\n";
-        }
-    }
+    outObjectFile = result.Files.empty() ? outputPath : result.Files.front().OutputPath;
     return CompilationResult::Success;
 }
 
-CompilationResult Driver::runTokenDump() {
-    std::unique_ptr<std::ofstream> outFile;
-    std::ostream* out = &std::cout;
-    if (!Options.OutputFile.empty() && Options.OutputFile != "-") {
-        outFile = std::make_unique<std::ofstream>(Options.OutputFile);
-        if (!outFile->good()) {
-            std::cerr << "错误：无法创建输出文件 " << Options.OutputFile << "\n";
-            return CompilationResult::IOError;
-        }
-        out = outFile.get();
-    }
-
-    for (size_t i = 0; i < Units.size(); ++i) {
-        auto& unit = Units[i];
-        if (Units.size() > 1) {
-            *out << "== Tokens: " << unit.InputFile << " ==\n";
-        }
-        Lexer lexer(*SourceMgr, *Diagnostics, unit.FileID);
-        CompilationResult result = emitTokens(lexer, unit.InputFile, *out);
-        if (result != CompilationResult::Success) {
-            return result;
-        }
-        if (Units.size() > 1 && i + 1 < Units.size()) {
-            *out << "\n";
-        }
-    }
-
-    if (Diagnostics->hasErrors()) {
-        return CompilationResult::LexerError;
-    }
-    return CompilationResult::Success;
-}
-
-CompilationResult Driver::runFrontend(bool needSema) {
-    for (auto& unit : Units) {
-        if (!unit.Parsed) {
-            unit.Context = std::make_unique<ASTContext>(*SourceMgr);
-            unit.Context->setPointerBitWidth(static_cast<unsigned>(sizeof(uintptr_t) * 8));
-            Lexer lexer(*SourceMgr, *Diagnostics, unit.FileID);
-            Parser parser(lexer, *Diagnostics, *unit.Context);
-            unit.Declarations = parser.parseCompilationUnit();
-            unit.Parsed = true;
-            if (Diagnostics->hasErrors()) {
-                return CompilationResult::ParserError;
-            }
-        }
-
-        if (needSema && !unit.Analyzed) {
-            unit.Semantic = std::make_unique<Sema>(*unit.Context, *Diagnostics);
-            configureModuleManager(*unit.Semantic);
-            yuan::CompilationUnit semaUnit(unit.FileID);
-            for (Decl* decl : unit.Declarations) {
-                semaUnit.addDecl(decl);
-            }
-            (void)unit.Semantic->analyze(&semaUnit);
-            unit.Analyzed = true;
-            if (Diagnostics->hasErrors()) {
-                return CompilationResult::SemanticError;
-            }
-        }
-    }
-    return CompilationResult::Success;
-}
-
-CompilationResult Driver::runASTLikeDump(bool treeMode) {
-    CompilationResult frontendResult = runFrontend(false);
-    if (frontendResult != CompilationResult::Success) {
-        return frontendResult;
-    }
-
-    std::unique_ptr<std::ofstream> outFile;
-    std::ostream* out = &std::cout;
-    if (!Options.OutputFile.empty() && Options.OutputFile != "-") {
-        outFile = std::make_unique<std::ofstream>(Options.OutputFile);
-        if (!outFile->good()) {
-            std::cerr << "错误：无法创建输出文件 " << Options.OutputFile << "\n";
-            return CompilationResult::IOError;
-        }
-        out = outFile.get();
-    }
-
-    for (size_t i = 0; i < Units.size(); ++i) {
-        auto& unit = Units[i];
-        if (Units.size() > 1) {
-            *out << "== " << (treeMode ? "AST" : "Pretty") << ": " << unit.InputFile << " ==\n";
-        }
-
-        if (treeMode) {
-            ASTDumper dumper(*out);
-            for (const auto* decl : unit.Declarations) {
-                dumper.dump(decl);
-            }
-        } else {
-            ASTPrinter printer(*out);
-            for (const auto* decl : unit.Declarations) {
-                printer.print(decl);
-                *out << "\n";
-            }
-        }
-        if (Units.size() > 1 && i + 1 < Units.size()) {
-            *out << "\n";
-        }
-    }
-    return CompilationResult::Success;
-}
-
-CompilationResult Driver::runCodeGeneration() {
-    CompilationResult frontendResult = runFrontend(true);
-    if (frontendResult != CompilationResult::Success) {
-        return frontendResult;
-    }
-
-    const bool emitIR = Options.Action == DriverAction::IR;
-    const bool emitObj = Options.Action == DriverAction::Object;
-    const bool emitExe = Options.Action == DriverAction::Link;
-
-    std::vector<std::string> objectFiles;
-    std::unordered_set<std::string> seenObjects;
-    objectFiles.reserve(Units.size() * 2);
-    unsigned optLevel = mapOptLevel(Options.Optimization);
-
-    for (size_t i = 0; i < Units.size(); ++i) {
-        auto& unit = Units[i];
-        std::string moduleName = getModuleNameFromPath(unit.InputFile);
-        CodeGen codeGen(*unit.Context, moduleName);
-
-        for (Decl* decl : unit.Declarations) {
-            if (!codeGen.generateDecl(decl)) {
-                std::cerr << "错误：代码生成失败: " << unit.InputFile << "\n";
-                return CompilationResult::CodeGenError;
-            }
-        }
-
-        std::string verifyError;
-        if (!codeGen.verifyModule(&verifyError)) {
-            std::cerr << "错误：LLVM IR 验证失败: " << verifyError << "\n";
-            return CompilationResult::CodeGenError;
-        }
-
-        if (emitIR) {
-            std::string output = Options.OutputFile.empty()
-                ? deducePerInputOutput(unit.InputFile, ".ll")
-                : Options.OutputFile;
-            if (!codeGen.emitIRToFile(output)) {
-                std::cerr << "错误：无法写入 IR 文件 " << output << "\n";
-                return CompilationResult::CodeGenError;
-            }
-            continue;
-        }
-
-        std::string objFile;
-        if (emitObj && !Options.OutputFile.empty()) {
-            objFile = Options.OutputFile;
-        } else if (emitExe) {
-            // 链接模式下的主输入对象写入模块缓存，避免污染输出目录。
-            objFile = makeCachedMainObjectPath(unit.InputFile, Options.ModuleCacheDir);
-        } else {
-            objFile = deducePerInputOutput(unit.InputFile, ".o");
-        }
-
-        std::filesystem::path objPath(objFile);
-        if (!objPath.parent_path().empty()) {
-            std::error_code ec;
-            std::filesystem::create_directories(objPath.parent_path(), ec);
-            if (ec) {
-                std::cerr << "错误：无法创建目标文件目录 " << objPath.parent_path().string() << "\n";
-                return CompilationResult::IOError;
-            }
-        }
-
-        if (!codeGen.emitObjectFile(objFile, optLevel)) {
-            std::cerr << "错误：无法生成目标文件 " << objFile << "\n";
-            return CompilationResult::CodeGenError;
-        }
-        if (seenObjects.insert(objFile).second) {
-            objectFiles.push_back(objFile);
-        }
-    }
-
-    if (!emitExe) {
-        return CompilationResult::Success;
-    }
-
-    // 链接模式：将导入模块作为独立编译单元生成/复用对象，再统一链接。
+CompilationResult collectDependencyObjects(CompilerInstance& ci, DriverContext& ctx) {
     std::unordered_set<std::string> mainInputs;
-    for (const auto& unit : Units) {
-        std::filesystem::path p(unit.InputFile);
+    for (const auto& unit : ci.getUnits()) {
+        std::filesystem::path p(unit.Input.Name);
         try {
             p = std::filesystem::weakly_canonical(p);
         } catch (...) {
@@ -355,7 +161,7 @@ CompilationResult Driver::runCodeGeneration() {
         mainInputs.insert(p.string());
     }
 
-    for (auto& unit : Units) {
+    for (const auto& unit : ci.getUnits()) {
         if (!unit.Semantic) {
             continue;
         }
@@ -395,226 +201,315 @@ CompilationResult Driver::runCodeGeneration() {
                 if (needRebuild) {
                     CompilationResult depResult = buildModuleObject(
                         srcPath.string(),
-                        optLevel,
+                        ctx.Options,
                         info->ObjectPath,
-                        depObj);
+                        depObj,
+                        ctx.Err);
                     if (depResult != CompilationResult::Success) {
                         return depResult;
                     }
                 }
             } else {
-                // 仅接口包：必须直接提供对象文件
                 if (!hasDepObj) {
-                    std::cerr << "错误：预编译模块缺少对象文件: " << info->Name << "\n";
+                    ctx.Err << "错误：预编译模块缺少对象文件: " << info->Name << "\n";
                     return CompilationResult::LinkError;
                 }
             }
 
-            if (!depObj.empty() && std::filesystem::exists(depObj) &&
-                seenObjects.insert(depObj).second) {
-                objectFiles.push_back(depObj);
+            if (!depObj.empty() && std::filesystem::exists(depObj)) {
+                addObjectFile(ctx, depObj);
             }
         }
     }
 
-    std::string executable = Options.OutputFile.empty()
-        ? Options.getOutputFileName()
-        : Options.OutputFile;
-    return linkObjects(objectFiles, executable);
-}
-
-void Driver::configureModuleManager(Sema& sema) const {
-    ModuleManager& moduleMgr = sema.getModuleManager();
-
-    if (!Options.StdLibPath.empty()) {
-        moduleMgr.setStdLibPath(Options.StdLibPath);
-    }
-    moduleMgr.setModuleCacheDir(Options.ModuleCacheDir);
-    for (const auto& pkgPath : Options.PackagePaths) {
-        moduleMgr.addPackagePath(pkgPath);
-    }
-    for (const auto& includePath : Options.IncludePaths) {
-        moduleMgr.addPackagePath(includePath);
-    }
-}
-
-CompilationResult Driver::buildModuleObject(const std::string& moduleSourcePath,
-                                            unsigned optLevel,
-                                            const std::string& preferredObjectPath,
-                                            std::string& outObjectFile) {
-    std::filesystem::path srcPath(moduleSourcePath);
-    try {
-        srcPath = std::filesystem::weakly_canonical(srcPath);
-    } catch (...) {
-        srcPath = srcPath.lexically_normal();
-    }
-
-    if (!std::filesystem::exists(srcPath)) {
-        std::cerr << "错误：依赖模块源文件不存在: " << srcPath.string() << "\n";
-        return CompilationResult::IOError;
-    }
-
-    SourceManager::FileID fileID = SourceMgr->loadFile(srcPath.string());
-    if (fileID == SourceManager::InvalidFileID) {
-        std::cerr << "错误：无法加载依赖模块文件 " << srcPath.string() << "\n";
-        return CompilationResult::IOError;
-    }
-
-    auto depCtx = std::make_unique<ASTContext>(*SourceMgr);
-    Lexer lexer(*SourceMgr, *Diagnostics, fileID);
-    Parser parser(lexer, *Diagnostics, *depCtx);
-    std::vector<Decl*> depDecls = parser.parseCompilationUnit();
-    if (Diagnostics->hasErrors()) {
-        return CompilationResult::ParserError;
-    }
-
-    auto depSema = std::make_unique<Sema>(*depCtx, *Diagnostics);
-    configureModuleManager(*depSema);
-    yuan::CompilationUnit depUnit(fileID);
-    for (Decl* decl : depDecls) {
-        depUnit.addDecl(decl);
-    }
-    (void)depSema->analyze(&depUnit);
-    if (Diagnostics->hasErrors()) {
-        return CompilationResult::SemanticError;
-    }
-
-    std::string moduleName = srcPath.stem().string();
-    CodeGen codeGen(*depCtx, moduleName);
-    for (Decl* decl : depDecls) {
-        if (!codeGen.generateDecl(decl)) {
-            std::cerr << "错误：依赖模块代码生成失败: " << srcPath.string() << "\n";
-            return CompilationResult::CodeGenError;
-        }
-    }
-
-    std::string verifyError;
-    if (!codeGen.verifyModule(&verifyError)) {
-        std::cerr << "错误：依赖模块 LLVM IR 验证失败: " << verifyError << "\n";
-        return CompilationResult::CodeGenError;
-    }
-
-    std::filesystem::path outputPath;
-    if (!preferredObjectPath.empty()) {
-        outputPath = preferredObjectPath;
-    } else {
-        outputPath = std::filesystem::path(Options.ModuleCacheDir) / (srcPath.stem().string() + ".o");
-    }
-
-    std::error_code ec;
-    std::filesystem::create_directories(outputPath.parent_path(), ec);
-    if (ec) {
-        std::cerr << "错误：无法创建依赖模块输出目录: " << outputPath.parent_path().string() << "\n";
-        return CompilationResult::IOError;
-    }
-
-    if (!codeGen.emitObjectFile(outputPath.string(), optLevel)) {
-        std::cerr << "错误：无法生成依赖模块目标文件 " << outputPath.string() << "\n";
-        return CompilationResult::CodeGenError;
-    }
-
-    outObjectFile = outputPath.string();
     return CompilationResult::Success;
 }
 
-CompilationResult Driver::linkObjects(const std::vector<std::string>& objectFiles,
-                                      const std::string& executableFile) {
-    if (objectFiles.empty()) {
-        std::cerr << "错误：没有可链接的目标文件\n";
-        return CompilationResult::LinkError;
-    }
+class ToolChain {
+public:
+    explicit ToolChain(const DriverOptions& options) : Options(options) {}
 
-    std::ostringstream cmd;
+    CompilationResult linkObjects(const std::vector<std::string>& objectFiles,
+                                  const std::string& executableFile,
+                                  std::ostream& out,
+                                  std::ostream& err) const {
+        if (objectFiles.empty()) {
+            err << "错误：没有可链接的目标文件\n";
+            return CompilationResult::LinkError;
+        }
+
+        std::ostringstream cmd;
 #if defined(__APPLE__)
-    cmd << "clang++";
+        cmd << "clang++";
 #elif defined(__linux__)
-    cmd << "g++";
+        cmd << "g++";
 #elif defined(_WIN32)
-    cmd << "clang++";
+        cmd << "clang++";
 #else
-    return CompilationResult::LinkError;
+        return CompilationResult::LinkError;
 #endif
-    cmd << " -o " << quoteArg(executableFile);
-    for (const auto& obj : objectFiles) {
-        cmd << " " << quoteArg(obj);
-    }
+
+        cmd << " -o " << quoteArg(executableFile);
+        for (const auto& obj : objectFiles) {
+            cmd << " " << quoteArg(obj);
+        }
 
 #ifdef YUAN_RUNTIME_LIB_PATH
-    cmd << " " << quoteArg(YUAN_RUNTIME_LIB_PATH);
+        cmd << " " << quoteArg(YUAN_RUNTIME_LIB_PATH);
 #endif
 #ifdef YUAN_RUNTIME_LINK_FLAGS
-    cmd << " " << YUAN_RUNTIME_LINK_FLAGS;
+        cmd << " " << YUAN_RUNTIME_LINK_FLAGS;
 #endif
-    for (const auto& libPath : Options.LibraryPaths) {
-        cmd << " -L" << quoteArg(libPath);
+
+        for (const auto& libPath : Options.LibraryPaths) {
+            cmd << " -L" << quoteArg(libPath);
+        }
+        for (const auto& lib : Options.Libraries) {
+            cmd << " -l" << lib;
+        }
+
+        if (Options.Verbose) {
+            out << "链接命令: " << cmd.str() << "\n";
+        }
+
+        int rc = std::system(cmd.str().c_str());
+        if (rc != 0) {
+            err << "错误：链接失败\n";
+            return CompilationResult::LinkError;
+        }
+        return CompilationResult::Success;
     }
-    for (const auto& lib : Options.Libraries) {
-        cmd << " -l" << lib;
+
+private:
+    const DriverOptions& Options;
+};
+
+class Command {
+public:
+    virtual ~Command() = default;
+    virtual CompilationResult execute(DriverContext& ctx) = 0;
+};
+
+class FrontendCommand : public Command {
+public:
+    FrontendCommand(FrontendActionKind actionKind,
+                    std::vector<FrontendInputFile> inputs,
+                    std::string textOutputPath,
+                    bool collectObjectOutputs,
+                    bool collectModuleDeps)
+        : ActionKind(actionKind),
+          Inputs(std::move(inputs)),
+          TextOutputPath(std::move(textOutputPath)),
+          CollectObjectOutputs(collectObjectOutputs),
+          CollectModuleDependencies(collectModuleDeps) {}
+
+    CompilationResult execute(DriverContext& ctx) override {
+        CompilerInvocation invocation = buildInvocation(ctx.Options, ActionKind);
+        CompilerInstance ci(invocation);
+        ci.enableTextDiagnostics(ctx.Err, true);
+
+        std::unique_ptr<std::ofstream> outFile;
+        std::ostream* textOut = &ctx.Out;
+        if (!TextOutputPath.empty() && TextOutputPath != "-") {
+            outFile = std::make_unique<std::ofstream>(TextOutputPath);
+            if (!outFile->good()) {
+                ctx.Err << "错误：无法创建输出文件 " << TextOutputPath << "\n";
+                return CompilationResult::IOError;
+            }
+            textOut = outFile.get();
+        }
+
+        std::unique_ptr<FrontendAction> action;
+        switch (ActionKind) {
+            case FrontendActionKind::DumpTokens:
+                action = std::make_unique<DumpTokensAction>(*textOut);
+                break;
+            case FrontendActionKind::ASTDump:
+                action = std::make_unique<ASTDumpAction>(*textOut);
+                break;
+            case FrontendActionKind::ASTPrint:
+                action = std::make_unique<ASTPrintAction>(*textOut);
+                break;
+            case FrontendActionKind::SyntaxOnly:
+                action = std::make_unique<SyntaxOnlyAction>();
+                break;
+            case FrontendActionKind::EmitLLVM:
+                action = std::make_unique<EmitLLVMAction>();
+                break;
+            case FrontendActionKind::EmitObj:
+                action = std::make_unique<EmitObjAction>();
+                break;
+        }
+
+        FrontendResult result = executeFrontendAction(ci, *action, Inputs);
+        if (!result.succeeded()) {
+            return fromFrontendStatus(result.OverallStatus);
+        }
+
+        if (CollectObjectOutputs) {
+            for (const auto& fileResult : result.Files) {
+                addObjectFile(ctx, fileResult.OutputPath);
+            }
+        }
+
+        if (CollectModuleDependencies) {
+            CompilationResult depStatus = collectDependencyObjects(ci, ctx);
+            if (depStatus != CompilationResult::Success) {
+                return depStatus;
+            }
+        }
+
+        return CompilationResult::Success;
+    }
+
+private:
+    FrontendActionKind ActionKind;
+    std::vector<FrontendInputFile> Inputs;
+    std::string TextOutputPath;
+    bool CollectObjectOutputs;
+    bool CollectModuleDependencies;
+};
+
+class LinkCommand : public Command {
+public:
+    explicit LinkCommand(std::string executablePath)
+        : ExecutablePath(std::move(executablePath)) {}
+
+    CompilationResult execute(DriverContext& ctx) override {
+        ToolChain toolChain(ctx.Options);
+        return toolChain.linkObjects(ctx.ObjectFiles, ExecutablePath, ctx.Out, ctx.Err);
+    }
+
+private:
+    std::string ExecutablePath;
+};
+
+struct Compilation {
+    std::vector<std::unique_ptr<Command>> Commands;
+};
+
+Compilation buildCompilation(const DriverOptions& options) {
+    Compilation compilation;
+
+    std::vector<FrontendInputFile> inputs;
+    inputs.reserve(options.InputFiles.size());
+
+    switch (options.Action) {
+        case DriverAction::DumpTokens:
+        case DriverAction::ASTDump:
+        case DriverAction::ASTPrint:
+        case DriverAction::SyntaxOnly:
+        case DriverAction::EmitLLVM:
+        case DriverAction::EmitObj: {
+            for (const auto& input : options.InputFiles) {
+                if (!options.OutputFile.empty() && options.InputFiles.size() == 1 &&
+                    (options.Action == DriverAction::EmitObj ||
+                     options.Action == DriverAction::EmitLLVM)) {
+                    inputs.push_back(FrontendInputFile::fromFile(input, options.OutputFile));
+                } else {
+                    inputs.push_back(FrontendInputFile::fromFile(input));
+                }
+            }
+
+            std::string textOutput;
+            if (options.Action == DriverAction::DumpTokens ||
+                options.Action == DriverAction::ASTDump ||
+                options.Action == DriverAction::ASTPrint) {
+                textOutput = options.OutputFile;
+            }
+
+            compilation.Commands.push_back(std::make_unique<FrontendCommand>(
+                toFrontendActionKind(options.Action),
+                std::move(inputs),
+                textOutput,
+                false,
+                false));
+            break;
+        }
+        case DriverAction::Link: {
+            for (const auto& input : options.InputFiles) {
+                std::string objPath = makeCachedMainObjectPath(input, options.ModuleCacheDir);
+                inputs.push_back(FrontendInputFile::fromFile(input, objPath));
+            }
+
+            compilation.Commands.push_back(std::make_unique<FrontendCommand>(
+                FrontendActionKind::EmitObj,
+                std::move(inputs),
+                "",
+                true,
+                true));
+
+            std::string executable = options.OutputFile.empty()
+                ? options.getOutputFileName()
+                : options.OutputFile;
+            compilation.Commands.push_back(std::make_unique<LinkCommand>(executable));
+            break;
+        }
+    }
+
+    return compilation;
+}
+
+} // namespace
+
+Driver::Driver(const DriverOptions& options)
+    : Options(options) {}
+
+CompilationResult Driver::run() {
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    std::string errorMsg;
+    if (!Options.validate(errorMsg)) {
+        std::cerr << errorMsg << "\n";
+        return CompilationResult::IOError;
     }
 
     if (Options.Verbose) {
-        std::cout << "链接命令: " << cmd.str() << "\n";
-    }
-    int rc = std::system(cmd.str().c_str());
-    if (rc != 0) {
-        std::cerr << "错误：链接失败\n";
-        return CompilationResult::LinkError;
-    }
-    return CompilationResult::Success;
-}
-
-CompilationResult Driver::emitTokens(Lexer& lexer,
-                                     const std::string& inputFile,
-                                     std::ostream& output) {
-    output << "// Yuan 词法分析结果\n";
-    output << "// 源文件: " << inputFile << "\n\n";
-
-    Token token;
-    unsigned tokenCount = 0;
-    do {
-        unsigned errorsBefore = Diagnostics->getErrorCount();
-        token = lexer.lex();
-        unsigned errorsAfter = Diagnostics->getErrorCount();
-        bool hasTokenError = errorsAfter > errorsBefore;
-        if (token.getKind() != TokenKind::EndOfFile && !hasTokenError) {
-            SourceLocation loc = token.getLocation();
-            auto [line, col] = SourceMgr->getLineAndColumn(loc);
-            output << "Token[" << tokenCount << "]: "
-                   << getTokenName(token.getKind())
-                   << " \"" << token.getText() << "\""
-                   << " @" << inputFile << ":" << line << ":" << col << "\n";
-            ++tokenCount;
+        std::cout << "Yuan 编译器 v" << VersionInfo::getVersionString() << "\n";
+        std::cout << "驱动动作: " << Options.getActionString() << "\n";
+        std::cout << "优化级别: " << Options.getOptLevelString() << "\n";
+        if (!Options.ProjectFile.empty()) {
+            std::cout << "项目配置: " << Options.ProjectFile << "\n";
         }
-    } while (token.getKind() != TokenKind::EndOfFile);
+    }
 
-    output << "\n// 总计: " << tokenCount << " 个 token\n";
+    Compilation compilation = buildCompilation(Options);
+    DriverContext ctx{Options, std::cout, std::cerr, {}, {}};
+
+    for (const auto& command : compilation.Commands) {
+        CompilationResult result = command->execute(ctx);
+        if (result != CompilationResult::Success) {
+            return result;
+        }
+    }
+
+    if (Options.Verbose) {
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+            endTime - startTime);
+        std::cout << "编译完成，用时: " << duration.count() << "ms\n";
+    }
+
     return CompilationResult::Success;
 }
 
-std::string Driver::deducePerInputOutput(const std::string& inputFile, const std::string& ext) const {
-    std::filesystem::path p(inputFile);
-    return p.stem().string() + ext;
-}
-
-const char* Driver::getResultString(CompilationResult result) const {
+int Driver::getExitCode(CompilationResult result) {
     switch (result) {
-        case CompilationResult::Success: return "成功";
-        case CompilationResult::LexerError: return "词法分析错误";
-        case CompilationResult::ParserError: return "语法分析错误";
-        case CompilationResult::SemanticError: return "语义分析错误";
-        case CompilationResult::CodeGenError: return "代码生成错误";
-        case CompilationResult::LinkError: return "链接错误";
-        case CompilationResult::IOError: return "文件 I/O 错误";
-        case CompilationResult::InternalError: return "内部错误";
+        case CompilationResult::Success:
+            return 0;
+        case CompilationResult::LexerError:
+        case CompilationResult::ParserError:
+        case CompilationResult::SemanticError:
+            return 1;
+        case CompilationResult::CodeGenError:
+        case CompilationResult::LinkError:
+            return 2;
+        case CompilationResult::IOError:
+            return 3;
+        case CompilationResult::InternalError:
+            return 4;
     }
-    return "未知错误";
-}
-
-void Driver::printStatistics() const {
-    std::cout << "编译统计:\n";
-    std::cout << "  错误数量: " << Diagnostics->getErrorCount() << "\n";
-    std::cout << "  警告数量: " << Diagnostics->getWarningCount() << "\n";
-    std::cout << "  输入文件: " << Options.InputFiles.size() << "\n";
+    return 4;
 }
 
 } // namespace yuan

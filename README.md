@@ -53,7 +53,7 @@ cmake --build build -j
 ./build/tools/yuanc/yuanc -fsyntax-only examples/snake_demo.yu
 
 # 输出 LLVM IR
-./build/tools/yuanc/yuanc -S examples/snake_demo.yu
+./build/tools/yuanc/yuanc -S -emit-llvm examples/snake_demo.yu
 
 # 生成目标文件
 ./build/tools/yuanc/yuanc -c examples/snake_demo.yu
@@ -62,9 +62,9 @@ cmake --build build -j
 ./build/tools/yuanc/yuanc examples/snake_demo.yu -o snake_demo
 
 # 输出 token / AST / pretty
-./build/tools/yuanc/yuanc --emit=tokens examples/snake_demo.yu
-./build/tools/yuanc/yuanc --emit=ast examples/snake_demo.yu
-./build/tools/yuanc/yuanc --emit=pretty examples/snake_demo.yu
+./build/tools/yuanc/yuanc -dump-tokens examples/snake_demo.yu
+./build/tools/yuanc/yuanc -ast-dump examples/snake_demo.yu
+./build/tools/yuanc/yuanc -ast-print examples/snake_demo.yu
 ```
 
 常用参数：
@@ -74,6 +74,7 @@ cmake --build build -j
 - `--pkg-path`：预编译包搜索路径
 - `--stdlib`：指定标准库根路径
 - `--module-cache`：模块缓存目录（默认 `.yuan/cache`）
+- `--project`：指定或自动发现 `yuan-project.json` 项目配置
 
 ## 测试
 

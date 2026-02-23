@@ -14,9 +14,9 @@ from pathlib import Path
 def run_parser_test(yuanc_path, test_file):
     """运行单个语法分析测试"""
     try:
-        # 运行 yuanc --emit=ast
+        # 运行 yuanc -ast-dump
         result = subprocess.run(
-            [yuanc_path, '--emit=ast', test_file],
+            [yuanc_path, '-ast-dump', test_file],
             capture_output=True,
             text=True,
             timeout=30

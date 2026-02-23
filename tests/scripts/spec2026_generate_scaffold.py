@@ -2197,7 +2197,7 @@ def pass_command_for_phase(phase: str) -> str:
             "rc=$?; if [ $rc -ge 128 ]; then exit $rc; fi; exit 0"
         )
     if phase == "codegen":
-        return "{yuanc} -S {pass_case} -o {tmp_ir}"
+        return "{yuanc} -S -emit-llvm {pass_case} -o {tmp_ir}"
     return "{yuanc} {pass_case} -o {tmp_bin} && {tmp_bin}; rc=$?; if [ $rc -ge 128 ]; then exit $rc; fi; exit 0"
 
 

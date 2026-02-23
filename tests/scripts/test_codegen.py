@@ -38,7 +38,7 @@ def test_ir_generation(yuanc: Path, test_file: Path, verbose: bool = False) -> T
     output_file = f"/tmp/yuan_test_{test_file.stem}.ll"
 
     try:
-        cmd = [str(yuanc), "--emit=ir", str(test_file), "-o", output_file]
+        cmd = [str(yuanc), "-S", "-emit-llvm", str(test_file), "-o", output_file]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
         if result.returncode != 0:
@@ -68,7 +68,7 @@ def test_object_generation(yuanc: Path, test_file: Path, verbose: bool = False) 
     output_file = f"/tmp/yuan_test_{test_file.stem}.o"
 
     try:
-        cmd = [str(yuanc), "--emit=obj", str(test_file), "-o", output_file]
+        cmd = [str(yuanc), "-c", str(test_file), "-o", output_file]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
         if result.returncode != 0:

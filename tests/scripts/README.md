@@ -15,13 +15,13 @@
 
 ```bash
 # 测试单个文件
-./build/tools/yuanc/yuanc --emit=tokens tests/yuan/lexer/keywords.yu
+./build/tools/yuanc/yuanc -dump-tokens tests/yuan/lexer/keywords.yu
 
 # 输出到文件
-./build/tools/yuanc/yuanc --emit=tokens -o output.tokens tests/yuan/lexer/keywords.yu
+./build/tools/yuanc/yuanc -dump-tokens -o output.tokens tests/yuan/lexer/keywords.yu
 
 # 详细输出
-./build/tools/yuanc/yuanc --emit=tokens -v tests/yuan/lexer/keywords.yu
+./build/tools/yuanc/yuanc -dump-tokens -v tests/yuan/lexer/keywords.yu
 ```
 
 ### Python 测试脚本

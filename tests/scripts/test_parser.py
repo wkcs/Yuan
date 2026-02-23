@@ -44,7 +44,7 @@ def run_parser_test(yuanc_path, test_file):
         # 运行语法分析
         result = subprocess.run([
             yuanc_path, 
-            "--emit=ast", 
+            "-ast-dump", 
             "--verbose",
             test_file
         ], capture_output=True, text=True, timeout=30)
@@ -73,7 +73,7 @@ def run_error_test(yuanc_path, test_file):
         # 运行语法分析，期望失败
         result = subprocess.run([
             yuanc_path, 
-            "--emit=ast", 
+            "-ast-dump", 
             test_file
         ], capture_output=True, text=True, timeout=30)
         

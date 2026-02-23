@@ -31,12 +31,12 @@
 
 生成 LLVM IR：
 ```bash
-./build/tools/yuanc/yuanc --emit=ir tests/yuan/codegen/basic/empty_function.yu -o output.ll
+./build/tools/yuanc/yuanc -S -emit-llvm tests/yuan/codegen/basic/empty_function.yu -o output.ll
 ```
 
 生成目标文件：
 ```bash
-./build/tools/yuanc/yuanc --emit=obj tests/yuan/codegen/basic/main_only.yu -o output.o
+./build/tools/yuanc/yuanc -c tests/yuan/codegen/basic/main_only.yu -o output.o
 ```
 
 生成可执行文件：

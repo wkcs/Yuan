@@ -148,6 +148,5 @@ CodeGen 严重依赖 `runtime/` 目录下的 C++ 实现提供核心能力。在�
 - `verifyModule` 失败：这意味着生成的指令违反了 LLVM 强类型系统的规定（比如 `store` 的值类型和指针类型不匹配），或是基本块（BasicBlock）缺少了终结指令（如 `br` 或 `ret`）。
 - **调试步骤**：
   1. 使用 `./yuanc -fsyntax-only` 确保 Sema 没有隐藏的级联错误。
-  2. 使用 `./yuanc -S` 尝试输出 LLVM IR文本。即使生成失败，LLVM 往往也会输出引发崩溃前的部分 IR 函数，通过检查最后一个生成的函数即可锁定问题所在。
+  2. 使用 `./yuanc -S -emit-llvm` 尝试输出 LLVM IR文本。即使生成失败，LLVM 往往也会输出引发崩溃前的部分 IR 函数，通过检查最后一个生成的函数即可锁定问题所在。
   3. 检查特定 AST 节点的 `SemanticType` 与 CodeGen 调用 `getLLVMType` 所产生的结果是否完全对应。
-
