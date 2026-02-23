@@ -354,25 +354,69 @@ void CodeGen::emitDropForDecl(const Decl* decl) {
 
     Builder->SetInsertPoint(dropBB);
 
-    // Reuse regular call lowering so generic impl resolution/specialization is
-    // consistent with normal method calls.
-    std::string selfName = "drop_self";
-    if (auto* varDecl = dynamic_cast<const VarDecl*>(decl)) {
-        selfName = varDecl->getName();
-    } else if (auto* paramDecl = dynamic_cast<const ParamDecl*>(decl)) {
-        selfName = paramDecl->getName();
+    GenericSubst dropMapping;
+    Type* valueType = unwrapAliases(info.ValueType);
+    Type* selfTypeForUnify = nullptr;
+    if (info.DropMethod && !info.DropMethod->getParams().empty()) {
+        if (ParamDecl* selfParam = info.DropMethod->getParams()[0]) {
+            selfTypeForUnify = selfParam->getSemanticType();
+        }
     }
-    IdentifierExpr selfExpr(SourceRange(), selfName);
-    selfExpr.setResolvedDecl(const_cast<Decl*>(decl));
-    selfExpr.setType(info.ValueType);
+    if (!selfTypeForUnify) {
+        if (Type* dropFnType = info.DropMethod->getSemanticType()) {
+            if (dropFnType->isFunction()) {
+                auto* fnType = static_cast<FunctionType*>(dropFnType);
+                if (fnType->getParamCount() > 0) {
+                    selfTypeForUnify = fnType->getParam(0);
+                }
+            }
+        }
+    }
+    selfTypeForUnify = unwrapAliases(selfTypeForUnify);
+    if (selfTypeForUnify && selfTypeForUnify->isReference()) {
+        selfTypeForUnify = unwrapAliases(static_cast<ReferenceType*>(selfTypeForUnify)->getPointeeType());
+    }
+    if (selfTypeForUnify && valueType && typeHasGenericParam(selfTypeForUnify)) {
+        (void)unifyGenericTypes(selfTypeForUnify, valueType, dropMapping);
+    }
 
-    MemberExpr dropMember(SourceRange(), &selfExpr, "drop");
-    dropMember.setResolvedDecl(info.DropMethod);
-    dropMember.setType(info.DropMethod->getSemanticType());
+    llvm::Function* dropFunc = nullptr;
+    if (!dropMapping.empty() && info.DropMethod->hasBody()) {
+        dropFunc = getOrCreateSpecializedFunction(info.DropMethod, dropMapping);
+    }
+    if (!dropFunc) {
+        if (!generateDecl(info.DropMethod)) {
+            Builder->CreateBr(contBB);
+            Builder->SetInsertPoint(contBB);
+            return;
+        }
+        auto vmIt = ValueMap.find(info.DropMethod);
+        if (vmIt != ValueMap.end()) {
+            dropFunc = llvm::dyn_cast<llvm::Function>(vmIt->second);
+        }
+        if (!dropFunc) {
+            dropFunc = Module->getFunction(getFunctionSymbolName(info.DropMethod));
+        }
+    }
+    if (!dropFunc || dropFunc->arg_size() < 1) {
+        Builder->CreateBr(contBB);
+        Builder->SetInsertPoint(contBB);
+        return;
+    }
 
-    CallExpr dropCall(SourceRange(), &dropMember, std::vector<Expr*>{});
-    dropCall.setType(Ctx.getVoidType());
-    (void)generateCallExpr(&dropCall);
+    llvm::Value* selfArg = info.Storage;
+    llvm::Type* expectedSelfTy = dropFunc->getFunctionType()->getParamType(0);
+    if (selfArg->getType() != expectedSelfTy) {
+        if (selfArg->getType()->isPointerTy() && expectedSelfTy->isPointerTy()) {
+            selfArg = Builder->CreateBitCast(selfArg, expectedSelfTy, "drop.self.cast");
+        } else {
+            Builder->CreateBr(contBB);
+            Builder->SetInsertPoint(contBB);
+            return;
+        }
+    }
+
+    Builder->CreateCall(dropFunc, {selfArg});
 
     if (!Builder || !Builder->GetInsertBlock() || Builder->GetInsertBlock()->getTerminator()) {
         return;

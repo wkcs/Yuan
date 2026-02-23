@@ -103,18 +103,19 @@ impl SnakeGame {
     }
 
     func reset(&mut self, seed: u64) {
-        self.snake.free()
-        var nx = SnakeGame.create(seed)
-        self.snake = nx.snake
-        self.food = nx.food
-        self.dir = nx.dir
-        self.alive = nx.alive
-        self.score = nx.score
-        self.rng = nx.rng
-    }
+        var snake: std.collections.Vec<Point> = std.collections.Vec.new()
+        var cx: i32 = COLS / 2
+        var cy: i32 = ROWS / 2
+        snake.push(Point { x: cx - 1, y: cy })
+        snake.push(Point { x: cx, y: cy })
+        snake.push(Point { x: cx + 1, y: cy })
 
-    func free(&mut self) {
-        self.snake.free()
+        self.snake = snake
+        self.food = Point { x: 1, y: 1 }
+        self.dir = DIR_RIGHT
+        self.alive = true
+        self.score = 0
+        self.rng = Lcg.new(seed)
     }
 
     func head(&self) -> Point {
@@ -239,7 +240,6 @@ func main() -> i32 {
 
     var seed: u64 = std.time.now_unix() as u64
     var game: SnakeGame = SnakeGame.create(seed)
-    defer game.free()
     game.spawn_food()
 
     var tick_ns: i64 = 130000000i64
