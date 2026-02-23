@@ -78,6 +78,9 @@ struct SnakeGame {
     snake: std.collections.Vec<Point>,
     food: Point,
     dir: i32,
+    queued_dir0: i32,
+    queued_dir1: i32,
+    queued_count: i32,
     alive: bool,
     score: i32,
     rng: Lcg,
@@ -96,6 +99,9 @@ impl SnakeGame {
             snake: snake,
             food: Point { x: 1, y: 1 },
             dir: DIR_RIGHT,
+            queued_dir0: DIR_RIGHT,
+            queued_dir1: DIR_RIGHT,
+            queued_count: 0,
             alive: true,
             score: 0,
             rng: Lcg.new(seed),
@@ -113,6 +119,9 @@ impl SnakeGame {
         self.snake = snake
         self.food = Point { x: 1, y: 1 }
         self.dir = DIR_RIGHT
+        self.queued_dir0 = DIR_RIGHT
+        self.queued_dir1 = DIR_RIGHT
+        self.queued_count = 0
         self.alive = true
         self.score = 0
         self.rng = Lcg.new(seed)
@@ -149,6 +158,46 @@ impl SnakeGame {
     func set_dir(&mut self, ndir: i32) {
         if !is_opposite(self.dir, ndir) {
             self.dir = ndir
+        }
+    }
+
+    func queue_dir(&mut self, ndir: i32) {
+        var last_dir: i32 = self.dir
+        if self.queued_count == 1 {
+            last_dir = self.queued_dir0
+        } elif self.queued_count >= 2 {
+            last_dir = self.queued_dir1
+        }
+
+        if ndir == last_dir || is_opposite(last_dir, ndir) {
+            return
+        }
+
+        if self.queued_count == 0 {
+            self.queued_dir0 = ndir
+            self.queued_count = 1
+            return
+        }
+        if self.queued_count == 1 {
+            self.queued_dir1 = ndir
+            self.queued_count = 2
+            return
+        }
+
+        self.queued_dir1 = ndir
+    }
+
+    func apply_queued_dir(&mut self) {
+        if self.queued_count <= 0 {
+            return
+        }
+
+        self.set_dir(self.queued_dir0)
+        if self.queued_count == 2 {
+            self.queued_dir0 = self.queued_dir1
+            self.queued_count = 1
+        } else {
+            self.queued_count = 0
         }
     }
 
@@ -229,6 +278,28 @@ func draw_game(ctx: &gui.Context, game: &SnakeGame) {
     gui.end(ctx)
 }
 
+func draw_start(ctx: &gui.Context) {
+    var board_w: i32 = COLS * CELL
+    var board_h: i32 = ROWS * CELL
+
+    gui.begin(ctx)
+    gui.set_title(ctx, "Yuan 贪吃蛇")
+    gui.clear(ctx, gui.color_hex(COLOR_BG))
+
+    gui.fill(ctx, gui.rect(BOARD_X - 2, BOARD_Y - 2, board_w + 4, board_h + 4), gui.color_hex(COLOR_TEXT))
+    gui.fill(ctx, gui.rect(BOARD_X, BOARD_Y, board_w, board_h), gui.color_hex(COLOR_BOARD))
+    gui.stroke(ctx, gui.rect(BOARD_X - 2, BOARD_Y - 2, board_w + 4, board_h + 4), gui.color_hex(COLOR_TEXT))
+
+    var cx: i32 = BOARD_X + board_w / 2
+    var cy: i32 = BOARD_Y + board_h / 2
+    gui.text(ctx, gui.text_span("Yuan 贪吃蛇", cx - 80, cy - 42, gui.color_hex(COLOR_HEAD)))
+    gui.text(ctx, gui.text_span("按 R 开始游戏", cx - 90, cy - 10, gui.color_hex(COLOR_TEXT)))
+    gui.text(ctx, gui.text_span("WASD/方向键移动", cx - 110, cy + 20, gui.color_hex(COLOR_TEXT)))
+    gui.text(ctx, gui.text_span("ESC 退出", cx - 52, cy + 50, gui.color_hex(COLOR_TEXT)))
+
+    gui.end(ctx)
+}
+
 func main() -> i32 {
     var window_w: i32 = BOARD_X * 2 + COLS * CELL
     var window_h: i32 = BOARD_Y + ROWS * CELL + 24
@@ -240,7 +311,7 @@ func main() -> i32 {
 
     var seed: u64 = std.time.now_unix() as u64
     var game: SnakeGame = SnakeGame.create(seed)
-    game.spawn_food()
+    var started: bool = false
 
     var tick_ns: i64 = 130000000i64
     var last_tick: i64 = @os_time_unix_nanos()
@@ -255,6 +326,19 @@ func main() -> i32 {
             break
         }
 
+        if !started {
+            if input.action() {
+                started = true
+                seed = std.time.now_unix() as u64
+                game.reset(seed)
+                game.spawn_food()
+                last_tick = @os_time_unix_nanos()
+            }
+            draw_start(&ctx)
+            gui.sleep_ms(&ctx, 300)
+            continue
+        }
+
         if !game.alive && input.action() {
             seed = std.time.now_unix() as u64
             game.reset(seed)
@@ -263,18 +347,23 @@ func main() -> i32 {
         }
 
         if input.up() {
-            game.set_dir(DIR_UP)
-        } elif input.right() {
-            game.set_dir(DIR_RIGHT)
-        } elif input.down() {
-            game.set_dir(DIR_DOWN)
-        } elif input.left() {
-            game.set_dir(DIR_LEFT)
+            game.queue_dir(DIR_UP)
+        }
+        if input.right() {
+            game.queue_dir(DIR_RIGHT)
+        }
+        if input.down() {
+            game.queue_dir(DIR_DOWN)
+        }
+        if input.left() {
+            game.queue_dir(DIR_LEFT)
         }
 
         var now: i64 = @os_time_unix_nanos()
         if game.alive && (now - last_tick) >= tick_ns {
+            game.apply_queued_dir()
             game.step()
+            // 300ms 轮询时每帧最多移动一格，避免补帧导致“一次跳多格”。
             last_tick = now
         }
 
