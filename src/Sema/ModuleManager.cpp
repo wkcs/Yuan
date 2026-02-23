@@ -126,6 +126,21 @@ static bool typeHasGenericParam(Type* type) {
     return false;
 }
 
+static bool exportHasGenericSurface(const ModuleExport& exp) {
+    if (!exp.GenericParams.empty()) {
+        return true;
+    }
+    if (typeHasGenericParam(exp.SemanticType) || typeHasGenericParam(exp.ImplOwnerType)) {
+        return true;
+    }
+    for (const auto& field : exp.StructFields) {
+        if (typeHasGenericParam(field.second)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool isImportBuiltinExpr(Expr* expr, std::string& modulePathOut) {
     if (!expr || expr->getKind() != ASTNode::Kind::BuiltinCallExpr) {
         return false;
@@ -977,20 +992,17 @@ ModuleInfo* ModuleManager::loadModule(const std::string& modulePath,
     };
 
     if (tryLoadInterface(packageInterface) || tryLoadInterface(moduleInfo->InterfacePath)) {
-        bool hasGenericFunctionExport = false;
+        bool requiresSourceForSpecialization = false;
         for (const auto& exp : moduleInfo->Exports) {
-            if (exp.ExportKind == ModuleExport::Kind::Function &&
-                (!exp.GenericParams.empty() ||
-                 typeHasGenericParam(exp.SemanticType) ||
-                 typeHasGenericParam(exp.ImplOwnerType))) {
-                hasGenericFunctionExport = true;
+            if (exportHasGenericSurface(exp)) {
+                requiresSourceForSpecialization = true;
                 break;
             }
         }
 
         bool canFallbackToSource =
             !moduleInfo->FilePath.empty() && std::filesystem::exists(moduleInfo->FilePath);
-        if (!hasGenericFunctionExport || !canFallbackToSource) {
+        if (!requiresSourceForSpecialization || !canFallbackToSource) {
             ModuleInfo* result = moduleInfo.get();
             LoadedModules[moduleName] = std::move(moduleInfo);
             importChain.pop_back();
@@ -1049,10 +1061,7 @@ ModuleInfo* ModuleManager::loadModule(const std::string& modulePath,
         bool wroteInterface = writeModuleInterface(*moduleInfo);
         bool hasGenericExport = false;
         for (const auto& exp : moduleInfo->Exports) {
-            if (exp.ExportKind == ModuleExport::Kind::Function &&
-                (!exp.GenericParams.empty() ||
-                 typeHasGenericParam(exp.SemanticType) ||
-                 typeHasGenericParam(exp.ImplOwnerType))) {
+            if (exportHasGenericSurface(exp)) {
                 hasGenericExport = true;
                 break;
             }
