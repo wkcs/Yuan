@@ -2,6 +2,7 @@
 
 add_executable(runtime_tests
     AsyncRuntimeTest.cpp
+    ProcessRuntimeTest.cpp
 )
 
 target_link_libraries(runtime_tests
@@ -13,4 +14,4 @@ target_include_directories(runtime_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 
-gtest_discover_tests(runtime_tests)
+gtest_discover_tests(runtime_tests DISCOVERY_TIMEOUT 60)

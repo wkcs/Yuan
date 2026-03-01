@@ -36,3 +36,31 @@ Builtin 模块采用**策略模式**和**注册表模式**相结合的设计。
 3. 实现 `analyze` 方法进行参数检查和类型推导。
 4. 实现 `generate` 方法生成 LLVM IR。
 5. 在 `BuiltinRegistry::registerAllBuiltins` 中注册该 Handler。
+
+## OS Builtin（运行时桥接）
+
+`OSBuiltin`（`src/Builtin/OSBuiltin.cpp`）负责将标准库中的 `@os_*` 内置函数桥接到 runtime C API。当前已覆盖文件系统、线程、时间、HTTP，以及新增的进程环境能力。
+
+### 新增：命令行参数与环境变量内置函数
+
+- `@os_args_len() -> usize`
+  - 返回当前进程的命令行参数数量（包含 `argv[0]`）。
+- `@os_arg_at(index: usize) -> str`
+  - 返回指定索引的命令行参数；越界时返回空字符串。
+- `@os_env_has(name: str) -> bool`
+  - 判断环境变量是否存在。
+- `@os_env_get(name: str) -> str`
+  - 获取环境变量值；不存在时返回空字符串。
+
+对应 runtime 符号：
+- `yuan_os_args_len`
+- `yuan_os_arg_at`
+- `yuan_os_env_has`
+- `yuan_os_env_get`
+
+扩展这些能力时，仍遵循同一流程：
+1. 在 `BuiltinKind` 添加枚举；
+2. 在 `Expr.cpp` 映射名字与 kind；
+3. 在 `OSBuiltin.cpp` 增加 `analyze/generate` 分支；
+4. 在 `BuiltinRegistry.cpp` 注册处理器；
+5. 在 runtime 实现对应 `extern "C"` API。

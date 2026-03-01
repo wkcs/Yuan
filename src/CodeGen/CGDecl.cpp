@@ -770,7 +770,14 @@ bool CodeGen::generateFuncDecl(FuncDecl* decl) {
         llvm::BasicBlock* mainEntry = llvm::BasicBlock::Create(*Context, "entry", mainFunc);
         Builder->SetInsertPoint(mainEntry);
 
-        // For now, just call yuan_main() (no argv/argc forwarding)
+        llvm::FunctionCallee processInit = Module->getOrInsertFunction(
+            "yuan_os_process_init",
+            llvm::FunctionType::get(llvm::Type::getVoidTy(*Context), {i32Type, i8PtrPtrType}, false)
+        );
+        llvm::Value* argcValue = mainFunc->getArg(0);
+        llvm::Value* argvValue = mainFunc->getArg(1);
+        Builder->CreateCall(processInit, {argcValue, argvValue});
+
         llvm::Value* yuanMainResult = nullptr;
         if (decl->isAsync()) {
             llvm::Type* voidType = llvm::Type::getVoidTy(*Context);

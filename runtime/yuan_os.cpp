@@ -48,6 +48,8 @@ struct YuanOSThread {
     std::atomic<bool> finished{false};
 };
 
+static std::vector<std::string> gProcessArgs;
+
 static YuanString emptyString() {
     return YuanString{"", 0};
 }
@@ -146,6 +148,55 @@ extern "C" void yuan_os_thread_join(std::uintptr_t handle) {
         threadData->worker.join();
     }
     delete threadData;
+}
+
+extern "C" void yuan_os_process_init(int argc, char** argv) {
+    gProcessArgs.clear();
+    if (argc <= 0 || !argv) {
+        return;
+    }
+
+    gProcessArgs.reserve(static_cast<std::size_t>(argc));
+    for (int i = 0; i < argc; ++i) {
+        const char* arg = argv[i];
+        gProcessArgs.emplace_back(arg ? arg : "");
+    }
+}
+
+extern "C" std::int64_t yuan_os_args_len() {
+    return static_cast<std::int64_t>(gProcessArgs.size());
+}
+
+extern "C" YuanString yuan_os_arg_at(std::int64_t index) {
+    if (index < 0 || static_cast<std::size_t>(index) >= gProcessArgs.size()) {
+        return emptyString();
+    }
+    return toYuanString(gProcessArgs[static_cast<std::size_t>(index)]);
+}
+
+extern "C" int yuan_os_env_has(const char* keyData, std::int64_t keyLen) {
+    YuanString key{keyData, keyLen};
+    std::string keyStr = toStdString(key);
+    if (keyStr.empty()) {
+        return 0;
+    }
+
+    const char* value = std::getenv(keyStr.c_str());
+    return value ? 1 : 0;
+}
+
+extern "C" YuanString yuan_os_env_get(const char* keyData, std::int64_t keyLen) {
+    YuanString key{keyData, keyLen};
+    std::string keyStr = toStdString(key);
+    if (keyStr.empty()) {
+        return emptyString();
+    }
+
+    const char* value = std::getenv(keyStr.c_str());
+    if (!value) {
+        return emptyString();
+    }
+    return toYuanString(std::string(value));
 }
 
 extern "C" YuanString yuan_os_read_file(const char* pathData, std::int64_t pathLen) {

@@ -28,6 +28,9 @@ pub const collections = @import("collections")
 /// fs 模块 - 文件系统工具
 pub const fs = @import("fs")
 
+/// env 模块 - 命令行参数与环境变量
+pub const env = @import("env")
+
 /// time 模块 - 时间工具
 pub const time = @import("time")
 

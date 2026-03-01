@@ -265,6 +265,10 @@ const char* BuiltinCallExpr::getBuiltinName(BuiltinKind kind) {
         case BuiltinKind::OsThreadSpawn: return "os_thread_spawn";
         case BuiltinKind::OsThreadIsFinished: return "os_thread_is_finished";
         case BuiltinKind::OsThreadJoin: return "os_thread_join";
+        case BuiltinKind::OsArgsLen: return "os_args_len";
+        case BuiltinKind::OsArgAt: return "os_arg_at";
+        case BuiltinKind::OsEnvHas: return "os_env_has";
+        case BuiltinKind::OsEnvGet: return "os_env_get";
         case BuiltinKind::OsReadFile: return "os_read_file";
         case BuiltinKind::OsWriteFile: return "os_write_file";
         case BuiltinKind::OsExists: return "os_exists";
@@ -351,6 +355,10 @@ std::optional<BuiltinKind> BuiltinCallExpr::getBuiltinKind(const std::string& na
         {"os_thread_spawn", BuiltinKind::OsThreadSpawn},
         {"os_thread_is_finished", BuiltinKind::OsThreadIsFinished},
         {"os_thread_join", BuiltinKind::OsThreadJoin},
+        {"os_args_len", BuiltinKind::OsArgsLen},
+        {"os_arg_at", BuiltinKind::OsArgAt},
+        {"os_env_has", BuiltinKind::OsEnvHas},
+        {"os_env_get", BuiltinKind::OsEnvGet},
         {"os_read_file", BuiltinKind::OsReadFile},
         {"os_write_file", BuiltinKind::OsWriteFile},
         {"os_exists", BuiltinKind::OsExists},

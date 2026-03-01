@@ -153,6 +153,10 @@ TEST(BuiltinRegistryTest, GetAllBuiltinNames) {
     EXPECT_TRUE(contains("async_step_count"));
     EXPECT_TRUE(contains("os_time_unix_nanos"));
     EXPECT_TRUE(contains("os_thread_spawn"));
+    EXPECT_TRUE(contains("os_args_len"));
+    EXPECT_TRUE(contains("os_arg_at"));
+    EXPECT_TRUE(contains("os_env_has"));
+    EXPECT_TRUE(contains("os_env_get"));
     EXPECT_TRUE(contains("os_read_file"));
     EXPECT_TRUE(contains("os_http_get_status"));
     EXPECT_TRUE(contains("ffi_open"));
@@ -219,6 +223,22 @@ TEST(BuiltinRegistryTest, ExpectedArgCount) {
     auto* funcHandler = registry.getHandler("func");
     ASSERT_NE(funcHandler, nullptr);
     EXPECT_EQ(funcHandler->getExpectedArgCount(), 0);
+
+    auto* osArgsLenHandler = registry.getHandler("os_args_len");
+    ASSERT_NE(osArgsLenHandler, nullptr);
+    EXPECT_EQ(osArgsLenHandler->getExpectedArgCount(), 0);
+
+    auto* osArgAtHandler = registry.getHandler("os_arg_at");
+    ASSERT_NE(osArgAtHandler, nullptr);
+    EXPECT_EQ(osArgAtHandler->getExpectedArgCount(), 1);
+
+    auto* osEnvHasHandler = registry.getHandler("os_env_has");
+    ASSERT_NE(osEnvHasHandler, nullptr);
+    EXPECT_EQ(osEnvHasHandler->getExpectedArgCount(), 1);
+
+    auto* osEnvGetHandler = registry.getHandler("os_env_get");
+    ASSERT_NE(osEnvGetHandler, nullptr);
+    EXPECT_EQ(osEnvGetHandler->getExpectedArgCount(), 1);
 }
 
 /// \brief 测试处理器的参数描述

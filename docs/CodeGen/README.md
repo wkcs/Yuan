@@ -85,7 +85,7 @@ CodeGen（代码生成器）是编译器的后端前端，负责将经过 Sema �
 
 **`main` 函数的特殊处理**：
 - 用户编写的 `func main()` 实际上在 LLVM 中会被重命名为 `yuan_main`。
-- CodeGen 会自动生成一个标准的 C ABI 入口点 `int main(int argc, char** argv)`，该包装函数负责初始化运行时环境、调用 `yuan_main`，并将返回值适配为 `i32` 给操作系统。
+- CodeGen 会自动生成一个标准的 C ABI 入口点 `int main(int argc, char** argv)`，该包装函数会先调用 `yuan_os_process_init(argc, argv)` 初始化进程参数上下文，再调用 `yuan_main`，并将返回值适配为 `i32` 给操作系统。
 - 若 `main` 是 `async` 的，包装函数会通过运行时入口 `yuan_async_run(yuan_main)` 启动事件循环。
 
 ### 6.3 泛型函数特化 (Specialization)

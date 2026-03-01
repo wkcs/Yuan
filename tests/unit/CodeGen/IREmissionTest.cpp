@@ -70,6 +70,33 @@ TEST_F(IREmissionTest, EmitIRContainsFunctionDeclaration) {
     EXPECT_NE(ir.find("define"), std::string::npos);
 }
 
+TEST_F(IREmissionTest, MainWrapperInitializesProcessContext) {
+    SourceRange range;
+
+    // 不创建完整的语义函数类型，避免当前测试夹具中的已知前置限制；
+    // 这里仅验证 wrapper 插入了 process init 调用。
+    std::vector<ParamDecl*> params;
+    FuncDecl* mainDecl = new FuncDecl(
+        range,
+        "main",
+        params,
+        nullptr,
+        nullptr,
+        false,
+        false,
+        Visibility::Public
+    );
+
+    mainDecl->setSemanticType(Ctx->getFunctionType({}, Ctx->getVoidType(), false));
+
+    bool result = CodeGenerator->generateDecl(mainDecl);
+    ASSERT_TRUE(result);
+
+    std::string ir = CodeGenerator->emitIR();
+    EXPECT_NE(ir.find("@yuan_os_process_init"), std::string::npos);
+    EXPECT_NE(ir.find("call void @yuan_os_process_init"), std::string::npos);
+}
+
 // ============================================================================
 // IR emission to file tests
 // ============================================================================

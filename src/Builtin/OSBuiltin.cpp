@@ -75,6 +75,10 @@ public:
             case BuiltinKind::OsThreadSpawn: return "os_thread_spawn";
             case BuiltinKind::OsThreadIsFinished: return "os_thread_is_finished";
             case BuiltinKind::OsThreadJoin: return "os_thread_join";
+            case BuiltinKind::OsArgsLen: return "os_args_len";
+            case BuiltinKind::OsArgAt: return "os_arg_at";
+            case BuiltinKind::OsEnvHas: return "os_env_has";
+            case BuiltinKind::OsEnvGet: return "os_env_get";
             case BuiltinKind::OsReadFile: return "os_read_file";
             case BuiltinKind::OsWriteFile: return "os_write_file";
             case BuiltinKind::OsExists: return "os_exists";
@@ -107,9 +111,13 @@ public:
             case BuiltinKind::OsTimeUnixNanos:
             case BuiltinKind::OsYield:
             case BuiltinKind::OsStdinReadLine:
+            case BuiltinKind::OsArgsLen:
                 return 0;
             case BuiltinKind::OsThreadIsFinished:
             case BuiltinKind::OsThreadJoin:
+            case BuiltinKind::OsArgAt:
+            case BuiltinKind::OsEnvHas:
+            case BuiltinKind::OsEnvGet:
                 return 1;
             case BuiltinKind::OsThreadSpawn:
                 return 2;
@@ -147,12 +155,18 @@ public:
             case BuiltinKind::OsTimeUnixNanos:
             case BuiltinKind::OsYield:
             case BuiltinKind::OsStdinReadLine:
+            case BuiltinKind::OsArgsLen:
                 return "";
             case BuiltinKind::OsThreadSpawn:
                 return "entry, context";
             case BuiltinKind::OsThreadIsFinished:
             case BuiltinKind::OsThreadJoin:
                 return "handle";
+            case BuiltinKind::OsArgAt:
+                return "index";
+            case BuiltinKind::OsEnvHas:
+            case BuiltinKind::OsEnvGet:
+                return "name";
             case BuiltinKind::OsSleepNanos:
                 return "nanos";
             case BuiltinKind::OsReadFile:
@@ -319,8 +333,11 @@ public:
                 break;
             case BuiltinKind::OsThreadIsFinished:
             case BuiltinKind::OsThreadJoin:
+            case BuiltinKind::OsArgAt:
                 if (!requireIntegerArg(0)) return nullptr;
                 break;
+            case BuiltinKind::OsEnvHas:
+            case BuiltinKind::OsEnvGet:
             case BuiltinKind::OsReadFile:
             case BuiltinKind::OsExists:
             case BuiltinKind::OsIsFile:
@@ -366,7 +383,11 @@ public:
                 return ctx.getI64Type();
             case BuiltinKind::OsThreadSpawn:
                 return ctx.getIntegerType(ctx.getPointerBitWidth(), false);
+            case BuiltinKind::OsArgsLen:
+                return ctx.getIntegerType(ctx.getPointerBitWidth(), false);
             case BuiltinKind::OsReadFile:
+            case BuiltinKind::OsArgAt:
+            case BuiltinKind::OsEnvGet:
             case BuiltinKind::OsReadDirEntryPath:
             case BuiltinKind::OsReadDirEntryName:
             case BuiltinKind::OsStdinReadLine:
@@ -374,6 +395,7 @@ public:
             case BuiltinKind::OsHttpPostBody:
                 return ctx.getStrType();
             case BuiltinKind::OsExists:
+            case BuiltinKind::OsEnvHas:
             case BuiltinKind::OsIsFile:
             case BuiltinKind::OsIsDir:
             case BuiltinKind::OsWriteFile:
@@ -551,6 +573,40 @@ public:
                                           {usizeTy},
                                           {handle},
                                           "os.thread.is_finished");
+            }
+            case BuiltinKind::OsArgsLen: {
+                llvm::FunctionCallee fn = getOrInsert("yuan_os_args_len", i64Ty, {});
+                llvm::Value* raw = builder.CreateCall(fn, {}, "os.args.len");
+                llvm::Type* targetTy = codegen.getLLVMType(expr->getType());
+                return castIntegerValue(raw, targetTy ? targetTy : i64Ty, builder, "os.args.len.cast");
+            }
+            case BuiltinKind::OsArgAt: {
+                llvm::Value* index = genExprArg(0);
+                if (!index) return nullptr;
+                index = castIntegerValue(index, i64Ty, builder, "os.args.index");
+                return callStringRuntime("yuan_os_arg_at",
+                                         {i64Ty},
+                                         {index},
+                                         "os.args.at");
+            }
+            case BuiltinKind::OsEnvHas:
+            case BuiltinKind::OsEnvGet: {
+                llvm::Value* name = genExprArg(0);
+                if (!name) return nullptr;
+                auto [nameData, nameLen] = extractStringParts(name, "os.env.name.data", "os.env.name.len");
+                if (!nameData || !nameLen) return nullptr;
+
+                if (Kind == BuiltinKind::OsEnvHas) {
+                    return callBoolI32Runtime("yuan_os_env_has",
+                                              {i8PtrTy, i64Ty},
+                                              {nameData, nameLen},
+                                              "os.env.has");
+                }
+
+                return callStringRuntime("yuan_os_env_get",
+                                         {i8PtrTy, i64Ty},
+                                         {nameData, nameLen},
+                                         "os.env.get");
             }
             case BuiltinKind::OsThreadJoin: {
                 llvm::Value* handle = genExprArg(0);
@@ -801,6 +857,18 @@ std::unique_ptr<BuiltinHandler> createOsThreadIsFinishedBuiltin() {
 }
 std::unique_ptr<BuiltinHandler> createOsThreadJoinBuiltin() {
     return std::make_unique<OSBuiltin>(BuiltinKind::OsThreadJoin);
+}
+std::unique_ptr<BuiltinHandler> createOsArgsLenBuiltin() {
+    return std::make_unique<OSBuiltin>(BuiltinKind::OsArgsLen);
+}
+std::unique_ptr<BuiltinHandler> createOsArgAtBuiltin() {
+    return std::make_unique<OSBuiltin>(BuiltinKind::OsArgAt);
+}
+std::unique_ptr<BuiltinHandler> createOsEnvHasBuiltin() {
+    return std::make_unique<OSBuiltin>(BuiltinKind::OsEnvHas);
+}
+std::unique_ptr<BuiltinHandler> createOsEnvGetBuiltin() {
+    return std::make_unique<OSBuiltin>(BuiltinKind::OsEnvGet);
 }
 std::unique_ptr<BuiltinHandler> createOsReadFileBuiltin() {
     return std::make_unique<OSBuiltin>(BuiltinKind::OsReadFile);

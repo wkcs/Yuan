@@ -1,0 +1,27 @@
+/// \file test_std_env.yu
+/// \brief std.env 回归测试
+
+const std = @import("std")
+const println = std.io.println
+
+func main() -> i32 {
+    var argv = std.env.args()
+    var argc: usize = argv.len()
+
+    println("[env] args len = {}", argc)
+    if argc > 0u64 {
+        println("[env] args[0] = {}", argv.at(0u64))
+    }
+
+    var has_set = std.env.get("YUAN_TEST_ENV")
+    var has_value = (has_set orelse "") != ""
+    println("[env] YUAN_TEST_ENV has value = {}", has_value)
+    if has_value {
+        println("[env] YUAN_TEST_ENV = {}", has_set orelse "")
+    }
+
+    var missing = std.env.get("YUAN_TEST_ENV_MISSING")
+    println("[env] missing fallback empty = {}", (missing orelse "") == "")
+
+    return 0
+}

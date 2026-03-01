@@ -2291,7 +2291,27 @@ io.println(fmt.format("Elapsed: {}s", elapsed.as_secs_f64()))
 thread.sleep(time.Duration.from_secs(1))
 ```
 
-#### 14.2.6 std.math
+#### 14.2.6 std.env
+
+```yuan
+const env = @import("std").env
+const io = @import("std").io
+
+// 命令行参数（包含 argv[0]）
+var argv = env.args()
+io.println("argc = {}", argv.len())
+if argv.len() > 0u64 {
+    io.println("argv0 = {}", argv.at(0u64))
+}
+
+// 读取环境变量
+var home: ?str = env.get("HOME")
+if (home orelse "") != "" {
+    io.println("HOME = {}", home orelse "")
+}
+```
+
+#### 14.2.7 std.math
 
 ```yuan
 const math = @import("std").math

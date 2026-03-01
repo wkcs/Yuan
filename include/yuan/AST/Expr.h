@@ -780,6 +780,10 @@ enum class BuiltinKind {
     OsThreadSpawn,              ///< @os_thread_spawn - 启动后台线程
     OsThreadIsFinished,         ///< @os_thread_is_finished - 查询线程是否结束
     OsThreadJoin,               ///< @os_thread_join - 等待线程结束并释放句柄
+    OsArgsLen,                  ///< @os_args_len - 命令行参数数量
+    OsArgAt,                    ///< @os_arg_at - 获取指定索引命令行参数
+    OsEnvHas,                   ///< @os_env_has - 环境变量是否存在
+    OsEnvGet,                   ///< @os_env_get - 获取环境变量值
     OsReadFile,                 ///< @os_read_file - 读取文件内容
     OsWriteFile,                ///< @os_write_file - 写入文件内容
     OsExists,                   ///< @os_exists - 路径是否存在
