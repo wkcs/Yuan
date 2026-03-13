@@ -71,6 +71,12 @@ protected:
         fs::create_directories(stdlibDir / "collections");
         createFile(stdlibDir / "io.yu", "pub func print() { }");
         createFile(stdlibDir / "collections" / "vector.yu", "pub struct Vector { }");
+
+        // 创建包源码目录
+        fs::path pkgRoot = testDir / "pkgroot";
+        fs::create_directories(pkgRoot / "src" / "sub");
+        createFile(pkgRoot / "src" / "lib.yu", "pub func lib() { }");
+        createFile(pkgRoot / "src" / "sub" / "mod.yu", "pub func mod() { }");
     }
 
     void createFile(const fs::path& path, const std::string& content) {
@@ -94,7 +100,7 @@ TEST_F(ModuleManagerTest, ResolveStdLibPath_DotNotation) {
     std::string resolved = MM->resolveModulePath("std.io", "");
 
     fs::path expected = stdlibDir / "io.yu";
-    EXPECT_EQ(resolved, expected.string());
+    EXPECT_EQ(fs::weakly_canonical(resolved), fs::weakly_canonical(expected));
 }
 
 TEST_F(ModuleManagerTest, ResolveStdLibPath_SlashNotation) {
@@ -102,7 +108,7 @@ TEST_F(ModuleManagerTest, ResolveStdLibPath_SlashNotation) {
     std::string resolved = MM->resolveModulePath("std/collections/vector", "");
 
     fs::path expected = stdlibDir / "collections" / "vector.yu";
-    EXPECT_EQ(resolved, expected.string());
+    EXPECT_EQ(fs::weakly_canonical(resolved), fs::weakly_canonical(expected));
 }
 
 TEST_F(ModuleManagerTest, ResolveStdLibPath_DotToSlashConversion) {
@@ -110,7 +116,7 @@ TEST_F(ModuleManagerTest, ResolveStdLibPath_DotToSlashConversion) {
     std::string resolved = MM->resolveModulePath("std.collections.vector", "");
 
     fs::path expected = stdlibDir / "collections" / "vector.yu";
-    EXPECT_EQ(resolved, expected.string());
+    EXPECT_EQ(fs::weakly_canonical(resolved), fs::weakly_canonical(expected));
 }
 
 TEST_F(ModuleManagerTest, ResolveRelativePath_CurrentDir) {
@@ -158,6 +164,24 @@ TEST_F(ModuleManagerTest, ResolveModulePath_AutoAddExtension) {
     EXPECT_TRUE(resolved.find("io.yu") != std::string::npos);
 }
 
+TEST_F(ModuleManagerTest, ResolvePackageSourceRoot_Lib) {
+    fs::path pkgRoot = testDir / "pkgroot";
+    MM->addPackageSourceRoot("pkg", pkgRoot.string());
+
+    std::string resolved = MM->resolveModulePath("pkg", "");
+    fs::path expected = pkgRoot / "src" / "lib.yu";
+    EXPECT_EQ(fs::weakly_canonical(resolved), fs::weakly_canonical(expected));
+}
+
+TEST_F(ModuleManagerTest, ResolvePackageSourceRoot_Submodule) {
+    fs::path pkgRoot = testDir / "pkgroot";
+    MM->addPackageSourceRoot("pkg", pkgRoot.string());
+
+    std::string resolved = MM->resolveModulePath("pkg.sub.mod", "");
+    fs::path expected = pkgRoot / "src" / "sub" / "mod.yu";
+    EXPECT_EQ(fs::weakly_canonical(resolved), fs::weakly_canonical(expected));
+}
+
 // ========== 模块加载测试 ==========
 
 TEST_F(ModuleManagerTest, LoadModule_Success) {
@@ -183,7 +207,8 @@ TEST_F(ModuleManagerTest, LoadModule_RelativePath) {
     ModuleInfo* module = MM->loadModule("./module1", currentFile.string(), importChain);
 
     ASSERT_NE(module, nullptr);
-    EXPECT_EQ(module->Name, "module1");
+    fs::path expected = testDir / "module1";
+    EXPECT_EQ(module->Name, fs::weakly_canonical(expected).generic_string());
     EXPECT_FALSE(module->IsStdLib);
 }
 
@@ -290,7 +315,7 @@ TEST_F(ModuleManagerTest, StdLibPath_AffectsResolution) {
     std::string resolved = MM->resolveModulePath("std.test", "");
     fs::path expected = customStdlib / "test.yu";
 
-    EXPECT_EQ(resolved, expected.string());
+    EXPECT_EQ(fs::weakly_canonical(resolved), fs::weakly_canonical(expected));
 }
 
 // ========== ModuleInfo 结构测试 ==========
@@ -318,9 +343,8 @@ TEST_F(ModuleManagerTest, ModuleInfo_StdLibFlag) {
 TEST_F(ModuleManagerTest, ResolveModulePath_EmptyPath) {
     std::string resolved = MM->resolveModulePath("", "");
 
-    // 空路径应该被当作标准库模块处理，会生成类似 "{stdlib}/.yu" 的路径
-    // 我们只验证它包含 stdlib 路径
-    EXPECT_TRUE(resolved.find(stdlibDir.string()) != std::string::npos);
+    // 空路径应该返回空字符串
+    EXPECT_TRUE(resolved.empty());
 }
 
 TEST_F(ModuleManagerTest, ResolveModulePath_EmptyCurrentFile) {

@@ -148,6 +148,70 @@ private:
     std::vector<std::vector<const Decl*>> ScopeDecls;
     bool Success = true;
 
+    bool containsGenericParam(Type* type) const {
+        if (!type) {
+            return false;
+        }
+        if (type->isGeneric() || type->isTypeVar()) {
+            return true;
+        }
+        if (type->isGenericInstance()) {
+            auto* inst = static_cast<GenericInstanceType*>(type);
+            if (containsGenericParam(inst->getBaseType())) {
+                return true;
+            }
+            for (Type* arg : inst->getTypeArgs()) {
+                if (containsGenericParam(arg)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (type->isReference()) {
+            return containsGenericParam(static_cast<ReferenceType*>(type)->getPointeeType());
+        }
+        if (type->isPointer()) {
+            return containsGenericParam(static_cast<PointerType*>(type)->getPointeeType());
+        }
+        if (type->isOptional()) {
+            return containsGenericParam(static_cast<OptionalType*>(type)->getInnerType());
+        }
+        if (type->isArray()) {
+            return containsGenericParam(static_cast<ArrayType*>(type)->getElementType());
+        }
+        if (type->isSlice()) {
+            return containsGenericParam(static_cast<SliceType*>(type)->getElementType());
+        }
+        if (type->isTuple()) {
+            auto* tup = static_cast<TupleType*>(type);
+            for (size_t i = 0; i < tup->getElementCount(); ++i) {
+                if (containsGenericParam(tup->getElement(i))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (type->isFunction()) {
+            auto* fn = static_cast<FunctionType*>(type);
+            for (size_t i = 0; i < fn->getParamCount(); ++i) {
+                if (containsGenericParam(fn->getParam(i))) {
+                    return true;
+                }
+            }
+            return containsGenericParam(fn->getReturnType());
+        }
+        if (type->isError()) {
+            return containsGenericParam(static_cast<ErrorType*>(type)->getSuccessType());
+        }
+        if (type->isRange()) {
+            return containsGenericParam(static_cast<RangeType*>(type)->getElementType());
+        }
+        if (type->isTypeAlias()) {
+            return containsGenericParam(static_cast<TypeAlias*>(type)->getAliasedType());
+        }
+        return false;
+    }
+
     void enterScope() {
         ScopeDecls.emplace_back();
     }
@@ -282,6 +346,10 @@ private:
             return;
         }
         Type* exprType = expr->getType();
+        if (exprType && containsGenericParam(exprType)) {
+            analyzeExprRead(expr);
+            return;
+        }
         if (!exprType || SemaRef.isCopyType(exprType)) {
             analyzeExprRead(expr);
             return;

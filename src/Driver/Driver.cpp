@@ -145,6 +145,7 @@ CompilerInvocation buildInvocation(const DriverOptions& options,
     invocation.ModuleCacheDir = options.ModuleCacheDir;
     invocation.IncludePaths = options.IncludePaths;
     invocation.PackagePaths = options.PackagePaths;
+    invocation.PackageSourceRoots = options.PackageSourceRoots;
     invocation.LibraryPaths = options.LibraryPaths;
     invocation.Libraries = options.Libraries;
     return invocation;

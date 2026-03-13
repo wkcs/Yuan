@@ -1,7 +1,8 @@
 #include "yuan/Tooling/ProjectConfig.h"
+#include "yuan/Tooling/YamlLite.h"
 #include <filesystem>
 #include <fstream>
-#include <nlohmann/json.hpp>
+#include <sstream>
 
 namespace yuan {
 
@@ -15,14 +16,29 @@ unsigned parseOptLevel(const std::string& text) {
     return 0;
 }
 
-void readStringArray(const nlohmann::json& node, std::vector<std::string>& out) {
-    if (!node.is_array()) {
+bool parseUnsigned(const std::string& text, unsigned& value) {
+    if (text.empty()) {
+        return false;
+    }
+    unsigned result = 0;
+    for (char c : text) {
+        if (c < '0' || c > '9') {
+            return false;
+        }
+        result = result * 10 + static_cast<unsigned>(c - '0');
+    }
+    value = result;
+    return true;
+}
+
+void readStringArray(const yaml_lite::Value* node, std::vector<std::string>& out) {
+    if (!node || !node->isSeq()) {
         return;
     }
     out.clear();
-    for (const auto& entry : node) {
-        if (entry.is_string()) {
-            out.push_back(entry.get<std::string>());
+    for (const auto& entry : node->seq) {
+        if (entry.isScalar()) {
+            out.push_back(entry.scalar);
         }
     }
 }
@@ -45,7 +61,7 @@ std::string ProjectConfigLoader::discover(const std::string& startPath) {
     }
 
     while (!current.empty()) {
-        std::filesystem::path candidate = current / "yuan-project.json";
+        std::filesystem::path candidate = current / "project.yaml";
         if (std::filesystem::exists(candidate)) {
             return candidate.string();
         }
@@ -68,40 +84,59 @@ bool ProjectConfigLoader::loadFromFile(const std::string& path,
         return false;
     }
 
-    nlohmann::json root;
+    std::string text;
+    {
+        std::ostringstream oss;
+        oss << in.rdbuf();
+        text = oss.str();
+    }
+
+    yaml_lite::Value root;
+    yaml_lite::ParseError parseError;
     try {
-        in >> root;
+        if (!yaml_lite::parse(text, root, parseError)) {
+            outError = "项目配置 YAML 解析失败: 第 " + std::to_string(parseError.line) +
+                       " 行: " + parseError.message;
+            return false;
+        }
     } catch (const std::exception& ex) {
-        outError = "项目配置 JSON 解析失败: " + std::string(ex.what());
+        outError = "项目配置 YAML 解析失败: " + std::string(ex.what());
         return false;
     }
 
-    if (root.contains("version") && root["version"].is_number_unsigned()) {
-        outConfig.Version = root["version"].get<unsigned>();
+    if (const auto* version = yaml_lite::lookup(root, "version")) {
+        if (version->isScalar()) {
+            unsigned parsed = 0;
+            if (parseUnsigned(version->scalar, parsed)) {
+                outConfig.Version = parsed;
+            }
+        }
     }
 
-    if (!root.contains("compile") || !root["compile"].is_object()) {
+    const auto* compile = yaml_lite::lookup(root, "compile");
+    if (!compile || !compile->isMap()) {
         return true;
     }
 
-    const auto& compile = root["compile"];
-    if (compile.contains("stdlib") && compile["stdlib"].is_string()) {
+    if (const auto* stdlib = yaml_lite::lookup(*compile, "stdlib"); stdlib && stdlib->isScalar()) {
         outConfig.Compile.HasStdLibPath = true;
-        outConfig.Compile.StdLibPath = compile["stdlib"].get<std::string>();
+        outConfig.Compile.StdLibPath = stdlib->scalar;
     }
-    if (compile.contains("moduleCache") && compile["moduleCache"].is_string()) {
+    if (const auto* moduleCache = yaml_lite::lookup(*compile, "moduleCache");
+        moduleCache && moduleCache->isScalar()) {
         outConfig.Compile.HasModuleCacheDir = true;
-        outConfig.Compile.ModuleCacheDir = compile["moduleCache"].get<std::string>();
+        outConfig.Compile.ModuleCacheDir = moduleCache->scalar;
     }
-    if (compile.contains("optLevel") && compile["optLevel"].is_string()) {
+    if (const auto* optLevel = yaml_lite::lookup(*compile, "optLevel");
+        optLevel && optLevel->isScalar()) {
         outConfig.Compile.HasOptLevel = true;
-        outConfig.Compile.OptimizationLevel = parseOptLevel(compile["optLevel"].get<std::string>());
+        outConfig.Compile.OptimizationLevel = parseOptLevel(optLevel->scalar);
     }
 
-    readStringArray(compile.value("includePaths", nlohmann::json::array()), outConfig.Compile.IncludePaths);
-    readStringArray(compile.value("packagePaths", nlohmann::json::array()), outConfig.Compile.PackagePaths);
-    readStringArray(compile.value("libraryPaths", nlohmann::json::array()), outConfig.Compile.LibraryPaths);
-    readStringArray(compile.value("libraries", nlohmann::json::array()), outConfig.Compile.Libraries);
+    readStringArray(yaml_lite::lookup(*compile, "includePaths"), outConfig.Compile.IncludePaths);
+    readStringArray(yaml_lite::lookup(*compile, "packagePaths"), outConfig.Compile.PackagePaths);
+    readStringArray(yaml_lite::lookup(*compile, "libraryPaths"), outConfig.Compile.LibraryPaths);
+    readStringArray(yaml_lite::lookup(*compile, "libraries"), outConfig.Compile.Libraries);
     return true;
 }
 

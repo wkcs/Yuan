@@ -1,6 +1,7 @@
 #ifndef YUAN_DRIVER_OPTIONS_H
 #define YUAN_DRIVER_OPTIONS_H
 
+#include "yuan/Frontend/CompilerInvocation.h"
 #include <iosfwd>
 #include <string>
 #include <vector>
@@ -40,6 +41,7 @@ public:
     std::vector<std::string> IncludePaths;
     std::string ModuleCacheDir = ".yuan/cache";
     std::vector<std::string> PackagePaths;
+    std::vector<PackageSourceRoot> PackageSourceRoots;
     std::string StdLibPath;
     std::vector<std::string> LibraryPaths;
     std::vector<std::string> Libraries;

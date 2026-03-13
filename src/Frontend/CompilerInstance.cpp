@@ -83,6 +83,9 @@ void CompilerInstance::configureModuleManager(Sema& sema) const {
     for (const auto& pkgPath : Invocation.PackagePaths) {
         moduleMgr.addPackagePath(pkgPath);
     }
+    for (const auto& pkgRoot : Invocation.PackageSourceRoots) {
+        moduleMgr.addPackageSourceRoot(pkgRoot.Name, pkgRoot.Path);
+    }
     for (const auto& includePath : Invocation.IncludePaths) {
         moduleMgr.addPackagePath(includePath);
     }

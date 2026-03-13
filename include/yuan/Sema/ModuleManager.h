@@ -111,6 +111,9 @@ public:
     /// \brief 添加预编译包搜索路径
     void addPackagePath(const std::string& path);
 
+    /// \brief 添加包源码根目录映射
+    void addPackageSourceRoot(const std::string& name, const std::string& path);
+
     /// \brief 获取预编译包搜索路径
     const std::vector<std::string>& getPackagePaths() const { return PackagePaths; }
 
@@ -171,6 +174,7 @@ private:
     std::string StdLibPath;                                 ///< 标准库路径
     std::string ModuleCacheDir = ".yuan/cache";            ///< 模块缓存目录
     std::vector<std::string> PackagePaths;                  ///< 预编译包搜索路径
+    std::unordered_map<std::string, std::string> PackageSourceRoots; ///< 包名 -> 源码根目录
     std::unordered_map<std::string, std::unique_ptr<ModuleInfo>> LoadedModules;  ///< 已加载的模块
 };
 

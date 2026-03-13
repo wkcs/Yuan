@@ -472,7 +472,7 @@ void printDriverHelp(const char* programName, std::ostream& os) {
     os << "  --module-cache <路径>   模块缓存目录（.ymi/.o）\n";
     os << "  --pkg-path <路径>       预编译包搜索路径（可重复）\n";
     os << "  --stdlib <路径>         指定标准库根目录\n";
-    os << "  --project <路径>        指定项目配置文件（yuan-project.json）\n";
+    os << "  --project <路径>        指定项目配置文件（project.yaml）\n";
 }
 
 void printDriverVersion(std::ostream& os) {

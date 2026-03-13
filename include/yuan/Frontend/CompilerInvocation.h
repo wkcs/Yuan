@@ -6,6 +6,11 @@
 
 namespace yuan {
 
+struct PackageSourceRoot {
+    std::string Name;
+    std::string Path;
+};
+
 enum class FrontendActionKind {
     SyntaxOnly,
     EmitLLVM,
@@ -53,6 +58,7 @@ public:
     std::string ModuleCacheDir = ".yuan/cache";
     std::vector<std::string> IncludePaths;
     std::vector<std::string> PackagePaths;
+    std::vector<PackageSourceRoot> PackageSourceRoots;
     std::vector<std::string> LibraryPaths;
     std::vector<std::string> Libraries;
 

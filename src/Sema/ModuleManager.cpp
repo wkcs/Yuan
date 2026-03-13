@@ -179,6 +179,13 @@ void ModuleManager::addPackagePath(const std::string& path) {
     }
 }
 
+void ModuleManager::addPackageSourceRoot(const std::string& name, const std::string& path) {
+    if (name.empty() || path.empty()) {
+        return;
+    }
+    PackageSourceRoots[name] = path;
+}
+
 std::string ModuleManager::resolveModulePath(const std::string& modulePath,
                                              const std::string& currentFilePath) {
     if (modulePath.empty()) {
@@ -187,6 +194,49 @@ std::string ModuleManager::resolveModulePath(const std::string& modulePath,
 
     if (modulePath[0] == '.' || modulePath[0] == '/') {
         return resolveRelativePath(modulePath, currentFilePath);
+    }
+
+    auto resolvePackageSource = [&](const std::string& name, const std::string& rest) -> std::string {
+        auto it = PackageSourceRoots.find(name);
+        if (it == PackageSourceRoots.end()) {
+            return "";
+        }
+        std::filesystem::path base = std::filesystem::path(it->second) / "src";
+        std::filesystem::path filePath;
+        if (rest.empty()) {
+            filePath = base / "lib.yu";
+        } else {
+            std::string rel = rest;
+            std::replace(rel.begin(), rel.end(), '.', '/');
+            filePath = base / rel;
+            if (!filePath.has_extension()) {
+                filePath += ".yu";
+            }
+        }
+        try {
+            return std::filesystem::canonical(filePath).string();
+        } catch (...) {
+            return std::filesystem::weakly_canonical(filePath).string();
+        }
+    };
+
+    // 包名映射：pkg 或 pkg.sub 解析到 <root>/src/lib.yu 或 <root>/src/sub.yu
+    {
+        auto dotPos = modulePath.find('.');
+        auto slashPos = modulePath.find('/');
+        size_t splitPos = std::min(dotPos == std::string::npos ? modulePath.size() : dotPos,
+                                   slashPos == std::string::npos ? modulePath.size() : slashPos);
+        std::string pkgName = modulePath.substr(0, splitPos);
+        std::string rest;
+        if (splitPos < modulePath.size()) {
+            rest = modulePath.substr(splitPos + 1);
+        }
+        if (!pkgName.empty()) {
+            std::string resolved = resolvePackageSource(pkgName, rest);
+            if (!resolved.empty()) {
+                return resolved;
+            }
+        }
     }
 
     if (modulePath.find("std.") == 0 || modulePath.find("std/") == 0) {

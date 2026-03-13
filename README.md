@@ -74,7 +74,49 @@ cmake --build build -j
 - `--pkg-path`：预编译包搜索路径
 - `--stdlib`：指定标准库根路径
 - `--module-cache`：模块缓存目录（默认 `.yuan/cache`）
-- `--project`：指定或自动发现 `yuan-project.json` 项目配置
+- `--project`：指定或自动发现 `project.yaml` 项目配置
+
+## yupkg 包管理器（v1）
+
+`yupkg` 提供类似 cargo 的基础命令（依赖支持 path + git）：
+
+```bash
+# 初始化项目
+./build/tools/yupkg/yupkg init
+
+# 构建（Debug/Release）
+./build/tools/yupkg/yupkg build
+./build/tools/yupkg/yupkg build --release
+
+# 运行主程序
+./build/tools/yupkg/yupkg run --release -- arg1 arg2
+
+# 运行 tests/*.yu
+./build/tools/yupkg/yupkg test
+
+# 清理
+./build/tools/yupkg/yupkg clean
+./build/tools/yupkg/yupkg clean --all
+```
+
+`project.yaml` 扩展示例：
+
+```yaml
+version: 1
+package:
+  name: demo
+  version: "0.1.0"
+dependencies:
+  foo:
+    path: ../foo
+  bar:
+    git: https://example.com/bar.git
+    tag: v0.2.0
+compile:
+  optLevel: O2
+  includePaths:
+    - ./include
+```
 
 ## 测试
 
