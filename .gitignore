@@ -3,6 +3,7 @@ build/
 cmake-build-*/
 out/
 tmp/
+.worktrees/
 
 # IDE
 .idea/
@@ -50,4 +51,3 @@ docs/latex/
 .yuan
 
 *.vsix
-
