@@ -26,6 +26,9 @@
 16. [附录](#16-附录)
 17. [实现说明：语义分析与代码生成](#17-实现说明语义分析与代码生成)
 18. [所有权与对象生命周期](#18-所有权与对象生命周期)
+19. [测试](#19-测试)
+20. [FFI（外部函数接口）](#20-ffi外部函数接口)
+21. [迭代器适配器](#21-迭代器适配器)
 
 ---
 
@@ -203,7 +206,16 @@ const fmt = @import("std").fmt
 var name: str = "Alice"
 var age: i32 = 30
 var message: String = fmt.format("My name is {}, I'm {} years old", name, age)
+
+// 字符串插值（f-string）
+var greeting: str = f"Hello, {name}!"           // 简单变量插值
+var info: str = f"{name} is {age} years old"    // 多变量插值
+var calc: str = f"2 + 3 = {2 + 3}"             // 表达式插值
+var hex: str = f"value: {255:x}"               // 带格式说明符（等价于 fmt.format("{:x}", 255)）
+var padded: str = f"{42:05}"                    // 零填充（等价于 fmt.format("{:05}", 42)）
 ```
+
+> **f-string 规则**：`f"..."` 是 `fmt.format("...", ...)` 的语法糖。花括号 `{}` 内可以是任意表达式，支持 `fmt.format` 的所有格式说明符（如 `:x`、`:05`、`:.2`）。花括号内不能嵌套引号，需要时应使用变量中转。要输出字面 `{` 或 `}`，使用 `{{` 和 `}}` 转义。
 
 #### 2.5.5 布尔字面量
 
@@ -308,6 +320,15 @@ var d: u64 = 18446744073709551615
 var e: usize = 100
 ```
 
+**整数溢出行为**：
+
+- **调试构建**：整数算术溢出触发 panic（运行时错误），便于开发阶段发现溢出 bug。
+- **发布构建**：默认行为由编译选项控制。支持以下模式：
+  - `wrap`：回绕（二进制补码回绕），适用于有意使用回绕语义的场景（如哈希计算）。
+  - `saturate`：饱和运算，结果钳制到类型边界值。
+  - `panic`：始终 panic（与调试构建一致）。
+- 位运算（`&`、`|`、`^`、`~`、`<<`、`>>`）不检查溢出，始终按位操作。
+
 #### 3.2.3 浮点数类型
 
 | 类型 | 大小 | 精度 |
@@ -320,6 +341,13 @@ var x: f32 = 3.14f32
 var y: f64 = 3.141592653589793
 var z: f64 = 1.0e-10
 ```
+
+**浮点数特殊值与行为**：
+
+- 遵循 IEEE 754 标准。除零不触发 panic，结果为 `+inf`、`-inf` 或 `NaN`。
+- `NaN` 与任何值（包括自身）的比较结果均为 `false`（`NaN != NaN` 为 `true`）。
+- 使用 `math.is_nan(x)` 或 `math.is_inf(x)` 检测特殊值。
+- 浮点到整数的转换（`as`）截断小数部分；若值超出目标整数范围，行为由编译选项控制（调试构建 panic，发布构建结果未定义）。
 
 #### 3.2.4 布尔类型
 
@@ -340,13 +368,37 @@ var emoji: char = '🎉'
 
 #### 3.2.6 字符串类型
 
+Yuan 有两种核心字符串类型：`str` 和 `String`。
+
+- **`str`**：字符串切片类型，是 UTF-8 字节序列的非拥有视图。内部表示为胖指针（数据指针 + 字节长度），大小为 2 个机器字。`str` 是 Copy 类型——赋值时复制的是胖指针，不是字节内容。
+  - 字符串字面量（`"hello"`）的类型是 `str`，其数据存储在程序的只读数据段。
+  - `str` 可以指向 `String` 的堆数据、字面量数据、或通过切片操作获得的子序列。
+  - `str` 不拥有其指向的数据，程序员需保证 `str` 不比其指向的数据活得更久。
+  - **与 Rust 的区别**：Rust 的 `str` 是 DST（不可作为变量类型，只能通过 `&str` 使用）。Yuan 的 `str` 本身就是 sized 类型，可以直接作为变量、参数、返回值类型。
+- **`String`**：堆分配的可变字符串。拥有其数据的所有权，遵循 move 语义（非 Copy）。支持 `push_str`、`push` 等修改操作。当 `String` 离开作用域且实现了 Drop 时，自动释放堆内存。
+- **`&str`**：`str` 的引用。由于 `str` 本身就是胖指针（Copy 类型），`&str` 在语义上等价于 `str`——对 `str` 取引用不会增加额外间接层。`str` 和 `&str` 在类型系统中可互换使用，推荐优先使用 `str`。
+
+**字符串编码规范**：
+
+- 所有字符串类型（`str`、`String`）内部均以 UTF-8 编码存储。
+- 源文件以 UTF-8 编码保存。字面量中的非 ASCII 字符直接以 UTF-8 字节存储。
+- 不自动处理 BOM（Byte Order Mark）：若源文件包含 BOM，编译器报错。
+- 字符串不自动做 Unicode 规范化（NFC/NFD 等）：`"é"`（U+00E9）和 `"é"`（U+0065 + U+0301）被视为不同的字节序列。需要规范化时使用标准库函数。
+- `str.len()` 返回字节长度，不是字符数量。获取字符数量使用 `str.chars().count()`。
+
 ```yuan
-// str - 不可变字符串（UTF-8编码）
+// str - 字符串切片（胖指针，Copy）
 var s: str = "Hello, World!"
 
-// String - 可变字符串（堆分配）
+// String - 堆分配可变字符串（非 Copy，move 语义）
 var mut_s: String = String.from("Hello")
 mut_s.push_str(", World!")
+
+// str 切片操作（返回 str，不是 &str）
+var hello: str = s[0..5]   // "Hello"
+
+// &str 作为引用使用（语义上等价于 str）
+var ref: &str = &s
 ```
 
 #### 3.2.7 void 类型
@@ -414,14 +466,14 @@ var is_empty: bool = slice.is_empty()
 
 #### 3.3.3 字符串切片类型
 
-字符串切片是对字符串的视图：
+`str` 本身就是字符串切片类型（见 §3.2.6）。切片操作返回 `str`：
 
 ```yuan
 var s: str = "Hello, World!"
 
-// 创建字符串切片
-var hello: &str = &s[0..5]          // "Hello"
-var world: &str = &s[7..12]         // "World"
+// 创建字符串切片（返回 str，不是 &str）
+var hello: str = s[0..5]          // "Hello"
+var world: str = s[7..12]         // "World"
 
 // 字符串切片方法
 var len: usize = hello.len()        // 字节长度
@@ -429,7 +481,7 @@ var chars: usize = hello.chars().count()  // 字符数量
 
 // UTF-8 安全切片
 var chinese: str = "你好世界"
-var first_char: &str = &chinese[0..3]  // "你"（UTF-8中一个中文字符占3字节）
+var first_char: str = chinese[0..3]  // "你"（UTF-8中一个中文字符占3字节）
 
 // 字符串切片操作
 var trimmed: &str = s.trim()
@@ -524,9 +576,25 @@ var value: i32 = no_value orelse 0
 var value2: i32 = no_value orelse return  // 如果为 None 则返回
 ```
 
+#### 3.3.6.1 Optional 类型转换规则
+
+以下隐式转换被允许：
+
+- `None`（类型为 `?void`）可赋给任意 `?T`。
+- `T` 可隐式提升为 `?T`（自动包装为 `Some(value)`）。
+- `&T` 可隐式提升为 `?&T`。
+
+以下转换**不被允许**，需显式处理：
+
+- `?T` 不能隐式转换为 `?U`（即使 `T` 可转换为 `U`），需通过 `map` 或模式匹配手动转换。
+- `??T`（嵌套 Optional）是合法类型，但不会自动扁平化为 `?T`。
+- `?T` 不能隐式转换为 `T`，必须使用 `unwrap()`、`unwrap_or()` 或 `orelse` 显式解包。
+
 ### 3.4 指针和引用
 
-Yuan 的引用/指针模型借鉴 Zig：不引入生命周期标注，也不做 Rust 风格借用检查。
+**核心设计决策：Yuan 不引入、也不计划引入生命周期系统。** 引用和指针的安全性完全由程序员负责，编译器不做跨作用域的引用有效性分析。这与 Zig 的指针哲学一致——程序员拥有完全控制权，也承担完全责任。
+
+调试构建默认开启运行时引用有效性检查（类似 sanitizer），用于开发阶段捕获悬垂引用和非法访问。发布构建不执行这些检查，悬垂引用行为未定义。
 
 #### 3.4.1 引用
 
@@ -539,7 +607,17 @@ var r: &i32 = &x
 // 可变引用（mut 标注在类型前）
 var y: i32 = 42
 var mr: &mut i32 = &mut y
-mr = 100
+mr = 100       // 写入被引用值：y 变为 100（不是让 mr 指向 100）
+```
+
+注意：`&mut T` 引用绑定后不可重绑定。对引用变量赋值（`mr = 100`）等价于通过引用写入被引用值，而不是让引用指向新的地址。这与 Rust 中 `let mut r = &mut x; r = &mut y;`（重绑定）不同。
+
+```yuan
+var a: i32 = 1
+var b: i32 = 2
+var r: &mut i32 = &mut a
+r = 10          // a 变为 10，r 仍然指向 a
+// r = &mut b   // 错误：引用绑定不可重绑定
 ```
 
 #### 3.4.2 指针
@@ -561,11 +639,19 @@ var mp: *mut i32 = &mut y
 
 - `&T` 和 `&mut T` 都是非拥有引用，调用方负责保证被引用值在使用期间有效。
 - `&mut T` 只表示“允许修改”，当前版本不承诺并发安全，也不做 Rust 风格的全局唯一借用检查。
-- 普通函数调用、赋值和返回以显式引用写法为准；不要依赖通用 auto-borrow / auto-deref。
-- 方法调用路径中若存在有限接收者归一化，属于实现细节，不构成稳定语言保证。
+- 普通函数调用、赋值和返回以显式引用写法为准。
+- **方法调用 auto-borrow**：当方法接收者声明为 `self: &Self` 或 `self: &mut Self` 时，调用方可以传入值类型 `T`，编译器会自动取引用（`T -> &T` 或 `T -> &mut T`）。这是稳定语言行为，适用于所有方法调用场景。除此之外，不承诺通用的 auto-borrow / auto-deref。
+- 指针类型（`*T` / `*mut T`）和引用类型（`&T` / `&mut T`）均为 Copy 类型，始终可按值复制。由于没有借用检查，引用/指针的生命周期安全性由程序员负责——当被引用值离开作用域或被 move 后，引用变为悬垂引用，行为未定义。调试构建默认开启悬垂引用检测。
 - 引用绑定不可重绑定；对 `&mut T` 执行 `ref = expr` 等价于写入被引用值。
 - `*` 仅用于指针（`*T` / `*mut T`）的显式解引用；引用类型不需要写 `*`。
 - 调试构建默认开启边界/空指针等安全检查；发布构建可由编译选项控制检查强度。
+- **引用安全责任模型**：Yuan 不提供编译期借用检查，也不引入生命周期系统。程序员需自行保证：
+  - 引用在其指向的值被 move 或离开作用域后不再使用。
+  - `&mut T` 引用在任意时刻最多有一个活跃写入者（虽然编译器不强制检查，但违反此约定可能导致数据竞争）。
+  - 推荐使用 `defer` + 作用域管理来确保引用的有效期不超过被引用值。
+  - 调试构建默认开启运行时引用有效性检查（悬垂引用检测、空指针检测、越界检测）；发布构建不检查，悬垂引用行为未定义。
+- **引用返回规则**：函数和方法可以返回 `&T` 或 `&mut T`。返回引用的安全性完全由程序员负责——程序员必须保证返回的引用在其指向的值被 move 或 Drop 后不再使用。编译器不跟踪返回引用与参数/接收者之间的有效期关系。典型的安全模式是返回引用的值的生命周期严格包含调用方使用返回值的生命周期（如返回 `self` 持有的数据的引用）。
+- **引用字段规则**：结构体可以包含 `&T` 或 `&mut T` 字段。程序员必须保证结构体实例不比其引用的值活得更久。编译器不做此检查。
 
 ### 3.5 类型转换
 
@@ -587,6 +673,25 @@ var i: i32 = f as i32  // 3（截断）
 var ch: char = 'A'
 var code: u32 = ch as u32  // 65
 ```
+
+#### 3.5.1 隐式数值转换规则
+
+Yuan 在以下场景允许有限的隐式数值转换（无需 `as`）：
+
+- **整数字面量适配**：无类型后缀的整数字面量（如 `42`）可适配到目标类型，前提是值在目标类型的范围内。例如 `var x: i64 = 42` 中 `42` 适配为 `i64`；`var y: u8 = 255` 中 `255` 适配为 `u8`。
+- **窄到宽提升（同 signedness）**：在同一有符号性内，窄类型可隐式提升为宽类型。例如 `i8 -> i16 -> i32 -> i64 -> i128`，`u8 -> u16 -> u32 -> u64 -> u128`。
+- **不允许的隐式转换**：
+  - 跨有符号性转换（如 `u8 -> i32` 或 `i32 -> u32`）必须使用 `as`。
+  - 宽到窄截断（如 `i64 -> i32`）必须使用 `as`。
+  - 整数与浮点之间必须使用 `as`。
+
+#### 3.5.2 混合类型运算
+
+当二元运算符（`+`、`-`、`*`、`/`、`%`）的操作数类型不同时：
+
+- 若两者为同 signedness 的整数，窄操作数提升为宽操作数的类型（如 `i32 + i64 -> i64`）。
+- 若两者为浮点类型，`f32` 提升为 `f64`。
+- 混合有符号/无符号整数运算、混合整数/浮点运算均为编译错误，需显式 `as` 转换。
 
 ### 3.6 类型别名
 
@@ -746,10 +851,15 @@ match x {
 
 // 守卫条件
 match number {
-    n if n < 0 => "negative",
-    n if n > 0 => "positive",
+    n if n < 0 => "negative",   // n 在模式中绑定，守卫和右侧均可使用
+    n if n > 0 => "positive",   // 每个分支的 n 是独立绑定，作用域限于该分支
     _ => "zero"
 }
+
+// 守卫条件中的变量绑定规则：
+// 1. 模式中的变量（如 n）在守卫表达式和右侧表达式中均可见
+// 2. 若守卫条件为 false，该分支视为未匹配，变量绑定被丢弃
+// 3. 每个 match 分支拥有独立的作用域，同名变量不跨分支共享
 
 // 多个模式
 match value {
@@ -780,6 +890,12 @@ match optional_value {
     None => io.println("empty")
 }
 ```
+
+**match 表达式类型规则**：
+
+- 当 `match` 用作表达式（赋值给变量或作为子表达式）时，所有分支的表达式必须具有相同的类型，或能统一到同一类型。
+- 当 `match` 用作语句（不使用返回值）时，分支类型可以不一致。
+- 若有守卫条件的分支未匹配成功，模式绑定的变量在右侧不可用——守卫失败等价于该分支未匹配。
 
 ### 4.9 闭包表达式
 
@@ -818,6 +934,14 @@ func make_adder(x: i32) -> func(i32) -> i32 {
 var add_5 = make_adder(5)
 var result: i32 = add_5(3)  // 8
 ```
+
+**闭包捕获语义**：
+
+- 闭包默认按**引用**捕获环境变量（捕获的是变量的引用，不是值的副本）。
+- 闭包内对捕获变量的修改会影响外部变量（因为捕获的是引用）。
+- 闭包捕获引用后的安全性由程序员负责。若闭包的生命周期超过被捕获变量的作用域（如闭包被返回或存入容器），被捕获的引用变为悬垂引用，行为未定义。程序员应通过将值复制到局部 Copy 变量、或使用指针手动管理生命周期来避免此类问题。
+- Copy 类型的变量被捕获时，闭包持有引用；但若闭包被 move，引用仍指向原变量（无 Rust 式的自动 copy-by-capture）。
+- 当前版本不提供 `move` 关键字进行按值捕获。
 
 ### 4.10 范围表达式
 
@@ -880,6 +1004,16 @@ var [first, second, ...rest] = array
 
 数组解构中的 `...rest` 最多出现一次，且必须位于最后一个位置。
 
+**变量遮蔽（Shadowing）**：在同一作用域内，可以使用 `var` 重新声明同名变量，新变量遮蔽旧变量。遮蔽允许改变类型：
+
+```yuan
+var x: i32 = 10
+var x: str = "hello"    // 合法：遮蔽，类型从 i32 变为 str
+var x = x + " world"    // 合法：遮蔽，使用旧 x 的值
+```
+
+遮蔽与赋值不同：`var x: str = "hello"` 创建了新变量（可能不同类型），`x = 20` 是对已有变量的赋值（类型必须一致）。`const` 声明的常量不可遮蔽。
+
 ### 5.2 常量声明
 
 ```yuan
@@ -896,6 +1030,55 @@ const BUFFER_SIZE: usize = MAX_SIZE * 2
 const std = @import("std")
 const io = @import("std").io
 ```
+
+#### 5.2.1 常量函数（const func）
+
+使用 `const func` 声明可在编译时求值的函数：
+
+```yuan
+const func fibonacci(n: usize) -> usize {
+    if n <= 1 { return n }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+const func hash(s: str) -> u64 {
+    var h: u64 = 5381
+    for byte in s {
+        h = h * 33 + byte as u64
+    }
+    return h
+}
+
+// 编译时求值
+const FIB_10: usize = fibonacci(10)         // 55
+const STR_HASH: u64 = hash("hello")         // 编译时计算的哈希值
+```
+
+**const func 约束**：
+
+- 参数和返回类型必须是编译时已知的类型（基本类型、`str`、指针、const 枚举等）。
+- 函数体中只能调用其他 `const func` 或内建函数。
+- 不能使用堆分配（`malloc`/`new`）、I/O 或任何副作用。
+- 不能调用非 const 的 trait 方法。
+- 递归深度受编译器限制（默认最大 256 层）。
+- `const func` 也可以在运行时调用，此时与普通函数行为一致。
+
+#### 5.2.2 常量构造
+
+结构体和枚举可在 `const` 上下文中构造：
+
+```yuan
+struct Point { x: f64, y: f64 }
+
+const ORIGIN: Point = Point { x: 0.0, y: 0.0 }
+const UNIT_X: Point = Point { x: 1.0, y: 0.0 }
+
+enum Status { Ok, Err(str) }
+
+const DEFAULT_STATUS: Status = Status.Ok
+```
+
+> **设计说明**：`const` 用于模块导入是稳定语言行为。模块绑定在语义上确实是不可变的（导入后不能重新绑定到其他模块），因此 `const` 的"不可变绑定"语义与模块导入一致。当前稳定内核不引入 `import` 关键字。
 
 ### 5.3 return 语句
 
@@ -998,6 +1181,13 @@ for ch in "hello".chars() {
     io.println(ch)
 }
 ```
+
+**for 迭代语义**：
+
+- **范围、数组、切片**：迭代变量按值绑定。对于 Copy 类型的元素，迭代变量是元素的副本；对于非 Copy 类型的元素，迭代变量是元素的 move（迭代后原数组/切片中的元素处于 moved 状态）。
+- **引用切片**（`&[T]`）：迭代变量是元素的引用副本（若 `T` 为 Copy）或元素的 move（若 `T` 非 Copy 且切片允许 move）。
+- **`iter()` 方法**：返回迭代器，`next()` 返回 `?T`。`enumerate()` 返回 `(usize, T)` 元组。
+- **字符串**：`str.chars()` 返回 `char` 迭代器；`str.bytes()` 返回 `u8` 迭代器。
 
 ### 5.7 break 和 continue
 
@@ -1328,6 +1518,11 @@ var p3: Point = Point { x, y }
 var config1: Config = Config { }
 var config2: Config = Config { port: 3000 }
 
+// 结构体更新语法：基于已有实例创建新实例，只覆盖部分字段
+var config3: Config = Config { port: 9090, ..config1 }  // 其余字段取 config1 的值
+// 等价于：Config { host: config1.host, port: 9090, debug: config1.debug }
+// 注意：..source 中的非 Copy 字段会被 move（源实例对应字段进入 moved 状态）
+
 // 元组结构体
 var red: Color = Color(255, 0, 0)
 ```
@@ -1433,6 +1628,16 @@ enum Optional<T> {
 }
 ```
 
+#### 8.1.1 枚举变体的内存布局与语义
+
+枚举变体支持三种形式，每种在内存中均有独立布局：
+
+- **单元变体**（如 `Quit`）：无附加数据，仅占标签空间。
+- **元组变体**（如 `Write(String)`、`ChangeColor(u8, u8, u8)`）：标签 + 按声明顺序排列的数据字段。支持任意数量的字段，每个字段独立存储。
+- **结构体变体**（如 `Move { x: i32, y: i32 }`）：标签 + 按字段名排列的数据字段。
+
+枚举值在任一时刻只持有其中一个变体。对枚举值进行模式匹配时，解构出的字段类型必须与变体定义一致。枚举的 Copy/move 语义取决于其当前变体所持有的数据字段的类型——若所有变体的所有字段均为 Copy 且枚举自身无 Drop 实现，则枚举为 Copy。
+
 ### 8.2 枚举使用
 
 ```yuan
@@ -1445,6 +1650,7 @@ var response: Message = Message.Move { x: 10, y: 20 }
 const fmt = @import("std").fmt
 const io = @import("std").io
 
+// match 中必须使用完整限定名（枚举类型名.变体名），不可省略类型前缀
 match msg {
     Message.Quit => io.println("Quit"),
     Message.Move { x, y } => io.println(fmt.format("Move to ({}, {})", x, y)),
@@ -1452,6 +1658,8 @@ match msg {
     Message.ChangeColor(r, g, b) => io.println(fmt.format("Color: ({}, {}, {})", r, g, b))
 }
 ```
+
+枚举变体在所有上下文中（包括 `match`、赋值、函数调用）都必须使用完整限定名（如 `Color.Red`、`Message.Quit`）。不支持省略类型前缀的短名称（如 `Red` 或 `Quit`），以避免与局部变量或其他枚举的变体名冲突。
 
 ### 8.3 枚举方法
 
@@ -1464,12 +1672,14 @@ enum Direction {
 }
 
 impl Direction {
+    // 在 impl 块内，Self 代表当前类型（即 Direction）
+    // 可以用 Self.North 代替 Direction.North
     pub func opposite(self: &Self) -> Direction {
         match self {
-            Direction.North => Direction.South,
-            Direction.South => Direction.North,
-            Direction.East => Direction.West,
-            Direction.West => Direction.East
+            Self.North => Direction.South,
+            Self.South => Direction.North,
+            Self.East => Direction.West,
+            Self.West => Direction.East
         }
     }
 
@@ -1483,6 +1693,32 @@ impl Direction {
     }
 }
 ```
+
+### 8.4 枚举判别值
+
+每个枚举类型自动获得 `ordinal()` 方法，返回变体的整数索引（从 0 开始，按声明顺序）：
+
+```yuan
+enum Color { Red, Green, Blue }
+
+Color.Red.ordinal()    // 0
+Color.Green.ordinal()  // 1
+Color.Blue.ordinal()   // 2
+
+enum HttpStatus { Ok(200), NotFound(404), ServerError(500) }
+
+HttpStatus.Ok(200).ordinal()       // 0
+HttpStatus.NotFound(404).ordinal() // 1
+HttpStatus.ServerError(500).ordinal() // 2
+```
+
+**规则**：
+
+- `ordinal()` 返回 `usize` 类型。
+- 索引从 0 开始，按变体声明顺序递增。
+- `ordinal()` 对所有变体形式（unit、tuple、struct）均可用。
+- `ordinal()` 是 Copy 操作，不消耗枚举值。
+- 若需反向查找（从索引得到变体），应使用 `match` 或自定义方法。
 
 ---
 
@@ -1576,7 +1812,45 @@ where
 }
 ```
 
+### 9.3.1 Trait 对象
+
+当需要动态分发时，可以使用 trait 对象引用（`&TraitName`）：
+
+```yuan
+// &Error 是 Error trait 的对象引用
+func print_error(e: &Error) {
+    io.println(e.message())
+}
+
+// 任何实现了 Error 的类型都可以传入
+var err: SysError = SysError.DivisionByZero
+print_error(&err)
+```
+
+Trait 对象的规则：
+
+- Trait 对象引用 `&TraitName` 是一个胖指针（数据指针 + vtable 指针），大小为 2 个机器字。
+- Trait 对象支持动态分发：方法调用在运行时通过 vtable 解析。
+- **对象安全约束**：只有满足以下条件的 trait 才能创建 trait 对象：
+  - trait 的所有方法中，`self` 参数必须是 `&Self` 或 `&mut Self`（不能是 `Self` 按值）。
+  - trait 没有泛型方法（泛型参数会阻止 vtable 生成）。
+  - trait 没有关联常量（关联类型允许）。
+- 不满足对象安全约束的 trait 不能用于 `&TraitName` 语法，编译器会报错。
+- vtable 布局和 ABI 为编译器内部实现细节，不属于稳定规范。
+
 ### 9.4 常用内置 Trait
+
+`Ordering` 是用于排序比较的内置枚举，定义如下：
+
+```yuan
+enum Ordering {
+    Less,     // 小于
+    Equal,    // 等于
+    Greater   // 大于
+}
+```
+
+`Ordering` 为 Copy 类型，无需导入即可使用。
 
 ```yuan
 // Clone - 深拷贝
@@ -1603,9 +1877,30 @@ trait Default {
 }
 
 // Drop - 析构
+// 仅返回类型为 void 的 drop 方法被识别为 Drop 实现。
+// 返回 !void（可报错）或其他类型的方法不会触发自动析构。
 trait Drop {
     func drop(self: &mut Self) -> void
 }
+
+// Display - 格式化输出
+// io.print / io.println 要求参数实现 Display trait。
+// 所有基本类型（整数、浮点、bool、char、str）已内置实现 Display。
+// 自定义类型需 impl Display 才能传给 io.println。
+trait Display {
+    func fmt(self: &Self, f: &mut Formatter) -> !void
+}
+
+// Send - 标记 trait，表示值可以安全地跨线程转移所有权
+// 所有基本类型、String、Vec<T: Send> 等自动实现 Send。
+// 引用类型 &T 不实现 Send（引用不能跨线程转移所有权）。
+// &mut T 实现 Send 当且仅当 T: Send。
+trait Send { }
+
+// Sync - 标记 trait，表示 &T 可以安全地跨线程共享
+// 所有基本类型、不可变容器自动实现 Sync。
+// 包含 &mut T 字段的类型通常不实现 Sync（除非 T: Sync）。
+trait Sync { }
 
 // Error - 错误类型（详见错误处理章节）
 trait Error {
@@ -1619,6 +1914,7 @@ trait Error {
 
 - `Copy` 由编译器按结构自动判定（非手写 `impl Copy`）：基础标量、`str`、引用、指针、函数值为 Copy；数组/元组/结构体/枚举在其成员全为 Copy 且自身无 Drop 实现时自动 Copy。
 - `Drop` 仅对显式 `impl Drop` 的类型生效；仅这类类型会在局部作用域退出时触发自动析构。
+- Drop 方法的签名必须严格为 `func drop(self: &mut Self) -> void`。返回 `!void`（可报错）或其他类型的方法不会被识别为 Drop 实现，该类型也不会参与自动析构。
 - 禁止显式调用 `Drop::drop`；提前释放请通过更小作用域触发自动 drop。
 
 ### 9.5 运算符 Trait（实验层）
@@ -1721,6 +2017,26 @@ func main() {
     var p: math.Point = math.Point { x: 1.0, y: 2.0 }
 }
 ```
+
+### 10.4 模块重导出
+
+模块可以通过 `pub const` 重新导出导入的内容：
+
+```yuan
+// utils.yu — 重导出 math 模块的 add 函数
+const math = @import("./math.yu")
+pub const add = math.add    // 创建新的公开符号绑定，指向同一个函数
+pub const PI = math.PI      // 重导出常量
+
+// main.yu — 可以直接从 utils 导入
+const utils = @import("./utils.yu")
+var result = utils.add(1, 2)  // 等价于 math.add(1, 2)
+```
+
+重导出规则：
+- `pub const name = module.symbol` 创建新的符号绑定，对外暴露为当前模块的公开成员。
+- 重导出的符号与原始符号指向同一声明，不产生额外开销。
+- 不支持通配符重导出（如 `pub use math.*`）——必须逐个命名。
 
 ---
 
@@ -1872,6 +2188,36 @@ func write_file(path: str, content: str) -> !void {
 }
 ```
 
+### 11.4.1 错误与 Optional 的组合（`!T` 与 `?T`）
+
+当函数既可能返回错误，又可能返回空值时，使用 `!?T` 组合：
+
+```yuan
+// 返回类型为 !?User：成功时为 ?User（可能为 None），失败时为错误
+func find_user(id: i32) -> !?User {
+    if id < 0 {
+        return SysError.InvalidArgument { name: "id", message: "must be positive" }
+    }
+    if id == 0 {
+        return None   // 成功但未找到
+    }
+    return Some(load_user(id))
+}
+
+// 调用方式：先处理错误，再处理 Optional
+var user: ?User = find_user(42)! -> err {
+    io.println(err.message())
+    return None
+}
+// user 现在是 ?User，可用 orelse 或 match 处理
+var name: str = (user orelse User.anonymous()).name
+```
+
+组合规则：
+- `!?T` 是合法的返回类型，表示"可能返回错误，成功时返回 `?T`"。
+- `?!T` 不是合法类型——错误应该在 Optional 之外处理（先 `!` 传播错误，再处理 `?T`）。
+- `!?T` 的 `!` 传播的是外层错误，`?T` 的 `None` 是内层"无值"语义，两者正交。
+
 ### 11.5 错误处理语法
 
 #### 11.5.1 使用 `!` 传播错误
@@ -2005,7 +2351,9 @@ func validate_email(email: str) -> !str {
 
 ---
 
-## 12. 并发
+## 12. 并发（实验层）
+
+> **本章内容属于实验层**，不属于稳定内核承诺。async/await、线程、通道等 API 在后续版本中可能变更或移除。当前稳定内核只保证同步语义。
 
 ### 12.1 async/await
 
@@ -2188,16 +2536,24 @@ Error (trait)
 
 ### 14.2 核心模块
 
+标准库模块组织规则：
+
+- **一级模块**（`@import("std").xxx`）：`io`、`fs`、`fmt`、`time`、`env`、`math`、`thread`、`mem`
+- **二级模块**（`@import("std").xxx.yyy`）：`collections.Vec`、`collections.HashMap`、`net.http` 等
+- 一级模块为高频使用的核心能力，二级模块按功能域组织
+- 容器类型（`Vec`、`HashMap`、`HashSet`）统一在 `collections` 下，不直接暴露为一级模块
+
 #### 14.2.1 std.io
 
 ```yuan
 const io = @import("std").io
 
-// 打印输出
+// 打印输出（参数需实现 Display trait）
 io.print("Hello")                        // 打印（不换行）
 io.println("Hello, World!")              // 打印并换行
-io.println(42)                           // 打印任意类型
+io.println(42)                           // 基本类型已内置 Display
 io.eprintln("Error message")             // 打印到标准错误
+// io.println(my_struct)                 // 需要 impl Display for MyStruct
 
 // 读取输入
 var input: String = io.stdin().read_line()!
@@ -2247,10 +2603,11 @@ var first: i32 = v.get(0)
 var popped: i32 = v.pop()
 
 // HashMap - 哈希映射
+// key 类型需实现 Hash + Eq trait。str 已内置实现。
 var map: HashMap<str, i32> = HashMap.new()
-map.insert("one", 1)
+map.insert("one", 1)       // 存储 str 的胖指针副本（不拷贝字节内容）
 map.insert("two", 2)
-var value: ?i32 = map.get("one")
+var value: ?i32 = map.get("one")  // 按字节内容比较，非指针比较
 
 // HashSet - 哈希集合
 var set: HashSet<i32> = HashSet.new()
@@ -2305,19 +2662,19 @@ thread.sleep(time.Duration.from_secs(1))
 ```yuan
 const env = @import("std").env
 const io = @import("std").io
+const fmt = @import("std").fmt
 
 // 命令行参数（包含 argv[0]）
 var argv = env.args()
-io.println("argc = {}", argv.len())
+io.println(fmt.format("argc = {}", argv.len()))
 if argv.len() > 0u64 {
-    io.println("argv0 = {}", argv.at(0u64))
+    io.println(fmt.format("argv0 = {}", argv.at(0u64)))
 }
 
 // 读取环境变量
 var home: ?str = env.get("HOME")
 if (home orelse "") != "" {
-    io.println("HOME = {}", home orelse "")
-}
+    io.println(fmt.format("HOME = {}", home orelse ""))
 ```
 
 #### 14.2.7 std.math
@@ -2630,9 +2987,9 @@ func main() {
 
 #### 与 Rust 的主要区别
 
-1. **无生命周期**：Yuan 不需要生命周期标注
-2. **无借用检查**：不做 Rust 风格借用检查，引用模型借鉴 Zig
-3. **无 unsafe**：Yuan 不提供 unsafe 块（但指针与并发正确性由开发者负责）
+1. **无生命周期**：Yuan 不引入、也不计划引入生命周期系统。引用安全性由程序员负责，调试构建提供运行时检查。
+2. **无借用检查**：不做 Rust 风格借用检查，引用模型借鉴 Zig 的"程序员全责"哲学。
+3. **无 unsafe**：Yuan 不提供 unsafe 块——所有代码默认都是"unsafe"的（就引用安全而言），程序员对引用和指针的正确性承担全部责任。
 4. **无宏**：Yuan 不支持宏系统
 5. **变量声明**：使用 `var`/`const` 区分可变性
 6. **可变引用参数**：统一使用 `&mut T`
@@ -2653,7 +3010,7 @@ func main() {
 3. **错误处理**：基于 Error trait，无 try-catch
 4. **编译**：编译型而非解释型
 5. **无装饰器和宏**
-6. **无字符串插值**：使用 `fmt.format()` 替代
+6. **字符串插值**：支持 `f"..."` 语法（`fmt.format()` 的语法糖）
 7. **无幂运算符**：使用 `math.pow()` 函数
 
 ### 16.3 运算符优先级
@@ -2664,6 +3021,13 @@ func main() {
 |--------|--------|------|
 | 1 | `()` `[]` `.` `!`(后缀) | 函数调用、索引、成员访问、错误传播 |
 | 2 | `-` `!` `~` `*` `&` `&mut` | 一元运算符（含逻辑非） |
+
+**`!` 运算符二义性说明**：`!` 在不同上下文中有不同含义，解析规则如下：
+
+- **后缀 `!`**（优先级 1）：仅跟在函数调用或表达式后，表示错误传播。如 `f()!`、`g(x)!`。
+- **前缀 `!`**（优先级 2）：逻辑非，仅跟在布尔表达式前。如 `!true`、`!flag`。
+- **组合场景**：`!f()!` 解析为 `!(f()!)`——先调用 `f()` 并传播错误，再对结果取逻辑非。若意图是"对 `f()` 的返回值取反后再传播"，应写 `(!f())!` 或更明确地拆分为多步。
+- `!` 不用于错误类型标记——`!T` 在返回类型位置表示"可能返回错误"，这是类型语法而非运算符。
 | 3 | `as` | 类型转换 |
 | 4 | `*` `/` `%` | 乘法、除法、取模 |
 | 5 | `+` `-` | 加法、减法 |
@@ -2854,18 +3218,20 @@ Yuan 当前编译流程为：
 
 - 本版本不引入 Rust 风格借用冲突/生命周期静态检查；仅保证 `use-after-move` 等所有权错误检查。
 - 自动析构当前覆盖局部生命周期；不定义全局对象析构顺序。
-- 容器实现为 v1 约束模型：`Vec/HashMap/HashSet` 元素需满足 Copy（避免元素级 Drop 漏调）。
+- 容器实现为 v1 约束模型：`Vec/HashMap/HashSet` 元素需满足 Copy（避免元素级 Drop 漏调）。当前版本中，non-Copy 类型（如 `String`、自定义结构体）不能直接作为容器元素使用。需要存储 non-Copy 值时，应使用指针容器（如 `Vec<*String>`）手动管理生命周期，或使用标准库提供的特定容器包装。
 - 泛型采用“按需单态化”，并非全程序提前实例化。
 - async、复杂 trait 生态、运算符扩展等能力仍属于实验层，不应视为稳定语义承诺。
 
 ## 18. 所有权与对象生命周期
 
 本章定义 Yuan 2026 版对象生命周期模型。该模型为一次性切换（breaking）：
-从“默认按值复制 + 手工 `free`”切换为“结构化 Copy + 非 Copy 默认 move + Drop 自动析构（仅 Drop 类型）”。
+从”默认按值复制 + 手工 `free`”切换为”结构化 Copy + 非 Copy 默认 move + Drop 自动析构（仅 Drop 类型）”。
+
+> 注：本章”生命周期”指对象的创建与销毁时机（即值的 scope），而非 Rust 的生命周期标注系统。Yuan 不引入、也不计划引入生命周期标注。
 
 ### 18.1 基本模型
 
-- 无新增语法关键字；无 Rust 式借用检查。
+- 无新增语法关键字；无 Rust 式借用检查；无生命周期标注。
 - 非 Copy 值默认遵循所有权 move 语义。
 - 编译器在语义阶段检查 use-after-move。
 - 自动析构仅对显式实现 `Drop` 的类型生效。
@@ -2922,6 +3288,172 @@ Yuan 当前编译流程为：
 - 资源类型迁移为 `Drop` 自动释放（如 `String`、`Vec`、`HashMap`、`HashSet`、`Thread`）。
 - 标准库对外不再暴露资源对象的 `free()` 方法。
 - `std.mem.free` 仍作为裸内存 API 保留，用于低层手动内存管理。
+
+---
+
+## 19. 测试
+
+### 19.1 测试函数
+
+使用 `@test` 内置函数标记测试函数：
+
+```yuan
+// tests/math_test.yu
+const math = @import("./math.yu")
+const io = @import("std").io
+
+@test func test_add() {
+    @assert(math.add(1, 2) == 3)
+    @assert(math.add(-1, 1) == 0)
+}
+
+@test func test_divide() {
+    var result = math.divide(10, 2)!
+    @assert(result == 5)
+}
+```
+
+### 19.2 测试运行
+
+```bash
+# 运行所有测试
+yuanc --test tests/
+
+# 运行指定测试文件
+yuanc --test tests/math_test.yu
+
+# 按名称过滤
+yuanc --test tests/ --filter "test_add"
+```
+
+### 19.3 测试规范
+
+- `@test` 标记的函数必须无参数、返回 `void`。
+- 测试函数在独立的编译单元中运行，不影响主程序。
+- `@assert` 失败时输出文件名、行号和表达式，然后标记测试为失败。
+- 测试框架自动发现 `@test` 标记的函数，无需手动注册。
+
+---
+
+## 20. FFI（外部函数接口）
+
+### 20.1 外部函数声明
+
+使用 `extern` 声明外部 C 函数：
+
+```yuan
+// 声明 C 标准库函数
+extern "C" func printf(format: *u8, ...) -> i32
+extern "C" func malloc(size: usize) -> *void
+extern "C" func free(ptr: *void) -> void
+extern "C" func strlen(s: *u8) -> usize
+```
+
+### 20.2 调用外部函数
+
+```yuan
+// 调用 C 函数
+var len: usize = strlen("hello" as *u8)
+var ptr: *void = malloc(1024)
+free(ptr)
+```
+
+### 20.3 FFI 类型映射
+
+| Yuan 类型 | C 类型 |
+|-----------|--------|
+| `i8` / `u8` | `char` / `unsigned char` |
+| `i32` / `u32` | `int` / `unsigned int` |
+| `i64` / `u64` | `long long` / `unsigned long long` |
+| `usize` | `size_t` |
+| `f64` | `double` |
+| `*T` | `T*` |
+| `*void` | `void*` |
+| `str`（传给 C） | `const char*`（自动传递内部指针） |
+
+### 20.4 FFI 安全规则
+
+- 调用外部函数是 unsafe 操作——程序员对外部代码的正确性承担全部责任。
+- 外部函数不参与 Yuan 的所有权和 Drop 机制——通过 `malloc` 分配的内存必须通过 `free` 手动释放。
+- 外部函数的参数和返回值类型必须是 FFI 兼容类型（基本类型、指针、`void`）。
+
+---
+
+## 21. 迭代器适配器
+
+### 21.1 迭代器 trait
+
+```yuan
+trait Iterator {
+    type Item
+    func next(self: &mut Self) -> ?Self.Item
+}
+```
+
+### 21.2 内置适配器
+
+所有实现 `Iterator` 的类型自动获得以下适配器方法：
+
+```yuan
+// map — 转换每个元素
+var doubled = &[1, 2, 3].iter().map(func(x: i32) -> i32 { x * 2 })
+// doubled: 迭代器，产出 2, 4, 6
+
+// filter — 过滤元素
+var evens = &[1, 2, 3, 4].iter().filter(func(x: &i32) -> bool { x % 2 == 0 })
+// evens: 迭代器，产出 2, 4
+
+// enumerate — 附加索引
+for (i, v) in &[10, 20, 30].iter().enumerate() {
+    // i: usize, v: &i32
+}
+
+// zip — 合并两个迭代器
+var names = &["Alice", "Bob"].iter()
+var ages = &[30, 25].iter()
+for (name, age) in names.zip(ages) {
+    // name: &str, age: &i32
+}
+
+// take / skip — 截取/跳过
+var first3 = (0..100).take(3)    // 0, 1, 2
+var after5 = (0..100).skip(5)    // 5, 6, 7, ...
+
+// chain — 连接两个迭代器
+var combined = &[1, 2].iter().chain(&[3, 4].iter())
+// 产出 1, 2, 3, 4
+```
+
+### 21.3 收集（collect）
+
+`collect()` 将迭代器收集成容器类型：
+
+```yuan
+const Vec = @import("std").collections.Vec
+
+// 收集到 Vec
+var v: Vec<i32> = (0..5).collect<Vec<i32>>()
+// v = [0, 1, 2, 3, 4]
+
+// 收集 filter 结果
+var evens: Vec<i32> = (0..10).filter(func(x: &i32) -> bool { x % 2 == 0 }).collect<Vec<i32>>()
+// evens = [0, 2, 4, 6, 8]
+```
+
+### 21.4 消费方法
+
+迭代器还提供以下消费方法（消耗迭代器，返回最终值）：
+
+```yuan
+var total: i32 = &[1, 2, 3].iter().fold(0, func(acc: i32, x: &i32) -> i32 { acc + x })
+// total = 6
+
+var count: usize = &[1, 2, 3].iter().count()  // 3
+
+var found: bool = &[1, 2, 3].iter().any(func(x: &i32) -> bool { x > 2 })  // true
+
+var all_positive: bool = &[1, 2, 3].iter().all(func(x: &i32) -> bool { x > 0 })  // true
+```
 
 ---
 
