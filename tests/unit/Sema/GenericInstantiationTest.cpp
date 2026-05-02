@@ -314,4 +314,47 @@ func add_values<T: Add>(a: T, b: T) -> T {
     EXPECT_TRUE(result.SemaOK);
 }
 
+TEST_F(GenericInstantiationTest, ErrorReturningCallRequiresExplicitHandlingInNonErrorFunction) {
+    const std::string source = R"(
+func divide(a: i32, b: i32) -> !i32 {
+    if b == 0 {
+        return SysError.DivisionByZero
+    }
+    return a / b
+}
+
+func use_value() -> i32 {
+    var value: i32 = divide(10, 2)
+    return value
+}
+)";
+
+    AnalyzeResult result = analyzeSource(source);
+    EXPECT_TRUE(result.Parsed);
+    EXPECT_FALSE(result.SemaOK);
+    EXPECT_TRUE(hasDiag(result, DiagID::err_type_mismatch));
+}
+
+TEST_F(GenericInstantiationTest, ErrorReturningCallCanBeHandledWithErrBlockInNonErrorFunction) {
+    const std::string source = R"(
+func divide(a: i32, b: i32) -> !i32 {
+    if b == 0 {
+        return SysError.DivisionByZero
+    }
+    return a / b
+}
+
+func use_value() -> i32 {
+    var value: i32 = divide(10, 2)! -> err {
+        return 0
+    }
+    return value
+}
+)";
+
+    AnalyzeResult result = analyzeSource(source);
+    EXPECT_TRUE(result.Parsed);
+    EXPECT_TRUE(result.SemaOK);
+}
+
 } // namespace yuan

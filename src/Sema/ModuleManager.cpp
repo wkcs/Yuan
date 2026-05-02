@@ -243,23 +243,8 @@ std::string ModuleManager::resolveModulePath(const std::string& modulePath,
         return resolveStdLibPath(modulePath);
     }
 
-    // 优先尝试当前文件目录（用于局部无前缀模块名）
-    if (!currentFilePath.empty()) {
-        std::filesystem::path currentDir = std::filesystem::path(currentFilePath).parent_path();
-        std::filesystem::path localPath = currentDir / modulePath;
-        if (!localPath.has_extension()) {
-            localPath += ".yu";
-        }
-        if (std::filesystem::exists(localPath)) {
-            try {
-                return std::filesystem::canonical(localPath).string();
-            } catch (...) {
-                return std::filesystem::weakly_canonical(localPath).string();
-            }
-        }
-    }
-
-    // 默认仍按标准库路径解析（兼容现有行为，例如 std.yu 内 import("io")）
+    // 不再把裸模块名隐式解析到当前文件目录。
+    // 非相对导入要么命中包源根，要么按标准库模块解析。
     return resolveStdLibPath(modulePath);
 }
 
@@ -290,10 +275,17 @@ std::string ModuleManager::resolveStdLibPath(const std::string& modulePath) {
 
 std::string ModuleManager::resolveRelativePath(const std::string& modulePath,
                                                const std::string& currentFilePath) {
+    if (modulePath.empty()) {
+        return "";
+    }
+
     std::filesystem::path base;
     if (!modulePath.empty() && modulePath[0] == '/') {
         base = std::filesystem::path(modulePath);
     } else {
+        if (currentFilePath.empty()) {
+            return "";
+        }
         std::filesystem::path currentDir = std::filesystem::path(currentFilePath).parent_path();
         base = currentDir / modulePath;
     }

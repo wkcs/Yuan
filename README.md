@@ -8,7 +8,22 @@ Yuan 是一个基于 LLVM 的静态类型编译型语言实现。
 - 前端链路可用：`Lexer -> Parser -> Sema`
 - 后端链路可用：`CodeGen -> LLVM IR -> Object -> Link`
 - 模块导入可用：`@import` + `ModuleManager`
-- 语言持续演进中，规范与实现会持续对齐
+- 当前仓库优先收敛稳定内核，避免规范长期领先实现
+
+### Stable Core
+
+- 基础类型、函数、结构体、枚举、`match`
+- 基础泛型与 `@import` 模块导入
+- 显式错误返回 `!T`、`expr!`、`expr! -> err { ... }`
+- 最小标准库闭环：`std.io`、`std.fmt`、`std.mem`、`std.string`、`std.fs`
+
+### Experimental Features
+
+- `async/await` 与异步运行时
+- 运算符 trait 扩展能力
+- 高阶 trait 生态（含关联类型等复杂约束）
+- GUI、网络、OpenAI 相关标准库能力
+- 依赖完整析构的资源型泛型容器
 
 ## 仓库结构
 
@@ -76,7 +91,7 @@ cmake --build build -j
 - `--module-cache`：模块缓存目录（默认 `.yuan/cache`）
 - `--project`：指定或自动发现 `project.yaml` 项目配置
 
-## yupkg 包管理器（v1）
+## yupkg 包管理器（v1，仍在收敛）
 
 `yupkg` 提供类似 cargo 的基础命令（依赖支持 path + git）：
 
@@ -118,6 +133,12 @@ compile:
     - ./include
 ```
 
+当前约束：
+
+- `@import("pkg")` 指向包入口，`@import("pkg.sub")` 指向包内模块。
+- 相对导入仅使用 `./` 和 `../`。
+- 不再依赖“裸名字优先按当前目录猜测”的导入行为。
+
 ## 测试
 
 ```bash
@@ -141,6 +162,11 @@ ctest --test-dir build --output-on-failure
 - 语义分析：`docs/Sema/README.md`
 - 代码生成：`docs/CodeGen/README.md`
 - 语言规范：`docs/spec/Yuan_Language_Spec.md`
+
+阅读建议：
+
+- 把 `docs/spec/Yuan_Language_Spec.md` 视为当前稳定内核的主规范。
+- 对 async、GUI、网络等能力，优先以实现与测试为准，它们仍处于实验层。
 
 ## 贡献建议
 

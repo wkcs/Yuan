@@ -348,11 +348,17 @@ TEST_F(ModuleManagerTest, ResolveModulePath_EmptyPath) {
 }
 
 TEST_F(ModuleManagerTest, ResolveModulePath_EmptyCurrentFile) {
-    // 当 currentFilePath 为空时，相对路径解析应该从当前工作目录开始
+    // 当 currentFilePath 为空时，相对路径解析没有锚点，应返回空路径
     std::string resolved = MM->resolveModulePath("./test", "");
 
-    // 应该返回一个有效路径
-    EXPECT_FALSE(resolved.empty());
+    EXPECT_TRUE(resolved.empty());
+}
+
+TEST_F(ModuleManagerTest, ResolveModulePath_BareLocalNameDoesNotFallbackToCurrentDir) {
+    fs::path currentFile = testDir / "main.yu";
+    std::string resolved = MM->resolveModulePath("module1", currentFile.string());
+
+    EXPECT_TRUE(resolved.empty());
 }
 
 TEST_F(ModuleManagerTest, LoadModule_EmptyImportChain) {
