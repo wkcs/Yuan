@@ -267,10 +267,11 @@ std::string ModuleManager::resolveStdLibPath(const std::string& modulePath) {
     // 统一返回规范化绝对路径，避免接口阶段与依赖编译阶段的模块文件名不一致，
     // 导致符号 mangling 前缀不一致（相对路径 vs 绝对路径）。
     try {
-        return std::filesystem::canonical(fullPath).string();
-    } catch (...) {
-        return std::filesystem::weakly_canonical(fullPath).string();
-    }
+        if (std::filesystem::exists(fullPath)) {
+            return std::filesystem::canonical(fullPath).string();
+        }
+    } catch (...) {}
+    return "";
 }
 
 std::string ModuleManager::resolveRelativePath(const std::string& modulePath,
