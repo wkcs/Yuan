@@ -1207,12 +1207,13 @@ Token Lexer::lexChar() {
         consumeChar();
     }
 
-    // 如果不是结束引号，则说明字符字面量内容非法（例如 'ab'）
+    // 如果不是结束引号，则说明字符字面量未终止（例如 'A 或 'ab'）
     if (isAtEnd() || peekChar() != '\'') {
         while (!isAtEnd() && peekChar() != '\'' && peekChar() != '\n' && peekChar() != '\r') {
             consumeChar();
         }
-        reportError(DiagID::err_empty_char_literal, startLoc);
+        SourceRange charRange(startLoc, getLocation());
+        Diag.report(DiagID::err_unterminated_char, startLoc, charRange);
         if (!isAtEnd() && peekChar() == '\'') {
             consumeChar();
         }
