@@ -502,7 +502,10 @@ bool CodeGen::generateFuncDecl(FuncDecl* decl) {
     // Special handling for main function:
     // Rename Yuan's main to yuan_main and create a C-style main wrapper
     bool isMainFunc = (name == "main" && decl->getParams().empty());
-    std::string actualName = isMainFunc ? "yuan_main" : getFunctionSymbolName(decl);
+    // extern "C" functions use unmangled names
+    std::string actualName = isMainFunc ? "yuan_main"
+                             : decl->isExtern() ? name
+                             : getFunctionSymbolName(decl);
 
     // Build parameter types
     std::vector<llvm::Type*> paramTypes;

@@ -61,7 +61,8 @@ static const std::unordered_map<std::string, TokenKind> KeywordMap = {
     {"type", TokenKind::KW_type},
     {"where", TokenKind::KW_where},
     {"orelse", TokenKind::KW_orelse},
-    
+    {"extern", TokenKind::KW_extern},
+
     // 类型关键字
     {"i8", TokenKind::KW_i8},
     {"i16", TokenKind::KW_i16},
@@ -177,7 +178,12 @@ Token Lexer::lexImpl() {
         // 否则作为普通标识符处理
         return attachDocComment(lexIdentifier());
     }
-    
+
+    // f-string (f"..." 或 f"""...""")  - 必须在标识符检查之前
+    if (c == 'f' && peekChar(1) == '"') {
+        return attachDocComment(lexFString());
+    }
+
     // 标识符和关键字
     if (isIdentifierStart(c)) {
         return attachDocComment(lexIdentifier());
@@ -1087,6 +1093,74 @@ Token Lexer::lexMultilineString() {
     SourceRange stringRange(startLoc, getLocation());
     Diag.report(DiagID::err_unterminated_multiline_string, startLoc, stringRange);
     // 跳过错误，继续分析下一个token
+    return lexImpl();
+}
+
+Token Lexer::lexFString() {
+    SourceLocation startLoc = getLocation();
+    const char* start = CurPtr;
+
+    // 消费 'f'
+    consumeChar();
+    // 消费开始的双引号
+    consumeChar(); // "
+
+    int braceDepth = 0;
+
+    while (!isAtEnd()) {
+        char c = peekChar();
+
+        if (c == '"' && braceDepth == 0) {
+            // 结束引号
+            consumeChar(); // "
+            std::string text(start, CurPtr - start);
+            return Token(TokenKind::FStringLiteral, startLoc, text);
+        } else if (c == '{') {
+            if (peekChar(1) == '{') {
+                // {{ 转义为字面 {
+                consumeChar();
+                consumeChar();
+            } else {
+                // 插值开始
+                braceDepth++;
+                consumeChar();
+            }
+        } else if (c == '}') {
+            if (peekChar(1) == '}') {
+                // }} 转义为字面 }
+                consumeChar();
+                consumeChar();
+            } else if (braceDepth > 0) {
+                // 插值结束
+                braceDepth--;
+                consumeChar();
+            } else {
+                // 孤立的 }，报错
+                consumeChar();
+                SourceRange range(startLoc, getLocation());
+                Diag.report(DiagID::err_invalid_character, getLocation(), range);
+            }
+        } else if (c == '\\' && braceDepth == 0) {
+            // 转义序列（仅在插值外部处理）
+            consumeChar(); // '\'
+            if (!isAtEnd()) {
+                char escapeChar = peekChar();
+                consumeChar();
+                processEscapeSequence(startLoc, escapeChar);
+            }
+        } else if ((c == '\n' || c == '\r') && braceDepth == 0) {
+            // f-string 不支持未转义的换行
+            SourceRange range(startLoc, getLocation());
+            Diag.report(DiagID::err_unterminated_string, startLoc, range);
+            return lexImpl();
+        } else {
+            consumeChar();
+        }
+    }
+
+    // 未终止的 f-string
+    SourceRange range(startLoc, getLocation());
+    Diag.report(DiagID::err_unterminated_string, startLoc, range);
     return lexImpl();
 }
 

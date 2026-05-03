@@ -20,6 +20,7 @@ enum class TokenKind : uint16_t {
     StringLiteral,
     RawStringLiteral,
     MultilineStringLiteral,
+    FStringLiteral,
     
     // 关键字
     KW_var,
@@ -59,6 +60,7 @@ enum class TokenKind : uint16_t {
     KW_where,
     KW_None,
     KW_orelse,
+    KW_extern,
     
     // 类型关键字
     KW_i8, KW_i16, KW_i32, KW_i64, KW_i128, KW_isize,

@@ -158,11 +158,17 @@ void ASTPrinter::printFuncDecl(const FuncDecl* decl) {
     if (!decl) return;
     
     printVisibility(decl->getVisibility());
-    
+
+    if (decl->isExtern()) {
+        OS << "extern " << decl->getExternABI() << " ";
+    }
+    if (decl->isConst()) {
+        OS << "const ";
+    }
     if (decl->isAsync()) {
         OS << "async ";
     }
-    
+
     OS << "func " << decl->getName();
     
     // 泛型参数

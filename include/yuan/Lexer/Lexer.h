@@ -93,6 +93,10 @@ private:
     /// \brief Lex a multiline string literal ("""...""").
     /// \return The multiline string literal token.
     Token lexMultilineString();
+
+    /// \brief Lex an f-string literal (f"...{expr}...").
+    /// \return The f-string literal token.
+    Token lexFString();
     
     /// \brief Lex a character literal.
     /// \return The character literal token.

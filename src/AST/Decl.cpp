@@ -94,7 +94,10 @@ FuncDecl::FuncDecl(SourceRange range,
                    BlockStmt* body,
                    bool isAsync,
                    bool canError,
-                   Visibility vis)
+                   Visibility vis,
+                   bool isConst,
+                   bool isExtern,
+                   std::string externABI)
     : Decl(Kind::FuncDecl, range),
       Name(name),
       Params(std::move(params)),
@@ -102,7 +105,10 @@ FuncDecl::FuncDecl(SourceRange range,
       Body(body),
       IsAsync(isAsync),
       CanError(canError),
-      Vis(vis) {}
+      Vis(vis),
+      IsConst(isConst),
+      IsExtern(isExtern),
+      ExternABI(std::move(externABI)) {}
 
 //===----------------------------------------------------------------------===//
 // FieldDecl 实现

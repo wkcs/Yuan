@@ -2201,6 +2201,17 @@ llvm::Value* CodeGen::generateCallExpr(CallExpr* expr) {
                     return iterValue;
                 }
             }
+
+            // ordinal() on enum: extract tag field and zero-extend to i64
+            if (baseType && memberName == "ordinal" && baseType->isEnum()) {
+                llvm::Value* enumVal = generateExpr(memberExpr->getBase());
+                if (!enumVal) {
+                    return nullptr;
+                }
+                // enum layout: { i32 tag, i8* data }
+                llvm::Value* tag = Builder->CreateExtractValue(enumVal, 0, "enum.tag");
+                return Builder->CreateZExt(tag, Builder->getInt64Ty(), "ordinal");
+            }
         }
     }
 

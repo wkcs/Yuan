@@ -295,10 +295,20 @@ ParseResult<Decl> Parser::parseDecl() {
             result = parseVarDecl(vis);
             break;
         case TokenKind::KW_const:
-            result = parseConstDecl(vis);
+            // 检查是否为 const func
+            if (peekAhead(1).is(TokenKind::KW_func)) {
+                advance(); // 消费 'const'
+                result = parseFuncDecl(vis, /*isConst=*/true);
+            } else {
+                result = parseConstDecl(vis);
+            }
             break;
         case TokenKind::KW_async:
         case TokenKind::KW_func:
+            result = parseFuncDecl(vis);
+            break;
+        case TokenKind::KW_extern:
+            // extern "C" func ...
             result = parseFuncDecl(vis);
             break;
         case TokenKind::KW_struct:

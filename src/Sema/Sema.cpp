@@ -2274,6 +2274,13 @@ bool Sema::analyzeFuncDecl(FuncDecl* decl) {
     // 设置函数声明的语义类型
     decl->setSemanticType(funcType);
 
+    // 设置参数的语义类型（在函数体分析之前，确保 extern 函数也能正确设置）
+    auto* funcTypePtr = static_cast<FunctionType*>(funcType);
+    const auto& resolvedParamTypes = funcTypePtr->getParamTypes();
+    for (size_t i = 0; i < decl->getParams().size() && i < resolvedParamTypes.size(); ++i) {
+        decl->getParams()[i]->setSemanticType(resolvedParamTypes[i]);
+    }
+
     // 创建函数符号并添加到符号表
     auto* symbol = new Symbol(SymbolKind::Function, decl->getName(), funcType,
                               decl->getBeginLoc(), decl->getVisibility());
@@ -6209,6 +6216,12 @@ Type* Sema::analyzeMemberExpr(MemberExpr* expr) {
         auto* enumType = static_cast<EnumType*>(baseType);
         const EnumType::Variant* variant = enumType->getVariant(expr->getMember());
         if (!variant) {
+            // 内置枚举方法
+            if (expr->getMember() == "ordinal") {
+                // ordinal() 返回枚举变体的序号 (usize = u64)
+                return Ctx.getFunctionType({}, Ctx.getU64Type(), false);
+            }
+
             if (enumType->getName() == "SysError") {
                 if (expr->getMember() == "message" || expr->getMember() == "full_trace") {
                     return Ctx.getFunctionType({}, Ctx.getStrType(), false);

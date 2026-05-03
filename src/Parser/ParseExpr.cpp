@@ -238,7 +238,7 @@ ParseResult<Expr> Parser::parsePrimaryExpr() {
             } else if (tok.is(TokenKind::MultilineStringLiteral)) {
                 kind = StringLiteralExpr::StringKind::Multiline;
             }
-            
+
             // 解析字符串值（处理转义序列）
             std::string value;
             if (kind == StringLiteralExpr::StringKind::Raw) {
@@ -251,11 +251,15 @@ ParseResult<Expr> Parser::parsePrimaryExpr() {
                     return ParseResult<Expr>::error();
                 }
             }
-            
+
             SourceRange range(tok.getLocation(), tok.getRange().getEnd());
             return ParseResult<Expr>(
                 Ctx.create<StringLiteralExpr>(range, value, kind));
         }
+
+        // f-string: f"...{expr}..." 脱糖为 @format("...", expr, ...)
+        case TokenKind::FStringLiteral:
+            return parseFStringExpr();
         
         // None 字面量
         case TokenKind::KW_None: {
@@ -1606,6 +1610,126 @@ ParseResult<Expr> Parser::parseBuiltinCallExpr() {
     SourceRange range(startLoc, PrevTok.getRange().getEnd());
     return ParseResult<Expr>(
         Ctx.create<BuiltinCallExpr>(range, *builtinKind, std::move(args)));
+}
+
+/// \brief 解析 f-string 字面量，脱糖为 @format() 调用
+///
+/// f"Hello, {name}!" 脱糖为 @format("Hello, {}!", name)
+/// f"result: {x + 1}" 脱糖为 @format("result: {}", x + 1)
+/// f"{{literal}}" 脱糖为 @format("{{literal}}")
+ParseResult<Expr> Parser::parseFStringExpr() {
+    SourceLocation startLoc = CurTok.getLocation();
+
+    // 消费 FStringLiteral token
+    Token fstrTok = consume();
+    const std::string& rawText = fstrTok.getText();
+
+    // 去掉 f" 前缀和 " 后缀
+    // rawText 格式: f"..." 或 f"...\n"
+    if (rawText.size() < 3 || rawText[0] != 'f' || rawText[1] != '"') {
+        reportError(DiagID::err_invalid_character, fstrTok.getLocation());
+        return ParseResult<Expr>::error();
+    }
+    std::string inner = rawText.substr(2, rawText.size() - 3);
+
+    // 解析 f-string 内容，提取格式模板和插值表达式
+    std::string fmtStr;
+    std::vector<Expr*> exprs;
+    int braceDepth = 0;
+    std::string exprText;
+    size_t i = 0;
+
+    while (i < inner.size()) {
+        char c = inner[i];
+
+        if (braceDepth == 0) {
+            // 在字面文本区域
+            if (c == '{') {
+                if (i + 1 < inner.size() && inner[i + 1] == '{') {
+                    // {{ 转义为字面 {
+                    fmtStr += '{';
+                    i += 2;
+                } else {
+                    // 插值开始
+                    braceDepth = 1;
+                    exprText.clear();
+                    i++;
+                }
+            } else if (c == '}') {
+                if (i + 1 < inner.size() && inner[i + 1] == '}') {
+                    // }} 转义为字面 }
+                    fmtStr += '}';
+                    i += 2;
+                } else {
+                    // 孤立的 }，报错
+                    reportError(DiagID::err_invalid_character, fstrTok.getLocation());
+                    return ParseResult<Expr>::error();
+                }
+            } else {
+                // 普通字面字符（包括转义序列 \n 等，保留原样给 format 模板）
+                fmtStr += c;
+                i++;
+            }
+        } else {
+            // 在插值表达式区域
+            if (c == '{') {
+                braceDepth++;
+                exprText += c;
+                i++;
+            } else if (c == '}') {
+                braceDepth--;
+                if (braceDepth == 0) {
+                    // 插值表达式结束，解析表达式
+                    if (exprText.empty()) {
+                        reportError(DiagID::err_unexpected_token, fstrTok.getLocation());
+                        return ParseResult<Expr>::error();
+                    }
+
+                    // 创建临时缓冲区用于子词法分析
+                    SourceManager& sm = Ctx.getSourceManager();
+                    auto bufID = sm.createBuffer(exprText, "<fstring-expr>");
+                    Lexer subLex(sm, Diag, bufID);
+                    Parser subParser(subLex, Diag, Ctx);
+                    auto exprResult = subParser.parseExpr();
+                    if (exprResult.isError()) {
+                        reportError(DiagID::err_unexpected_token, fstrTok.getLocation());
+                        return ParseResult<Expr>::error();
+                    }
+                    exprs.push_back(exprResult.get());
+
+                    // 在格式模板中添加 {} 占位符
+                    fmtStr += "{}";
+                    i++;
+                } else {
+                    exprText += c;
+                    i++;
+                }
+            } else {
+                exprText += c;
+                i++;
+            }
+        }
+    }
+
+    // 如果 braceDepth != 0，说明有未闭合的插值
+    if (braceDepth != 0) {
+        reportError(DiagID::err_invalid_character, fstrTok.getLocation());
+        return ParseResult<Expr>::error();
+    }
+
+    // 构造 @format(fmtStr, expr1, expr2, ...) 调用
+    SourceRange fmtRange = fstrTok.getRange();
+    auto* fmtLit = Ctx.create<StringLiteralExpr>(fmtRange, fmtStr);
+
+    std::vector<BuiltinCallExpr::Argument> args;
+    args.emplace_back(fmtLit);
+    for (auto* expr : exprs) {
+        args.emplace_back(expr);
+    }
+
+    SourceRange range(startLoc, PrevTok.getRange().getEnd());
+    return ParseResult<Expr>(
+        Ctx.create<BuiltinCallExpr>(range, BuiltinKind::Format, std::move(args)));
 }
 
 /// \brief 解析块表达式 { stmts; expr }

@@ -242,7 +242,7 @@ private:
     
     ParseResult<Decl> parseVarDecl(Visibility vis = Visibility::Private);
     ParseResult<Decl> parseConstDecl(Visibility vis = Visibility::Private);
-    ParseResult<Decl> parseFuncDecl(Visibility vis = Visibility::Private);
+    ParseResult<Decl> parseFuncDecl(Visibility vis = Visibility::Private, bool isConst = false);
     ParseResult<Decl> parseStructDecl(Visibility vis = Visibility::Private);
     ParseResult<Decl> parseEnumDecl(Visibility vis = Visibility::Private);
     ParseResult<Decl> parseTraitDecl(Visibility vis = Visibility::Private);
@@ -354,7 +354,10 @@ private:
     
     /// \brief 解析内置函数调用
     ParseResult<Expr> parseBuiltinCallExpr();
-    
+
+    /// \brief 解析 f-string 字面量，脱糖为 @format() 调用
+    ParseResult<Expr> parseFStringExpr();
+
     // =========================================================================
     // 类型解析（在 ParseType.cpp 中实现）
     // =========================================================================

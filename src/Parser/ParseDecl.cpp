@@ -159,14 +159,26 @@ ParseResult<Decl> Parser::parseConstDecl(Visibility vis) {
 // ============================================================================
 
 /// \brief 解析函数声明
-/// 语法: [async] func name [<GenericParams>] (params) [-> RetType] { body }
-ParseResult<Decl> Parser::parseFuncDecl(Visibility vis) {
+/// 语法: [extern "ABI"] [const] [async] func name [<GenericParams>] (params) [-> RetType] { body }
+ParseResult<Decl> Parser::parseFuncDecl(Visibility vis, bool isConst) {
     std::string docComment = CurTok.getDocComment();
     SourceLocation startLoc = CurTok.getLocation();
-    
+
+    // 检查是否有 'extern' 修饰符
+    bool isExtern = false;
+    std::string externABI;
+    if (match(TokenKind::KW_extern)) {
+        isExtern = true;
+        // 解析 ABI 字符串（如 "C"）
+        if (check(TokenKind::StringLiteral)) {
+            externABI = std::string(CurTok.getText());
+            consume();
+        }
+    }
+
     // 检查是否有 'async' 修饰符
     bool isAsync = match(TokenKind::KW_async);
-    
+
     // 消费 'func' 关键字
     if (!expectAndConsume(TokenKind::KW_func)) {
         return ParseResult<Decl>::error();
@@ -231,7 +243,7 @@ ParseResult<Decl> Parser::parseFuncDecl(Visibility vis) {
     
     auto* funcDecl = Ctx.create<FuncDecl>(
         range, name, std::move(params), returnType, body,
-        isAsync, canError, vis);
+        isAsync, canError, vis, isConst, isExtern, std::move(externABI));
     
     if (!genericParams.empty()) {
         funcDecl->setGenericParams(std::move(genericParams));
@@ -1040,19 +1052,32 @@ ParseResult<Decl> Parser::parseTraitDecl(Visibility vis) {
             if (funcResult.isSuccess()) {
                 methods.push_back(static_cast<FuncDecl*>(funcResult.get()));
             }
+        } else if (check(TokenKind::KW_const) && peekAhead(1).is(TokenKind::KW_func)) {
+            // const func 方法
+            advance(); // 消费 'const'
+            auto funcResult = parseFuncDecl(vis, /*isConst=*/true);
+            if (funcResult.isSuccess()) {
+                methods.push_back(static_cast<FuncDecl*>(funcResult.get()));
+            }
+        } else if (check(TokenKind::KW_extern)) {
+            // extern "C" func 方法
+            auto funcResult = parseFuncDecl(vis);
+            if (funcResult.isSuccess()) {
+                methods.push_back(static_cast<FuncDecl*>(funcResult.get()));
+            }
         } else {
             reportError(DiagID::err_expected_declaration);
             synchronize();
         }
     }
-    
+
     if (!expectAndConsume(TokenKind::RBrace)) {
         return ParseResult<Decl>::error();
     }
-    
+
     SourceLocation endLoc = PrevTok.getRange().getEnd();
     SourceRange range(startLoc, endLoc);
-    
+
     auto* traitDecl = Ctx.create<TraitDecl>(
         range, name, std::move(methods), std::move(associatedTypes),
         vis);
@@ -1161,19 +1186,32 @@ ParseResult<Decl> Parser::parseImplDecl() {
             if (funcResult.isSuccess()) {
                 methods.push_back(static_cast<FuncDecl*>(funcResult.get()));
             }
+        } else if (check(TokenKind::KW_const) && peekAhead(1).is(TokenKind::KW_func)) {
+            // const func 方法
+            advance(); // 消费 'const'
+            auto funcResult = parseFuncDecl(vis, /*isConst=*/true);
+            if (funcResult.isSuccess()) {
+                methods.push_back(static_cast<FuncDecl*>(funcResult.get()));
+            }
+        } else if (check(TokenKind::KW_extern)) {
+            // extern "C" func 方法
+            auto funcResult = parseFuncDecl(vis);
+            if (funcResult.isSuccess()) {
+                methods.push_back(static_cast<FuncDecl*>(funcResult.get()));
+            }
         } else {
             reportError(DiagID::err_expected_declaration);
             synchronize();
         }
     }
-    
+
     if (!expectAndConsume(TokenKind::RBrace)) {
         return ParseResult<Decl>::error();
     }
-    
+
     SourceLocation endLoc = PrevTok.getRange().getEnd();
     SourceRange range(startLoc, endLoc);
-    
+
     auto* implDecl = Ctx.create<ImplDecl>(
         range, targetType, traitName, traitRefType, std::move(methods));
     

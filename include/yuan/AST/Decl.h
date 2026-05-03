@@ -283,6 +283,9 @@ public:
     /// \param isAsync 是否为 async 函数
     /// \param canError 返回类型是否为 !T
     /// \param vis 可见性
+    /// \param isConst 是否为 const 函数
+    /// \param isExtern 是否为 extern 函数
+    /// \param externABI extern 函数的 ABI 名称（如 "C"）
     FuncDecl(SourceRange range,
              const std::string& name,
              std::vector<ParamDecl*> params,
@@ -290,7 +293,10 @@ public:
              BlockStmt* body,
              bool isAsync,
              bool canError,
-             Visibility vis);
+             Visibility vis,
+             bool isConst = false,
+             bool isExtern = false,
+             std::string externABI = "");
 
     /// \brief 获取函数名
     const std::string& getName() const { return Name; }
@@ -309,6 +315,15 @@ public:
 
     /// \brief 返回类型是否为 !T
     bool canError() const { return CanError; }
+
+    /// \brief 是否为 const 函数（可在编译期求值）
+    bool isConst() const { return IsConst; }
+
+    /// \brief 是否为 extern 函数
+    bool isExtern() const { return IsExtern; }
+
+    /// \brief 获取 extern ABI 名称
+    const std::string& getExternABI() const { return ExternABI; }
 
     /// \brief 获取可见性
     Visibility getVisibility() const { return Vis; }
@@ -366,6 +381,9 @@ private:
     bool IsAsync;                           ///< 是否为 async 函数
     bool CanError;                          ///< 返回类型是否为 !T
     Visibility Vis;                         ///< 可见性
+    bool IsConst;                           ///< 是否为 const 函数
+    bool IsExtern;                          ///< 是否为 extern 函数
+    std::string ExternABI;                  ///< extern ABI 名称（如 "C"）
     std::string LinkName;                   ///< 可选外部链接名
     std::vector<GenericParam> GenericParams; ///< 泛型参数
 };

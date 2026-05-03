@@ -6,7 +6,7 @@ const char* getTokenName(TokenKind kind) {
     switch (kind) {
         case TokenKind::EndOfFile: return "EndOfFile";
         case TokenKind::Invalid: return "Invalid";
-        
+
         // 标识符和字面量
         case TokenKind::Identifier: return "Identifier";
         case TokenKind::BuiltinIdentifier: return "BuiltinIdentifier";
@@ -16,6 +16,7 @@ const char* getTokenName(TokenKind kind) {
         case TokenKind::StringLiteral: return "StringLiteral";
         case TokenKind::RawStringLiteral: return "RawStringLiteral";
         case TokenKind::MultilineStringLiteral: return "MultilineStringLiteral";
+        case TokenKind::FStringLiteral: return "FStringLiteral";
         
         // 关键字
         case TokenKind::KW_var: return "var";
@@ -55,7 +56,8 @@ const char* getTokenName(TokenKind kind) {
         case TokenKind::KW_where: return "where";
         case TokenKind::KW_None: return "None";
         case TokenKind::KW_orelse: return "orelse";
-        
+        case TokenKind::KW_extern: return "extern";
+
         // 类型关键字
         case TokenKind::KW_i8: return "i8";
         case TokenKind::KW_i16: return "i16";
@@ -175,7 +177,8 @@ const char* getSpelling(TokenKind kind) {
         case TokenKind::KW_where: return "where";
         case TokenKind::KW_None: return "None";
         case TokenKind::KW_orelse: return "orelse";
-        
+        case TokenKind::KW_extern: return "extern";
+
         // 类型关键字
         case TokenKind::KW_i8: return "i8";
         case TokenKind::KW_i16: return "i16";
