@@ -330,9 +330,9 @@
     "case_dir": "ch03_types"
   },
   {
-    "point_id": "3_4_3_zig",
+    "point_id": "3_4_3_item",
     "spec_ref": "3.4.3",
-    "title": "引用与并发规则（Zig 风格）",
+    "title": "引用与并发规则（当前保证）",
     "chapter": 3,
     "level": 4,
     "source": "heading",
@@ -345,6 +345,26 @@
     "title": "类型转换",
     "chapter": 3,
     "level": 3,
+    "source": "heading",
+    "phase": "sema",
+    "case_dir": "ch03_types"
+  },
+  {
+    "point_id": "3_5_1_item",
+    "spec_ref": "3.5.1",
+    "title": "隐式数值转换规则",
+    "chapter": 3,
+    "level": 4,
+    "source": "heading",
+    "phase": "sema",
+    "case_dir": "ch03_types"
+  },
+  {
+    "point_id": "3_5_2_item",
+    "spec_ref": "3.5.2",
+    "title": "混合类型运算",
+    "chapter": 3,
+    "level": 4,
     "source": "heading",
     "phase": "sema",
     "case_dir": "ch03_types"
@@ -460,6 +480,16 @@
     "case_dir": "ch04_expr"
   },
   {
+    "point_id": "4_11_item",
+    "spec_ref": "4.11",
+    "title": "运算符重载解析规则",
+    "chapter": 4,
+    "level": 3,
+    "source": "heading",
+    "phase": "sema",
+    "case_dir": "ch04_expr"
+  },
+  {
     "point_id": "5_1_item",
     "spec_ref": "5.1",
     "title": "变量声明",
@@ -475,6 +505,26 @@
     "title": "常量声明",
     "chapter": 5,
     "level": 3,
+    "source": "heading",
+    "phase": "sema",
+    "case_dir": "ch05_stmt"
+  },
+  {
+    "point_id": "5_2_1_const_func",
+    "spec_ref": "5.2.1",
+    "title": "常量函数（const func）",
+    "chapter": 5,
+    "level": 4,
+    "source": "heading",
+    "phase": "sema",
+    "case_dir": "ch05_stmt"
+  },
+  {
+    "point_id": "5_2_2_item",
+    "spec_ref": "5.2.2",
+    "title": "常量构造",
+    "chapter": 5,
+    "level": 4,
     "source": "heading",
     "phase": "sema",
     "case_dir": "ch05_stmt"
@@ -690,6 +740,16 @@
     "case_dir": "ch08_enum"
   },
   {
+    "point_id": "8_1_1_item",
+    "spec_ref": "8.1.1",
+    "title": "枚举变体的内存布局与语义",
+    "chapter": 8,
+    "level": 4,
+    "source": "heading",
+    "phase": "sema",
+    "case_dir": "ch08_enum"
+  },
+  {
     "point_id": "8_2_item",
     "spec_ref": "8.2",
     "title": "枚举使用",
@@ -703,6 +763,16 @@
     "point_id": "8_3_item",
     "spec_ref": "8.3",
     "title": "枚举方法",
+    "chapter": 8,
+    "level": 3,
+    "source": "heading",
+    "phase": "sema",
+    "case_dir": "ch08_enum"
+  },
+  {
+    "point_id": "8_4_item",
+    "spec_ref": "8.4",
+    "title": "枚举判别值",
     "chapter": 8,
     "level": 3,
     "source": "heading",
@@ -750,6 +820,16 @@
     "case_dir": "ch09_trait"
   },
   {
+    "point_id": "9_5_trait",
+    "spec_ref": "9.5",
+    "title": "运算符 Trait（实验层）",
+    "chapter": 9,
+    "level": 3,
+    "source": "heading",
+    "phase": "sema",
+    "case_dir": "ch09_trait"
+  },
+  {
     "point_id": "10_1_item",
     "spec_ref": "10.1",
     "title": "导入模块",
@@ -780,6 +860,16 @@
     "case_dir": "ch10_module"
   },
   {
+    "point_id": "10_4_item",
+    "spec_ref": "10.4",
+    "title": "模块重导出",
+    "chapter": 10,
+    "level": 3,
+    "source": "heading",
+    "phase": "sema",
+    "case_dir": "ch10_module"
+  },
+  {
     "point_id": "11_1_error_trait",
     "spec_ref": "11.1",
     "title": "Error Trait",
@@ -802,7 +892,7 @@
   {
     "point_id": "11_3_errorinfo",
     "spec_ref": "11.3",
-    "title": "ErrorInfo 错误信息结构",
+    "title": "ErrorInfo 错误信息结构（诊断增强）",
     "chapter": 11,
     "level": 3,
     "source": "heading",
@@ -842,7 +932,7 @@
   {
     "point_id": "11_5_2_item",
     "spec_ref": "11.5.2",
-    "title": "不使用 `!` 时的行为",
+    "title": "显式处理要求",
     "chapter": 11,
     "level": 4,
     "source": "heading",
@@ -990,8 +1080,18 @@
     "case_dir": "ch14_stdlib"
   },
   {
-    "point_id": "14_2_6_std_math",
+    "point_id": "14_2_6_std_env",
     "spec_ref": "14.2.6",
+    "title": "std.env",
+    "chapter": 14,
+    "level": 4,
+    "source": "heading",
+    "phase": "runtime",
+    "case_dir": "ch14_stdlib"
+  },
+  {
+    "point_id": "14_2_7_std_math",
+    "spec_ref": "14.2.7",
     "title": "std.math",
     "chapter": 14,
     "level": 4,

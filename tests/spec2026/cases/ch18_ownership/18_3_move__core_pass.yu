@@ -1,0 +1,26 @@
+/// @spec_ref: 18.3
+/// @point_id: 18_3_move
+/// @case_id: 18_3_move__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// Move 语义：非 Copy 值赋值后原变量不可用
+struct NonCopy {
+    data: i32,
+}
+
+func consume(val: NonCopy) -> i32 {
+    val.data
+}
+
+func main() -> i32 {
+    var a = NonCopy { data: 42 }
+    var result: i32 = consume(a)
+    // a is now moved, cannot use
+    var __spec2026_actual: i32 = result
+    var __spec2026_expected: i32 = 42
+    @assert(__spec2026_actual == __spec2026_expected, "18_3_move assertion failed")
+    return __spec2026_actual
+}

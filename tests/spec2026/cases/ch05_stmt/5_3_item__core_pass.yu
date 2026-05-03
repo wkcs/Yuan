@@ -1,0 +1,25 @@
+/// @spec_ref: 5.3
+/// @point_id: 5_3_item
+/// @case_id: 5_3_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// return 语句
+func add(a: i32, b: i32) -> i32 {
+    return a + b
+}
+
+func multiply(a: i32, b: i32) -> i32 {
+    a * b
+}
+
+func main() -> i32 {
+    var result: i32 = add(10, 20)
+    var result2: i32 = multiply(3, 4)
+    var __spec2026_actual: i32 = result + result2
+    var __spec2026_expected: i32 = 42
+    @assert(__spec2026_actual == __spec2026_expected, "5_3_item assertion failed")
+    return __spec2026_actual
+}

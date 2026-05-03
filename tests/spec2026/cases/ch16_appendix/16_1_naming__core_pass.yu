@@ -1,0 +1,24 @@
+/// @spec_ref: 16.1
+/// @point_id: 16_1_naming
+/// @case_id: 16_1_naming__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 命名约定：snake_case 变量和函数
+var user_name: str = "Alice"
+
+func calculate_sum(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+const MAX_SIZE: usize = 1000
+
+func main() -> i32 {
+    var result: i32 = calculate_sum(10, 20)
+    var __spec2026_actual: i32 = result
+    var __spec2026_expected: i32 = 30
+    @assert(__spec2026_actual == __spec2026_expected, "16_1_naming assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,18 @@
+/// @spec_ref: 20.1
+/// @point_id: 20_1_extern_decl
+/// @case_id: 20_1_extern_decl__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// FFI 外部函数声明
+extern "C" func abs(i32) -> i32
+
+func main() -> i32 {
+    var result: i32 = abs(-42)
+    var __spec2026_actual: i32 = result
+    var __spec2026_expected: i32 = 42
+    @assert(__spec2026_actual == __spec2026_expected, "20_1_extern_decl assertion failed")
+    return __spec2026_actual
+}

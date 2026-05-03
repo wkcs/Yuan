@@ -1,0 +1,22 @@
+/// @spec_ref: 18.5
+/// @point_id: 18_5_partial_move
+/// @case_id: 18_5_partial_move__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 部分移动与解构：v1 禁止字段级部分移动
+struct Pair {
+    first: i32,
+    second: i32,
+}
+
+func main() -> i32 {
+    var p = Pair { first: 10, second: 20 }
+    var (a, b) = (p.first, p.second)
+    var __spec2026_actual: i32 = a + b
+    var __spec2026_expected: i32 = 30
+    @assert(__spec2026_actual == __spec2026_expected, "18_5_partial_move assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,14 @@
+/// @spec_ref: 20.4
+/// @point_id: 20_4_safety
+/// @case_id: 20_4_safety__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords: non-FFI type
+// FFI 安全规则：非 FFI 兼容类型应报错
+extern "C" func bad_func(str) -> i32
+
+func main() -> i32 {
+    return 0
+}

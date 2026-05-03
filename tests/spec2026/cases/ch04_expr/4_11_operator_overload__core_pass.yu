@@ -1,0 +1,29 @@
+/// @spec_ref: 4.11
+/// @point_id: 4_11_operator_overload
+/// @case_id: 4_11_operator_overload__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 运算符重载解析规则
+struct Vec2 {
+    x: i32,
+    y: i32,
+}
+
+impl Add for Vec2 {
+    func add(self: &Self, other: &Self) -> Self {
+        Vec2 { x: self.x + other.x, y: self.y + other.y }
+    }
+}
+
+func main() -> i32 {
+    var a = Vec2 { x: 1, y: 2 }
+    var b = Vec2 { x: 3, y: 4 }
+    var c = a + b
+    var __spec2026_actual: i32 = c.x + c.y
+    var __spec2026_expected: i32 = 10
+    @assert(__spec2026_actual == __spec2026_expected, "4_11_operator_overload assertion failed")
+    return __spec2026_actual
+}

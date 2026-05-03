@@ -1,0 +1,23 @@
+/// @spec_ref: 18.3
+/// @point_id: 18_3_move
+/// @case_id: 18_3_move__syntax_edge_fail
+/// @expect: fail
+/// @boundary: syntax_edge
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords: use after move
+// Move 后使用应报错
+struct NonCopy {
+    data: i32,
+}
+
+func consume(val: NonCopy) -> i32 {
+    val.data
+}
+
+func main() -> i32 {
+    var a = NonCopy { data: 42 }
+    var result: i32 = consume(a)
+    var result2: i32 = consume(a)  // 错误：use after move
+    return result + result2
+}

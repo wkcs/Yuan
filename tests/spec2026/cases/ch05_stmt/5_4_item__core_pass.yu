@@ -1,0 +1,21 @@
+/// @spec_ref: 5.4
+/// @point_id: 5_4_item
+/// @case_id: 5_4_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// while 循环
+func main() -> i32 {
+    var i: i32 = 0
+    var sum: i32 = 0
+    while i < 10 {
+        sum += i
+        i += 1
+    }
+    var __spec2026_actual: i32 = sum
+    var __spec2026_expected: i32 = 45
+    @assert(__spec2026_actual == __spec2026_expected, "5_4_item assertion failed")
+    return __spec2026_actual
+}

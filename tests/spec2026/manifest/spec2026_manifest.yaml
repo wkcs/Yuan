@@ -2753,12 +2753,12 @@
         "path": "tests/spec2026/cases/ch05_stmt/5_2_item__semantic_edge_fail.yu",
         "expect_command": "{yuanc} -fsyntax-only {fail_case}",
         "diag_codes": [
-          "E2002",
-          "E2005"
+          "E2001",
+          "E2008"
         ],
         "diag_keywords": [
           "expected",
-          "unexpected token"
+          "declaration"
         ]
       }
     ]
@@ -7187,12 +7187,12 @@
         "path": "tests/spec2026/cases/ch16_appendix/16_4_4_func_err__semantic_edge_fail.yu",
         "expect_command": "{yuanc} -fsyntax-only {fail_case}",
         "diag_codes": [
-          "E2002",
-          "E2005"
+          "E2001",
+          "E2008"
         ],
         "diag_keywords": [
           "expected",
-          "err"
+          "declaration"
         ]
       }
     ]

@@ -1,0 +1,23 @@
+/// @spec_ref: 11.2
+/// @point_id: 11_2_item
+/// @case_id: 11_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// SysError 系统错误枚举
+func divide(a: i32, b: i32) -> !i32 {
+    if b == 0 {
+        return SysError("division by zero")
+    }
+    return a / b
+}
+
+func main() -> i32 {
+    var result = divide(10, 2)!
+    var __spec2026_actual: i32 = result
+    var __spec2026_expected: i32 = 5
+    @assert(__spec2026_actual == __spec2026_expected, "11_2_item assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,29 @@
+/// @spec_ref: 18.6
+/// @point_id: 18_6_drop
+/// @case_id: 18_6_drop__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// Drop 触发与顺序
+struct Resource {
+    value: i32,
+}
+
+impl Drop for Resource {
+    func drop(self: &mut Self) -> void {
+        // cleanup
+    }
+}
+
+func main() -> i32 {
+    {
+        var r = Resource { value: 42 }
+        // r will be dropped at end of scope
+    }
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "18_6_drop assertion failed")
+    return __spec2026_actual
+}

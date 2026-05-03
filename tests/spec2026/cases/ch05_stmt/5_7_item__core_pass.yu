@@ -1,0 +1,22 @@
+/// @spec_ref: 5.7
+/// @point_id: 5_7_item
+/// @case_id: 5_7_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// break 和 continue
+func main() -> i32 {
+    var sum: i32 = 0
+    for i in 0..10 {
+        if i % 2 == 0 {
+            continue
+        }
+        sum += i
+    }
+    var __spec2026_actual: i32 = sum
+    var __spec2026_expected: i32 = 25
+    @assert(__spec2026_actual == __spec2026_expected, "5_7_item assertion failed")
+    return __spec2026_actual
+}

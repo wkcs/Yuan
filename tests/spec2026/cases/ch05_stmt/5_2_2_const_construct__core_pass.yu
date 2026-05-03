@@ -1,0 +1,23 @@
+/// @spec_ref: 5.2.2
+/// @point_id: 5_2_2_const_construct
+/// @case_id: 5_2_2_const_construct__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 常量构造：结构体和枚举在 const 上下文中构造
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+const ORIGIN: Point = Point { x: 0.0, y: 0.0 }
+const UNIT_X: Point = Point { x: 1.0, y: 0.0 }
+
+func main() -> i32 {
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "5_2_2_const_construct assertion failed")
+    return __spec2026_actual
+}

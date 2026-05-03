@@ -1,0 +1,20 @@
+/// @spec_ref: 5.2.1
+/// @point_id: 5_2_1_const_func
+/// @case_id: 5_2_1_const_func__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// const func：常量函数
+const func add(x: i32, y: i32) -> i32 {
+    return x + y
+}
+
+func main() -> i32 {
+    var result = add(10, 20)
+    var __spec2026_actual: i32 = result
+    var __spec2026_expected: i32 = 30
+    @assert(__spec2026_actual == __spec2026_expected, "5_2_1_const_func assertion failed")
+    return __spec2026_actual
+}

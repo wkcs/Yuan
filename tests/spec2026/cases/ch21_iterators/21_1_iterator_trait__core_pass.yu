@@ -1,0 +1,19 @@
+/// @spec_ref: 21.1
+/// @point_id: 21_1_iterator_trait
+/// @case_id: 21_1_iterator_trait__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 迭代器 trait
+func main() -> i32 {
+    var sum: i32 = 0
+    for i in 0..5 {
+        sum += i
+    }
+    var __spec2026_actual: i32 = sum
+    var __spec2026_expected: i32 = 10
+    @assert(__spec2026_actual == __spec2026_expected, "21_1_iterator_trait assertion failed")
+    return __spec2026_actual
+}

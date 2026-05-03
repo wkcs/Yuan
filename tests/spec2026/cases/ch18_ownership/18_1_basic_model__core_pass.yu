@@ -1,0 +1,19 @@
+/// @spec_ref: 18.1
+/// @point_id: 18_1_basic_model
+/// @case_id: 18_1_basic_model__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 基本模型：Copy 类型可多次使用
+func main() -> i32 {
+    var x: i32 = 42
+    var y: i32 = x
+    var z: i32 = x
+    var w: i32 = y
+    var __spec2026_actual: i32 = x + y + z + w
+    var __spec2026_expected: i32 = 168
+    @assert(__spec2026_actual == __spec2026_expected, "18_1_basic_model assertion failed")
+    return __spec2026_actual
+}

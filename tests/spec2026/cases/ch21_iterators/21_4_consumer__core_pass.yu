@@ -1,0 +1,16 @@
+/// @spec_ref: 21.4
+/// @point_id: 21_4_consumer
+/// @case_id: 21_4_consumer__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 消费方法：count
+func main() -> i32 {
+    var count: usize = (0..10).count()
+    var __spec2026_actual: i32 = count as i32
+    var __spec2026_expected: i32 = 10
+    @assert(__spec2026_actual == __spec2026_expected, "21_4_consumer assertion failed")
+    return __spec2026_actual
+}

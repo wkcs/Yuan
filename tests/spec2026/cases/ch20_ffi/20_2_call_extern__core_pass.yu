@@ -1,0 +1,19 @@
+/// @spec_ref: 20.2
+/// @point_id: 20_2_call_extern
+/// @case_id: 20_2_call_extern__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 调用外部函数
+extern "C" func abs(i32) -> i32
+
+func main() -> i32 {
+    var a: i32 = abs(-10)
+    var b: i32 = abs(5)
+    var __spec2026_actual: i32 = a + b
+    var __spec2026_expected: i32 = 15
+    @assert(__spec2026_actual == __spec2026_expected, "20_2_call_extern assertion failed")
+    return __spec2026_actual
+}

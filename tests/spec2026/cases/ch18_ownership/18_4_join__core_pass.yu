@@ -1,0 +1,29 @@
+/// @spec_ref: 18.4
+/// @point_id: 18_4_join
+/// @case_id: 18_4_join__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 分支与循环 join：if 分支状态合并
+struct NonCopy {
+    data: i32,
+}
+
+func consume(val: NonCopy) -> i32 {
+    val.data
+}
+
+func main() -> i32 {
+    var a = NonCopy { data: 10 }
+    var result: i32 = 0
+    if true {
+        result = consume(a)
+    }
+    // a is MaybeMoved after if
+    var __spec2026_actual: i32 = result
+    var __spec2026_expected: i32 = 10
+    @assert(__spec2026_actual == __spec2026_expected, "18_4_join assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,18 @@
+/// @spec_ref: 16.3
+/// @point_id: 16_3_operator_precedence
+/// @case_id: 16_3_operator_precedence__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 运算符优先级：乘法优先于加法
+func main() -> i32 {
+    var a: i32 = 2 + 3 * 4       // 14, not 20
+    var b: i32 = (2 + 3) * 4     // 20
+    var c: i32 = 10 - 2 - 3      // left-to-right: 5
+    var __spec2026_actual: i32 = a + b + c
+    var __spec2026_expected: i32 = 39
+    @assert(__spec2026_actual == __spec2026_expected, "16_3_operator_precedence assertion failed")
+    return __spec2026_actual
+}

@@ -1,0 +1,22 @@
+/// @spec_ref: 5.8
+/// @point_id: 5_8_item
+/// @case_id: 5_8_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// defer 语句
+func main() -> i32 {
+    var x: i32 = 0
+    {
+        defer {
+            x = 100
+        }
+        x = 42
+    }
+    var __spec2026_actual: i32 = x
+    var __spec2026_expected: i32 = 100
+    @assert(__spec2026_actual == __spec2026_expected, "5_8_item assertion failed")
+    return __spec2026_actual
+}

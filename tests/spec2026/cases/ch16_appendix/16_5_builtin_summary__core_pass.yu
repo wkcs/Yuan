@@ -1,0 +1,19 @@
+/// @spec_ref: 16.5
+/// @point_id: 16_5_builtin_summary
+/// @case_id: 16_5_builtin_summary__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 内置函数总结：@sizeof, @typeof, @assert
+func main() -> i32 {
+    var s: usize = @sizeof(i64)
+    var t: str = @typeof(3.14)
+    @assert(s == 8, "16_5 sizeof i64 failed")
+    @assert(t == "f64", "16_5 typeof failed")
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "16_5_builtin_summary assertion failed")
+    return __spec2026_actual
+}

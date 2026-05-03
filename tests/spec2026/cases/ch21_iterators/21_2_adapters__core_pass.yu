@@ -1,0 +1,19 @@
+/// @spec_ref: 21.2
+/// @point_id: 21_2_adapters
+/// @case_id: 21_2_adapters__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 内置适配器：take, skip
+func main() -> i32 {
+    var sum: i32 = 0
+    for i in (0..100).take(5) {
+        sum += i
+    }
+    var __spec2026_actual: i32 = sum
+    var __spec2026_expected: i32 = 10
+    @assert(__spec2026_actual == __spec2026_expected, "21_2_adapters assertion failed")
+    return __spec2026_actual
+}

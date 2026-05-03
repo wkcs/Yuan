@@ -33,6 +33,11 @@ CHAPTER_DIR = {
     14: "ch14_stdlib",
     15: "ch15_examples",
     16: "ch16_appendix",
+    17: "ch17_implementation",
+    18: "ch18_ownership",
+    19: "ch19_testing",
+    20: "ch20_ffi",
+    21: "ch21_iterators",
 }
 
 

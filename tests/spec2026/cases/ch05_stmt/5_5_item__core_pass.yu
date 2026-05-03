@@ -1,0 +1,22 @@
+/// @spec_ref: 5.5
+/// @point_id: 5_5_item
+/// @case_id: 5_5_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// loop 循环：无限循环 + break
+func main() -> i32 {
+    var count: i32 = 0
+    loop {
+        count += 1
+        if count >= 10 {
+            break
+        }
+    }
+    var __spec2026_actual: i32 = count
+    var __spec2026_expected: i32 = 10
+    @assert(__spec2026_actual == __spec2026_expected, "5_5_item assertion failed")
+    return __spec2026_actual
+}

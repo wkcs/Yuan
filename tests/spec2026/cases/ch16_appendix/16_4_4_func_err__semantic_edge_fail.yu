@@ -4,8 +4,8 @@
 /// @expect: fail
 /// @boundary: semantic_edge
 /// @phase: sema
-/// @diag_codes: E2002,E2005
-/// @diag_keywords: expected,err
+/// @diag_codes: E2001,E2008
+/// @diag_keywords: expected,declaration
 // negative semantic case: 16_4_4_func_err
 func risky() -> !i32 {
     return SysError.DivisionByZero

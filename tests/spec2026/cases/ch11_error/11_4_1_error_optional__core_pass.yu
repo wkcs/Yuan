@@ -1,0 +1,27 @@
+/// @spec_ref: 11.4.1
+/// @point_id: 11_4_1_error_optional
+/// @case_id: 11_4_1_error_optional__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// !?T 组合类型：错误与 Optional 的组合
+func maybe_find(key: i32) -> !?i32 {
+    if key > 0 {
+        return key * 2
+    }
+    return None
+}
+
+func main() -> !void {
+    var val = maybe_find(5)!
+    var __spec2026_actual: i32 = 0
+    match val {
+        Some(v) => { __spec2026_actual = v }
+        None => { __spec2026_actual = 0 }
+    }
+    var __spec2026_expected: i32 = 10
+    @assert(__spec2026_actual == __spec2026_expected, "11_4_1_error_optional assertion failed")
+    return
+}

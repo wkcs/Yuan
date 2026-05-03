@@ -1,0 +1,26 @@
+/// @spec_ref: 8.4
+/// @point_id: 8_4_item
+/// @case_id: 8_4_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 枚举判别值：ordinal() 方法
+enum Priority {
+    Low,
+    Medium,
+    High,
+    Critical,
+}
+
+func main() -> i32 {
+    var low = Priority.Low
+    var high = Priority.High
+    var ord_low = low.ordinal()
+    var ord_high = high.ordinal()
+    var __spec2026_actual: i32 = ord_high as i32 - ord_low as i32
+    var __spec2026_expected: i32 = 2
+    @assert(__spec2026_actual == __spec2026_expected, "8_4_item assertion failed")
+    return __spec2026_actual
+}

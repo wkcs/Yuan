@@ -1,0 +1,36 @@
+/// @spec_ref: 9.2
+/// @point_id: 9_2_item
+/// @case_id: 9_2_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// Trait 实现
+trait Shape {
+    func area(self: &Self) -> f64
+    func perimeter(self: &Self) -> f64
+}
+
+struct Circle {
+    radius: f64,
+}
+
+impl Shape for Circle {
+    func area(self: &Self) -> f64 {
+        3.14159 * self.radius * self.radius
+    }
+
+    func perimeter(self: &Self) -> f64 {
+        2.0 * 3.14159 * self.radius
+    }
+}
+
+func main() -> i32 {
+    var circle = Circle { radius: 5.0 }
+    var area: f64 = circle.area()
+    var __spec2026_actual: i32 = area as i32
+    var __spec2026_expected: i32 = 78
+    @assert(__spec2026_actual == __spec2026_expected, "9_2_item assertion failed")
+    return __spec2026_actual
+}

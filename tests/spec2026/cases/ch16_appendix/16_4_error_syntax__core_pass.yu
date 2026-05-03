@@ -1,0 +1,23 @@
+/// @spec_ref: 16.4
+/// @point_id: 16_4_error_syntax
+/// @case_id: 16_4_error_syntax__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 错误处理语法总结：!T, ! 传播
+func might_fail(x: i32) -> !i32 {
+    if x < 0 {
+        return SysError("negative value")
+    }
+    return x * 2
+}
+
+func main() -> i32 {
+    var result: i32 = might_fail(5)!
+    var __spec2026_actual: i32 = result
+    var __spec2026_expected: i32 = 10
+    @assert(__spec2026_actual == __spec2026_expected, "16_4_error_syntax assertion failed")
+    return __spec2026_actual
+}

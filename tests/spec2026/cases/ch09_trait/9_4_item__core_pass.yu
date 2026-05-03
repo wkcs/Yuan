@@ -1,0 +1,27 @@
+/// @spec_ref: 9.4
+/// @point_id: 9_4_item
+/// @case_id: 9_4_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// 常用内置 Trait：Display, Clone
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+impl Display for Point {
+    func fmt(self: &Self, f: &mut Formatter) -> !void {
+        // display implementation
+    }
+}
+
+func main() -> i32 {
+    var p = Point { x: 1, y: 2 }
+    var __spec2026_actual: i32 = p.x + p.y
+    var __spec2026_expected: i32 = 3
+    @assert(__spec2026_actual == __spec2026_expected, "9_4_item assertion failed")
+    return __spec2026_actual
+}

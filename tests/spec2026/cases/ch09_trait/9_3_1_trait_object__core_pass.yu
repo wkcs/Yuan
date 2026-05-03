@@ -1,0 +1,35 @@
+/// @spec_ref: 9.3.1
+/// @point_id: 9_3_1_trait_object
+/// @case_id: 9_3_1_trait_object__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// Trait 对象：&TraitName 动态分发
+trait Describable {
+    func describe(self: &Self) -> str
+}
+
+struct Dog {
+    name: str,
+}
+
+impl Describable for Dog {
+    func describe(self: &Self) -> str {
+        "dog"
+    }
+}
+
+func get_desc(d: &Describable) -> str {
+    d.describe()
+}
+
+func main() -> i32 {
+    var dog = Dog { name: "Rex" }
+    var desc: str = get_desc(&dog)
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "9_3_1_trait_object assertion failed")
+    return __spec2026_actual
+}

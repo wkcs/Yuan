@@ -1,0 +1,20 @@
+/// @spec_ref: 3.3.6
+/// @point_id: 3_3_6_item
+/// @case_id: 3_3_6_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// Optional 类型：?T, Some, None, match, unwrap
+var some_value: ?i32 = 42
+var no_value: ?i32 = None
+
+func main() -> i32 {
+    var val: i32 = some_value.unwrap()
+    var default_val: i32 = no_value.unwrap_or(0)
+    var __spec2026_actual: i32 = val + default_val
+    var __spec2026_expected: i32 = 42
+    @assert(__spec2026_actual == __spec2026_expected, "3_3_6_item assertion failed")
+    return __spec2026_actual
+}

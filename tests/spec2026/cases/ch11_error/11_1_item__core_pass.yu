@@ -1,0 +1,31 @@
+/// @spec_ref: 11.1
+/// @point_id: 11_1_item
+/// @case_id: 11_1_item__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// Error Trait
+enum MyError {
+    NotFound,
+    Invalid,
+}
+
+impl Error for MyError {
+    func message(self: &Self) -> str {
+        match self {
+            MyError.NotFound => "not found",
+            MyError.Invalid => "invalid",
+        }
+    }
+}
+
+func main() -> i32 {
+    var err = MyError.NotFound
+    var msg: str = err.message()
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "11_1_item assertion failed")
+    return __spec2026_actual
+}

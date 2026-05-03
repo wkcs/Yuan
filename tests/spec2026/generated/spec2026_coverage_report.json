@@ -1,0 +1,2169 @@
+{
+  "points": 139,
+  "total_cases": 417,
+  "chapter_heatmap": {
+    "2": {
+      "core": 14,
+      "syntax_edge": 14,
+      "semantic_edge": 14
+    },
+    "3": {
+      "core": 22,
+      "syntax_edge": 22,
+      "semantic_edge": 22
+    },
+    "4": {
+      "core": 10,
+      "syntax_edge": 10,
+      "semantic_edge": 10
+    },
+    "5": {
+      "core": 8,
+      "syntax_edge": 8,
+      "semantic_edge": 8
+    },
+    "6": {
+      "core": 10,
+      "syntax_edge": 10,
+      "semantic_edge": 10
+    },
+    "7": {
+      "core": 4,
+      "syntax_edge": 4,
+      "semantic_edge": 4
+    },
+    "8": {
+      "core": 3,
+      "syntax_edge": 3,
+      "semantic_edge": 3
+    },
+    "9": {
+      "core": 4,
+      "syntax_edge": 4,
+      "semantic_edge": 4
+    },
+    "10": {
+      "core": 3,
+      "syntax_edge": 3,
+      "semantic_edge": 3
+    },
+    "11": {
+      "core": 10,
+      "syntax_edge": 10,
+      "semantic_edge": 10
+    },
+    "12": {
+      "core": 2,
+      "syntax_edge": 2,
+      "semantic_edge": 2
+    },
+    "13": {
+      "core": 2,
+      "syntax_edge": 2,
+      "semantic_edge": 2
+    },
+    "14": {
+      "core": 8,
+      "syntax_edge": 8,
+      "runtime_edge": 8
+    },
+    "15": {
+      "core": 4,
+      "syntax_edge": 4,
+      "runtime_edge": 4
+    },
+    "16": {
+      "core": 35,
+      "syntax_edge": 35,
+      "semantic_edge": 35
+    }
+  },
+  "missing_points": [],
+  "point_summaries": [
+    {
+      "point_id": "2_1_item",
+      "spec_ref": "2.1",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_2_item",
+      "spec_ref": "2.2",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_3_item",
+      "spec_ref": "2.3",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_4_item",
+      "spec_ref": "2.4",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_5_item",
+      "spec_ref": "2.5",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_5_1_item",
+      "spec_ref": "2.5.1",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_5_2_item",
+      "spec_ref": "2.5.2",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_5_3_item",
+      "spec_ref": "2.5.3",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_5_4_item",
+      "spec_ref": "2.5.4",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_5_5_item",
+      "spec_ref": "2.5.5",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_5_6_none",
+      "spec_ref": "2.5.6",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_5_7_item",
+      "spec_ref": "2.5.7",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_5_8_item",
+      "spec_ref": "2.5.8",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "2_6_item",
+      "spec_ref": "2.6",
+      "phase": "lexer",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_1_item",
+      "spec_ref": "3.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_2_item",
+      "spec_ref": "3.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_2_1_item",
+      "spec_ref": "3.2.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_2_2_item",
+      "spec_ref": "3.2.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_2_3_item",
+      "spec_ref": "3.2.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_2_4_item",
+      "spec_ref": "3.2.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_2_5_item",
+      "spec_ref": "3.2.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_2_6_item",
+      "spec_ref": "3.2.6",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_2_7_void",
+      "spec_ref": "3.2.7",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_3_item",
+      "spec_ref": "3.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_3_1_item",
+      "spec_ref": "3.3.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_3_2_item",
+      "spec_ref": "3.3.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_3_3_item",
+      "spec_ref": "3.3.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_3_4_vec",
+      "spec_ref": "3.3.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_3_5_item",
+      "spec_ref": "3.3.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_3_6_optional",
+      "spec_ref": "3.3.6",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_4_item",
+      "spec_ref": "3.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_4_1_item",
+      "spec_ref": "3.4.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_4_2_item",
+      "spec_ref": "3.4.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_4_3_zig",
+      "spec_ref": "3.4.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_5_item",
+      "spec_ref": "3.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "3_6_item",
+      "spec_ref": "3.6",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_1_item",
+      "spec_ref": "4.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_2_item",
+      "spec_ref": "4.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_3_item",
+      "spec_ref": "4.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_4_item",
+      "spec_ref": "4.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_5_item",
+      "spec_ref": "4.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_6_item",
+      "spec_ref": "4.6",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_7_if",
+      "spec_ref": "4.7",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_8_match",
+      "spec_ref": "4.8",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_9_item",
+      "spec_ref": "4.9",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "4_10_item",
+      "spec_ref": "4.10",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "5_1_item",
+      "spec_ref": "5.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "5_2_item",
+      "spec_ref": "5.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "5_3_return",
+      "spec_ref": "5.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "5_4_while",
+      "spec_ref": "5.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "5_5_loop",
+      "spec_ref": "5.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "5_6_for",
+      "spec_ref": "5.6",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "5_7_break_continue",
+      "spec_ref": "5.7",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "5_8_defer",
+      "spec_ref": "5.8",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_1_item",
+      "spec_ref": "6.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_2_item",
+      "spec_ref": "6.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_2_1_item",
+      "spec_ref": "6.2.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_2_2_mut_t",
+      "spec_ref": "6.2.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_2_3_item",
+      "spec_ref": "6.2.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_2_4_item",
+      "spec_ref": "6.2.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_2_5_item",
+      "spec_ref": "6.2.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_3_item",
+      "spec_ref": "6.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_4_item",
+      "spec_ref": "6.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "6_5_item",
+      "spec_ref": "6.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "7_1_item",
+      "spec_ref": "7.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "7_2_item",
+      "spec_ref": "7.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "7_3_item",
+      "spec_ref": "7.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "7_4_item",
+      "spec_ref": "7.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "8_1_item",
+      "spec_ref": "8.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "8_2_item",
+      "spec_ref": "8.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "8_3_item",
+      "spec_ref": "8.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "9_1_trait",
+      "spec_ref": "9.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "9_2_trait",
+      "spec_ref": "9.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "9_3_trait",
+      "spec_ref": "9.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "9_4_trait",
+      "spec_ref": "9.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "10_1_item",
+      "spec_ref": "10.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "10_2_item",
+      "spec_ref": "10.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "10_3_item",
+      "spec_ref": "10.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_1_error_trait",
+      "spec_ref": "11.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_2_syserror",
+      "spec_ref": "11.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_3_errorinfo",
+      "spec_ref": "11.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_4_item",
+      "spec_ref": "11.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_5_item",
+      "spec_ref": "11.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_5_1_item",
+      "spec_ref": "11.5.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_5_2_item",
+      "spec_ref": "11.5.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_5_3_err",
+      "spec_ref": "11.5.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_5_4_item",
+      "spec_ref": "11.5.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "11_6_item",
+      "spec_ref": "11.6",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "12_1_async_await",
+      "spec_ref": "12.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "12_2_item",
+      "spec_ref": "12.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "13_1_item",
+      "spec_ref": "13.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "13_2_item",
+      "spec_ref": "13.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "14_1_prelude",
+      "spec_ref": "14.1",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "14_2_item",
+      "spec_ref": "14.2",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "14_2_1_std_io",
+      "spec_ref": "14.2.1",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "14_2_2_std_fs",
+      "spec_ref": "14.2.2",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "14_2_3_std_collections",
+      "spec_ref": "14.2.3",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "14_2_4_std_fmt",
+      "spec_ref": "14.2.4",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "14_2_5_std_time",
+      "spec_ref": "14.2.5",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "14_2_6_std_math",
+      "spec_ref": "14.2.6",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "15_1_item",
+      "spec_ref": "15.1",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "15_2_trait",
+      "spec_ref": "15.2",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "15_3_item",
+      "spec_ref": "15.3",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "15_4_item",
+      "spec_ref": "15.4",
+      "phase": "runtime",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "runtime_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_1_1",
+      "spec_ref": "16.3.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_2_2_mut",
+      "spec_ref": "16.3.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_3_3_as",
+      "spec_ref": "16.3.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_4_4",
+      "spec_ref": "16.3.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_5_5",
+      "spec_ref": "16.3.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_6_6",
+      "spec_ref": "16.3.6",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_7_7",
+      "spec_ref": "16.3.7",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_8_8",
+      "spec_ref": "16.3.8",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_9_9",
+      "spec_ref": "16.3.9",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_10_10",
+      "spec_ref": "16.3.10",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_11_11",
+      "spec_ref": "16.3.11",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_12_12",
+      "spec_ref": "16.3.12",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_13_13",
+      "spec_ref": "16.3.13",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_14_14_orelse_optional",
+      "spec_ref": "16.3.14",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_15_15",
+      "spec_ref": "16.3.15",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_3_16_16",
+      "spec_ref": "16.3.16",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_4_1_func_f_t_t",
+      "spec_ref": "16.4.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_4_2_func",
+      "spec_ref": "16.4.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_4_3_func_panic",
+      "spec_ref": "16.4.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_4_4_func_err",
+      "spec_ref": "16.4.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_4_5_err_message",
+      "spec_ref": "16.4.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_4_6_err_func_name",
+      "spec_ref": "16.4.6",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_4_7_err_file",
+      "spec_ref": "16.4.7",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_4_8_err_line",
+      "spec_ref": "16.4.8",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_4_9_err_full_trace",
+      "spec_ref": "16.4.9",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_1_import_path",
+      "spec_ref": "16.5.1",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_2_sizeof_t",
+      "spec_ref": "16.5.2",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_3_typeof_value",
+      "spec_ref": "16.5.3",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_4_panic_message_panic",
+      "spec_ref": "16.5.4",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_5_assert_cond",
+      "spec_ref": "16.5.5",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_6_assert_cond_msg",
+      "spec_ref": "16.5.6",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_7_file",
+      "spec_ref": "16.5.7",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_8_line",
+      "spec_ref": "16.5.8",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_9_column",
+      "spec_ref": "16.5.9",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    },
+    {
+      "point_id": "16_5_10_func",
+      "spec_ref": "16.5.10",
+      "phase": "sema",
+      "case_count": 3,
+      "boundary_counts": {
+        "core": 1,
+        "syntax_edge": 1,
+        "semantic_edge": 1
+      },
+      "kind_counts": {
+        "pass": 1,
+        "fail": 2
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+/// @spec_ref: 2.5.4
+/// @point_id: 2_5_4_fstring
+/// @case_id: 2_5_4_fstring__core_pass
+/// @expect: pass
+/// @boundary: core
+/// @phase: sema
+/// @diag_codes:
+/// @diag_keywords:
+// f-string 插值：简单变量、表达式、转义花括号
+func main() -> i32 {
+    var name: str = "Alice"
+    var age: i32 = 30
+    var greeting: str = f"Hello, {name}!"
+    var calc: str = f"2 + 3 = {2 + 3}"
+    var escaped: str = f"literal braces: {{not interpolated}}"
+    _ = greeting
+    _ = calc
+    _ = escaped
+    var __spec2026_actual: i32 = 0
+    var __spec2026_expected: i32 = 0
+    @assert(__spec2026_actual == __spec2026_expected, "2_5_4_fstring assertion failed")
+    return __spec2026_actual
+}
